@@ -92,7 +92,9 @@ import {
   cilSave,
   cilPlus,
   // Icone per l'ordinamento
-  cilSwapVertical
+  cilSwapVertical,
+  // Icone per le azioni
+  cilTrash
 } from '@coreui/icons'
 
 export const iconsSet = Object.assign(
@@ -164,7 +166,9 @@ export const iconsSet = Object.assign(
     cilSave,
     cilPlus,
     // Icone per l'ordinamento
-    cilSwapVertical
+    cilSwapVertical,
+    // Icone per le azioni
+    cilTrash
   },
   {
     cifUs,

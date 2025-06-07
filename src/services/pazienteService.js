@@ -88,6 +88,20 @@ export class PazienteService {
       throw error
     }
   }
+
+  /**
+   * Elimina un paziente
+   * @param {number} pazienteId - ID del paziente da eliminare
+   * @returns {Promise<void>}
+   */
+  static async deletePaziente(pazienteId) {
+    try {
+      await apiClient.delete(`/paziente/${pazienteId}`)
+    } catch (error) {
+      console.error('Errore nell\'eliminazione paziente:', error)
+      throw error
+    }
+  }
 }
 
 // Esportiamo anche le costanti per i tipi di terapia

@@ -75,6 +75,16 @@ export function usePazienti() {
     }
   }
 
+  const deletePaziente = async (pazienteId) => {
+    try {
+      await pazientiStore.deletePaziente(pazienteId)
+      showNotification('Paziente eliminato con successo', 'success')
+    } catch (error) {
+      showNotification('Errore nell\'eliminazione del paziente', 'error')
+      throw error
+    }
+  }
+
   const selectPazienteForEdit = (paziente) => {
     pazientiStore.selectPaziente(paziente)
     showEditModal.value = true
@@ -196,6 +206,7 @@ export function usePazienti() {
     loadPazientiPaginated,
     createPaziente,
     updatePaziente,
+    deletePaziente,
     selectPazienteForEdit,
     openCreateModal,
     closeCreateModal,

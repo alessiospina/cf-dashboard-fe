@@ -254,6 +254,38 @@ export const usePazientiStore = defineStore('pazienti', {
     },
 
     /**
+     * Elimina un paziente
+     * @param {number} pazienteId - ID del paziente da eliminare
+     */
+    async deletePaziente(pazienteId) {
+      this.loading = true
+      this.error = null
+
+      try {
+        await PazienteService.deletePaziente(pazienteId)
+
+        // Rimuoviamo il paziente dalla lista locale
+        const index = this.pazienti.findIndex(p => p.id === pazienteId)
+        if (index !== -1) {
+          this.pazienti.splice(index, 1)
+        }
+
+        // Se il paziente eliminato era selezionato, deselezionalo
+        if (this.selectedPaziente?.id === pazienteId) {
+          this.selectedPaziente = null
+        }
+
+        console.log('Paziente eliminato:', pazienteId)
+      } catch (error) {
+        this.error = 'Errore nell\'eliminazione del paziente'
+        console.error('Errore eliminazione paziente:', error)
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
      * Seleziona un paziente per la modifica
      * @param {Object} paziente - Paziente da selezionare
      */
