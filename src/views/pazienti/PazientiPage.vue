@@ -750,12 +750,14 @@ const itemsPerPage = ref(10)
 const directPageInput = ref(1)
 
 // Computed properties per informazioni di paginazione
-const showPagination = computed(() => totalPages.value > 1 || itemsPerPage.value < sortedAndFilteredPazienti.value.length)
+const showPagination = computed(() => totalPages.value > 1 || Number(itemsPerPage.value) < sortedAndFilteredPazienti.value.length)
 
 const paginationInfo = computed(() => {
   const total = sortedAndFilteredPazienti.value.length
-  const start = total === 0 ? 0 : (currentPage.value - 1) * itemsPerPage.value + 1
-  const end = Math.min(currentPage.value * itemsPerPage.value, total)
+  // Converte itemsPerPage.value in numero per operazioni matematiche corrette
+  const itemsPerPageNum = Number(itemsPerPage.value)
+  const start = total === 0 ? 0 : (currentPage.value - 1) * itemsPerPageNum + 1
+  const end = Math.min(currentPage.value * itemsPerPageNum, total)
   const showing = `${start}-${end}`
 
   return {
@@ -856,7 +858,8 @@ const isPartiallySelected = computed(() => {
 
 const paginatedPazienti = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage.value
-  const end = start + itemsPerPage.value
+  // Converte esplicitamente itemsPerPage.value in numero per evitare concatenazione di stringhe
+  const end = start + Number(itemsPerPage.value)
   return sortedAndFilteredPazienti.value.slice(start, end)
 })
 
@@ -892,7 +895,8 @@ const handleItemsPerPageChange = () => {
   // Reset alla prima pagina quando cambia il numero di righe
   resetPagination()
   // Se seleziono "Tutti", disabilita la paginazione
-  if (itemsPerPage.value >= sortedAndFilteredPazienti.value.length) {
+  // Converte in numero per confronto corretto
+  if (Number(itemsPerPage.value) >= sortedAndFilteredPazienti.value.length) {
     currentPage.value = 1
   }
 }
@@ -968,8 +972,9 @@ watch(currentPage, (newPage) => {
 watch(itemsPerPage, () => {
   // Quando cambia il numero di elementi per pagina,
   // prova a mantenere l'utente sulla stessa posizione relativa
-  const currentFirstItem = (currentPage.value - 1) * itemsPerPage.value + 1
-  const newPage = Math.ceil(currentFirstItem / itemsPerPage.value)
+  const itemsPerPageNum = Number(itemsPerPage.value) // Converte in numero
+  const currentFirstItem = (currentPage.value - 1) * itemsPerPageNum + 1
+  const newPage = Math.ceil(currentFirstItem / itemsPerPageNum)
   changePage(newPage)
 })
 
