@@ -56,7 +56,7 @@
             <CInputGroup>
               <CFormInput
                 v-model="searchTerm"
-                placeholder="Cerca per nome, cognome o email..."
+                placeholder="Cerca per nome, email, telefono, codice fiscale, terapia, data nascita..."
                 :disabled="loading"
               />
               <CInputGroupText>
@@ -88,25 +88,115 @@
         </CAlert>
 
         <!-- Tabella pazienti -->
-        <div v-else-if="filteredPazienti.length > 0">
-          <!-- Info risultati -->
+        <div v-else-if="sortedAndFilteredPazienti.length > 0">
+          <!-- Info risultati con ordinamento -->
           <p class="text-muted small mb-3">
-            Mostrando {{ filteredPazienti.length }} di {{ totalPazienti }} pazienti
+            Mostrando {{ sortedAndFilteredPazienti.length }} di {{ pazienti.length }} pazienti
             <span v-if="searchTerm">
               (filtrati per: "{{ searchTerm }}")
             </span>
+            <span v-if="sortColumn">
+              - Ordinati per {{ getSortColumnLabel(sortColumn) }}
+              ({{ sortDirection === 'asc' ? 'crescente' : 'decrescente' }})
+            </span>
+            <span v-else>
+              - Ordine naturale
+            </span>
           </p>
 
-          <!-- Tabella responsive -->
+          <!-- Tabella responsive con ordinamento -->
           <CTable hover responsive striped>
             <CTableHead>
               <CTableRow>
-                <CTableHeaderCell scope="col">Nome Completo</CTableHeaderCell>
-                <CTableHeaderCell scope="col">Data di Nascita</CTableHeaderCell>
-                <CTableHeaderCell scope="col">Email</CTableHeaderCell>
-                <CTableHeaderCell scope="col">Telefono</CTableHeaderCell>
-                <CTableHeaderCell scope="col">Tipo Terapia</CTableHeaderCell>
-                <CTableHeaderCell scope="col" class="text-center">Azioni</CTableHeaderCell>
+                <!-- Nome Completo - Sortable -->
+                <CTableHeaderCell
+                  scope="col"
+                  :class="getSortClass('nomeCompleto')"
+                  @click="handleSort('nomeCompleto')"
+                  style="cursor: pointer; user-select: none;"
+                >
+                  <div class="d-flex align-items-center justify-content-between">
+                    <span>Nome Completo</span>
+                    <CIcon
+                      :icon="getSortIcon('nomeCompleto')"
+                      size="sm"
+                      class="sort-icon"
+                    />
+                  </div>
+                </CTableHeaderCell>
+
+                <!-- Data di Nascita - Sortable -->
+                <CTableHeaderCell
+                  scope="col"
+                  :class="getSortClass('dataDiNascita')"
+                  @click="handleSort('dataDiNascita')"
+                  style="cursor: pointer; user-select: none;"
+                >
+                  <div class="d-flex align-items-center justify-content-between">
+                    <span>Data di Nascita</span>
+                    <CIcon
+                      :icon="getSortIcon('dataDiNascita')"
+                      size="sm"
+                      class="sort-icon"
+                    />
+                  </div>
+                </CTableHeaderCell>
+
+                <!-- Email - Sortable -->
+                <CTableHeaderCell
+                  scope="col"
+                  :class="getSortClass('email')"
+                  @click="handleSort('email')"
+                  style="cursor: pointer; user-select: none;"
+                >
+                  <div class="d-flex align-items-center justify-content-between">
+                    <span>Email</span>
+                    <CIcon
+                      :icon="getSortIcon('email')"
+                      size="sm"
+                      class="sort-icon"
+                    />
+                  </div>
+                </CTableHeaderCell>
+
+                <!-- Telefono - Sortable -->
+                <CTableHeaderCell
+                  scope="col"
+                  :class="getSortClass('telefono')"
+                  @click="handleSort('telefono')"
+                  style="cursor: pointer; user-select: none;"
+                >
+                  <div class="d-flex align-items-center justify-content-between">
+                    <span>Telefono</span>
+                    <CIcon
+                      :icon="getSortIcon('telefono')"
+                      size="sm"
+                      class="sort-icon"
+                    />
+                  </div>
+                </CTableHeaderCell>
+
+                <!-- Tipo Terapia - Sortable -->
+                <CTableHeaderCell
+                  scope="col"
+                  :class="getSortClass('tipoTerapia')"
+                  @click="handleSort('tipoTerapia')"
+                  style="cursor: pointer; user-select: none;"
+                >
+                  <div class="d-flex align-items-center justify-content-between">
+                    <span>Tipo Terapia</span>
+                    <CIcon
+                      :icon="getSortIcon('tipoTerapia')"
+                      size="sm"
+                      class="sort-icon"
+                    />
+                  </div>
+                </CTableHeaderCell>
+
+                <!-- Azioni - Non sortable -->
+                <CTableHeaderCell scope="col" class="text-center">
+                  Azioni
+                </CTableHeaderCell>
               </CTableRow>
             </CTableHead>
             <CTableBody>
@@ -280,18 +370,80 @@ const {
   calculateAge
 } = usePazienti()
 
-// Stato locale per la paginazione
+// Stato locale per la paginazione e ordinamento
 const currentPage = ref(1)
 const itemsPerPage = ref(10)
 
+// Stato per l'ordinamento
+const sortColumn = ref(null) // null = nessun ordinamento attivo
+const sortDirection = ref('asc') // 'asc' o 'desc'
+
 // Computed properties per la paginazione
-const totalPazienti = computed(() => filteredPazienti.value.length)
+const totalPazienti = computed(() => sortedAndFilteredPazienti.value.length)
 const totalPages = computed(() => Math.ceil(totalPazienti.value / itemsPerPage.value))
+
+// Computed per pazienti filtrati e ordinati
+const sortedAndFilteredPazienti = computed(() => {
+  let result = [...filteredPazienti.value]
+
+  if (sortColumn.value) {
+    result.sort((a, b) => {
+      let valueA, valueB
+
+      switch (sortColumn.value) {
+        case 'nomeCompleto':
+          // Ordinamento combinato nome + cognome
+          valueA = `${a.nome || ''} ${a.cognome || ''}`.trim().toLowerCase()
+          valueB = `${b.nome || ''} ${b.cognome || ''}`.trim().toLowerCase()
+          break
+
+        case 'dataDiNascita':
+          // Ordinamento per data
+          valueA = a.dataDiNascita ? new Date(a.dataDiNascita) : new Date(0)
+          valueB = b.dataDiNascita ? new Date(b.dataDiNascita) : new Date(0)
+          break
+
+        case 'email':
+          valueA = (a.email || '').toLowerCase()
+          valueB = (b.email || '').toLowerCase()
+          break
+
+        case 'telefono':
+          valueA = (a.telefono || '').toLowerCase()
+          valueB = (b.telefono || '').toLowerCase()
+          break
+
+        case 'tipoTerapia':
+          // Ordinamento per etichetta terapia (più leggibile)
+          valueA = formatTipoTerapia(a.tipoTerapia || '').toLowerCase()
+          valueB = formatTipoTerapia(b.tipoTerapia || '').toLowerCase()
+          break
+
+        default:
+          valueA = ''
+          valueB = ''
+      }
+
+      // Gestione comparazione
+      let comparison = 0
+      if (valueA > valueB) {
+        comparison = 1
+      } else if (valueA < valueB) {
+        comparison = -1
+      }
+
+      // Applica direzione ordinamento
+      return sortDirection.value === 'desc' ? comparison * -1 : comparison
+    })
+  }
+
+  return result
+})
 
 const paginatedPazienti = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage.value
   const end = start + itemsPerPage.value
-  return filteredPazienti.value.slice(start, end)
+  return sortedAndFilteredPazienti.value.slice(start, end)
 })
 
 // Metodi per la gestione della paginazione
@@ -301,9 +453,59 @@ const changePage = (pageNumber) => {
   }
 }
 
-// Reset paginazione quando cambia la ricerca
+// Reset paginazione quando cambia la ricerca o l'ordinamento
 const resetPagination = () => {
   currentPage.value = 1
+}
+
+// Funzione per gestire l'ordinamento con ciclo completo
+const handleSort = (column) => {
+  if (sortColumn.value === column) {
+    // Stessa colonna: cicla attraverso ASC → DESC → NEUTRAL
+    if (sortDirection.value === 'asc') {
+      sortDirection.value = 'desc'
+    } else {
+      // Da DESC torna a NEUTRAL (nessun ordinamento)
+      sortColumn.value = null
+      sortDirection.value = 'asc'
+    }
+  } else {
+    // Nuova colonna: inizia con ASC
+    sortColumn.value = column
+    sortDirection.value = 'asc'
+  }
+  resetPagination()
+}
+
+// Funzione per ottenere l'icona di ordinamento corretta
+const getSortIcon = (column) => {
+  if (sortColumn.value !== column) {
+    return 'cilSwapVertical' // Icona neutra (doppia freccia)
+  }
+  // Usa icone specifiche per ogni direzione (no rotazione CSS)
+  return sortDirection.value === 'asc' ? 'cilArrowTop' : 'cilArrowBottom'
+}
+
+// Funzione per ottenere la classe CSS dell'header
+const getSortClass = (column) => {
+  return {
+    'sortable-header': true,
+    'sorted': sortColumn.value === column,
+    'sort-asc': sortColumn.value === column && sortDirection.value === 'asc',
+    'sort-desc': sortColumn.value === column && sortDirection.value === 'desc'
+  }
+}
+
+// Funzione per ottenere l'etichetta leggibile della colonna ordinata
+const getSortColumnLabel = (column) => {
+  const labels = {
+    'nomeCompleto': 'Nome Completo',
+    'dataDiNascita': 'Data di Nascita',
+    'email': 'Email',
+    'telefono': 'Telefono',
+    'tipoTerapia': 'Tipo Terapia'
+  }
+  return labels[column] || column
 }
 
 // Watch del termine di ricerca per reset paginazione
@@ -320,13 +522,16 @@ const handleModalClose = () => {
 
 const handlePazienteCreated = (newPaziente) => {
   console.log('Paziente creato:', newPaziente)
-  // Il composable si occupa già di aggiornare la lista
+  // Chiudiamo esplicitamente la modale di creazione
+  closeCreateModal()
+  // Reset paginazione per mostrare il nuovo paziente
   resetPagination()
 }
 
 const handlePazienteUpdated = (updatedPaziente) => {
   console.log('Paziente aggiornato:', updatedPaziente)
-  // Il composable si occupa già di aggiornare la lista
+  // Chiudiamo esplicitamente la modale di modifica
+  closeEditModal()
 }
 
 // Utility per il colore dei badge delle terapie
@@ -377,6 +582,45 @@ onMounted(() => {
 .table-row-hover:hover {
   background-color: rgba(0, 123, 255, 0.05) !important;
 }
+
+/* Stili per l'ordinamento */
+.sortable-header {
+  transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+}
+
+.sortable-header:hover {
+  background-color: rgba(0, 123, 255, 0.1) !important;
+  color: #0056b3;
+}
+
+.sortable-header.sorted {
+  background-color: rgba(0, 123, 255, 0.15) !important;
+  color: #0056b3;
+  font-weight: 600;
+}
+
+.sort-icon {
+  opacity: 0.3;
+  transition: opacity 0.15s ease-in-out;
+  /* Rimuoviamo la transizione transform che causava l'effetto strano */
+}
+
+.sortable-header:hover .sort-icon {
+  opacity: 0.6;
+}
+
+.sortable-header.sorted .sort-icon {
+  opacity: 1;
+  color: #0056b3;
+}
+
+/* Icona neutra più evidente al hover */
+.sortable-header:not(.sorted):hover .sort-icon {
+  opacity: 0.8;
+}
+
+/* Rimuoviamo la rotazione CSS che causava il problema */
+/* .sort-desc .sort-icon { transform: rotate(180deg); } */
 
 /* Styling per i link nella tabella */
 .table a {

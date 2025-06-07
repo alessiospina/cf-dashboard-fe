@@ -4,7 +4,7 @@
 
     Miglioramenti implementati:
     - Layout semplificato con input in riga singola
-    - Icone intuitive per ogni campo
+    - Icone CoreUI intuitive per ogni campo
     - Design conforme ai temi CoreUI (dark/light mode)
     - Colori consistent con la sidebar
     - Raggruppamento logico dei campi
@@ -13,14 +13,13 @@
     :visible="visible"
     @close="handleClose"
     size="lg"
-    backdrop="static"
     class="paziente-modal"
   >
     <!-- Header della modale con colorScheme dark come la sidebar -->
     <CModalHeader class="modern-header bg-dark text-white border-bottom">
       <CModalTitle class="d-flex align-items-center">
         <CIcon
-          :icon="isEdit ? 'cil-pencil' : 'cil-user-plus'"
+          :icon="isEdit ? 'cilPencil' : 'cilUserPlus'"
           class="me-2"
         />
         {{ isEdit ? 'Modifica Paziente' : 'Nuovo Paziente' }}
@@ -35,7 +34,7 @@
         <CCard class="form-section mb-3">
           <CCardHeader class="bg-body-secondary border-bottom">
             <h6 class="mb-0 d-flex align-items-center text-body">
-              <CIcon icon="cil-user" class="me-2" />
+              <CIcon icon="cilUser" class="me-2" />
               Dati Anagrafici
             </h6>
           </CCardHeader>
@@ -44,7 +43,7 @@
             <!-- Campo Nome -->
             <div class="modern-input-group mb-3">
               <div class="input-icon bg-dark text-white">
-                <CIcon icon="cil-user" />
+                <CIcon icon="cilUser" />
               </div>
               <div class="input-wrapper">
                 <CFormLabel for="nome" class="form-label fw-semibold text-body">Nome</CFormLabel>
@@ -65,7 +64,7 @@
             <!-- Campo Cognome -->
             <div class="modern-input-group mb-3">
               <div class="input-icon bg-dark text-white">
-                <CIcon icon="cil-people" />
+                <CIcon icon="cilPeople" />
               </div>
               <div class="input-wrapper">
                 <CFormLabel for="cognome" class="form-label fw-semibold text-body">Cognome</CFormLabel>
@@ -86,7 +85,7 @@
             <!-- Campo Data di Nascita -->
             <div class="modern-input-group mb-3">
               <div class="input-icon bg-dark text-white">
-                <CIcon icon="cil-calendar" />
+                <CIcon icon="cilCalendar" />
               </div>
               <div class="input-wrapper">
                 <CFormLabel for="dataDiNascita" class="form-label fw-semibold text-body">Data di Nascita</CFormLabel>
@@ -107,7 +106,7 @@
             <!-- Campo Codice Fiscale -->
             <div class="modern-input-group mb-0">
               <div class="input-icon bg-dark text-white">
-                <CIcon icon="cil-description" />
+                <CIcon icon="cilFile" />
               </div>
               <div class="input-wrapper">
                 <CFormLabel for="codiceFiscale" class="form-label fw-semibold text-body">Codice Fiscale</CFormLabel>
@@ -133,7 +132,7 @@
         <CCard class="form-section mb-3">
           <CCardHeader class="bg-body-secondary border-bottom">
             <h6 class="mb-0 d-flex align-items-center text-body">
-              <CIcon icon="cil-mobile" class="me-2" />
+              <CIcon icon="cilAddressBook" class="me-2" />
               Contatti
             </h6>
           </CCardHeader>
@@ -142,7 +141,7 @@
             <!-- Campo Email -->
             <div class="modern-input-group mb-3">
               <div class="input-icon bg-dark text-white">
-                <CIcon icon="cil-envelope-closed" />
+                <CIcon icon="cilEnvelopeClosed" />
               </div>
               <div class="input-wrapper">
                 <CFormLabel for="email" class="form-label fw-semibold text-body">Email</CFormLabel>
@@ -164,7 +163,7 @@
             <!-- Campo Telefono -->
             <div class="modern-input-group mb-3">
               <div class="input-icon bg-dark text-white">
-                <CIcon icon="cil-mobile" />
+                <CIcon icon="cilPhone" />
               </div>
               <div class="input-wrapper">
                 <CFormLabel for="telefono" class="form-label optional fw-semibold text-body">Telefono</CFormLabel>
@@ -182,7 +181,7 @@
             <!-- Campo Indirizzo -->
             <div class="modern-input-group mb-0">
               <div class="input-icon bg-dark text-white">
-                <CIcon icon="cil-location-pin" />
+                <CIcon icon="cilLocationPin" />
               </div>
               <div class="input-wrapper">
                 <CFormLabel for="indirizzo" class="form-label optional fw-semibold text-body">Indirizzo</CFormLabel>
@@ -202,7 +201,7 @@
         <CCard class="form-section">
           <CCardHeader class="bg-body-secondary border-bottom">
             <h6 class="mb-0 d-flex align-items-center text-body">
-              <CIcon icon="cil-medical-cross" class="me-2" />
+              <CIcon icon="cilHeart" class="me-2" />
               Informazioni Terapia
             </h6>
           </CCardHeader>
@@ -211,7 +210,7 @@
             <!-- Campo Tipo di Terapia -->
             <div class="modern-input-group mb-0">
               <div class="input-icon bg-dark text-white">
-                <CIcon icon="cil-medical-cross" />
+                <CIcon icon="cilMedicalCross" />
               </div>
               <div class="input-wrapper">
                 <CFormLabel for="tipoTerapia" class="form-label fw-semibold text-body">Tipo di Terapia</CFormLabel>
@@ -222,7 +221,7 @@
                   required
                   class="modern-input"
                 >
-                  <option value="" disabled>Seleziona un tipo di terapia</option>
+                  <option value="">Seleziona un tipo di terapia</option>
                   <option
                     v-for="option in TIPI_TERAPIA_OPTIONS"
                     :key="option.value"
@@ -241,13 +240,13 @@
 
         <!-- Messaggio di errore generale -->
         <CAlert v-if="submitError" color="danger" class="mt-3">
-          <CIcon icon="cil-warning" class="me-2" />
+          <CIcon icon="cilWarning" class="me-2" />
           {{ submitError }}
         </CAlert>
       </CForm>
     </CModalBody>
 
-    <!-- Footer della modale con pulsanti CoreUI standard -->
+    <!-- Footer della modale con pulsanti CoreUI -->
     <CModalFooter class="border-top">
       <CButton
         color="secondary"
@@ -255,7 +254,7 @@
         :disabled="submitting"
         class="me-2"
       >
-        <CIcon icon="cil-x" class="me-2" />
+        <CIcon icon="cilX" class="me-2" />
         Annulla
       </CButton>
       <CButton
@@ -265,8 +264,8 @@
       >
         <!-- Mostriamo uno spinner durante il salvataggio -->
         <CSpinner v-if="submitting" size="sm" class="me-2" />
-        <CIcon v-else :icon="isEdit ? 'cil-pencil' : 'cil-check'" class="me-2" />
-        {{ isEdit ? 'Aggiorna Paziente' : 'Crea Paziente' }}
+        <CIcon v-else :icon="isEdit ? 'cilSave' : 'cilPlus'" class="me-2" />
+        {{ isEdit ? 'Aggiorna' : 'Crea' }}
       </CButton>
     </CModalFooter>
   </CModal>
@@ -281,7 +280,7 @@
  *
  * Miglioramenti implementati:
  * - Layout semplificato senza colonne
- * - Icone per ogni campo input
+ * - Icone CoreUI per ogni campo input
  * - Colori conformi alla sidebar (colorScheme dark)
  * - Classi CoreUI native per dark/light mode
  * - Raggruppamento logico in sezioni con CCard
@@ -383,12 +382,16 @@ watch(
   { immediate: true }
 )
 
-// Gestione chiusura modale
+// Gestione chiusura modale con controlli di sicurezza
 const handleClose = () => {
-  if (!submitting.value) {
-    resetForm()
-    emit('close')
+  // Impedisce la chiusura durante il salvataggio
+  if (submitting.value) {
+    return
   }
+
+  // Reset del form e chiusura
+  resetForm()
+  emit('close')
 }
 
 // Gestione submit del form
@@ -399,6 +402,7 @@ const handleSubmit = async () => {
 
   // Validazione
   const validation = validatePazienteForm(form)
+
   if (!validation.isValid) {
     errors.value = validation.errors
     return
@@ -430,7 +434,7 @@ const handleSubmit = async () => {
       emit('created', newPaziente)
     }
 
-    // Chiudi modale dopo successo
+    // Chiudi modale automaticamente dopo successo
     handleClose()
 
   } catch (error) {

@@ -1,6 +1,6 @@
 /**
  * Store Pinia per la gestione dello stato dei Pazienti
- * 
+ *
  * Questo store mantiene lo stato globale relativo ai pazienti:
  * - Lista dei pazienti
  * - Stato di loading
@@ -16,13 +16,13 @@ export const usePazientiStore = defineStore('pazienti', {
   state: () => ({
     // Lista di tutti i pazienti
     pazienti: [],
-    
+
     // Stato di caricamento per le operazioni async
     loading: false,
-    
+
     // Gestione errori
     error: null,
-    
+
     // Stato per la paginazione
     pagination: {
       currentPage: 1,
@@ -30,7 +30,7 @@ export const usePazientiStore = defineStore('pazienti', {
       totalItems: 0,
       totalPages: 0
     },
-    
+
     // Paziente selezionato per modifica
     selectedPaziente: null
   }),
@@ -41,12 +41,12 @@ export const usePazientiStore = defineStore('pazienti', {
      * Ritorna true se ci sono pazienti caricati
      */
     hasPazienti: (state) => state.pazienti.length > 0,
-    
+
     /**
      * Ritorna il numero totale di pazienti
      */
     totalPazienti: (state) => state.pazienti.length,
-    
+
     /**
      * Filtra i pazienti per tipo di terapia
      * @param {string} tipo - Tipo di terapia da filtrare
@@ -54,20 +54,98 @@ export const usePazientiStore = defineStore('pazienti', {
     pazientiPerTerapia: (state) => (tipo) => {
       return state.pazienti.filter(paziente => paziente.tipoTerapia === tipo)
     },
-    
+
     /**
-     * Cerca pazienti per nome o cognome
+     * Cerca pazienti in TUTTI i campi disponibili
+     * Supporta ricerca per "nome cognome", date, terapie, telefoni, indirizzi, etc.
      * @param {string} searchTerm - Termine di ricerca
      */
     searchPazienti: (state) => (searchTerm) => {
       if (!searchTerm) return state.pazienti
-      
-      const term = searchTerm.toLowerCase()
-      return state.pazienti.filter(paziente => 
-        paziente.nome.toLowerCase().includes(term) ||
-        paziente.cognome.toLowerCase().includes(term) ||
-        paziente.email.toLowerCase().includes(term)
-      )
+
+      const term = searchTerm.toLowerCase().trim()
+
+      return state.pazienti.filter(paziente => {
+        // Campi individuali per la ricerca (con fallback per valori null/undefined)
+        const nome = paziente.nome?.toLowerCase() || ''
+        const cognome = paziente.cognome?.toLowerCase() || ''
+        const email = paziente.email?.toLowerCase() || ''
+        const telefono = paziente.telefono?.toLowerCase() || ''
+        const codiceFiscale = paziente.codiceFiscale?.toLowerCase() || ''
+        const indirizzo = paziente.indirizzo?.toLowerCase() || ''
+        const tipoTerapia = paziente.tipoTerapia?.toLowerCase() || ''
+
+        // Data di nascita - ricerca sia formato originale che formattato
+        const dataNascita = paziente.dataDiNascita ?
+          new Date(paziente.dataDiNascita).toLocaleDateString('it-IT').toLowerCase() : ''
+        const dataNascitaISO = paziente.dataDiNascita?.toLowerCase() || ''
+
+        // Nome completo per ricerca combinata
+        const nomeCompleto = `${nome} ${cognome}`.trim()
+        const cognomeNome = `${cognome} ${nome}`.trim()
+
+        // Ricerca nei singoli campi di base
+        const matchCampiBase =
+          nome.includes(term) ||
+          cognome.includes(term) ||
+          email.includes(term) ||
+          codiceFiscale.includes(term)
+
+        // Ricerca nei campi aggiuntivi
+        const matchCampiAggiuntivi =
+          telefono.includes(term) ||
+          indirizzo.includes(term) ||
+          tipoTerapia.includes(term) ||
+          dataNascita.includes(term) ||
+          dataNascitaISO.includes(term)
+
+        // Ricerca nelle combinazioni nome-cognome
+        const matchCombinazioni =
+          nomeCompleto.includes(term) ||
+          cognomeNome.includes(term)
+
+        // Ricerca per tipo terapia (anche nelle etichette leggibili)
+        const tipoTerapiaLabels = {
+          'logopedia': 'logopedia',
+          'neuropsichiatria_infantile': 'neuropsichiatria infantile',
+          'neuropsicomotricità': 'neuropsicomotricità',
+          'terapia_aba': 'terapia aba',
+          'psicologa': 'psicologa',
+          'colloquio_conoscitivo': 'colloquio conoscitivo'
+        }
+        const labelTerapia = tipoTerapiaLabels[tipoTerapia] || ''
+        const matchTerapiaLabel = labelTerapia.includes(term)
+
+        // Ricerca per parole multiple separate (es: "mario 123" deve trovare tutti i termini)
+        const parole = term.split(/\s+/).filter(parola => parola.length > 0)
+        const matchParoleMultiple = parole.length > 1
+          ? parole.every(parola =>
+              nome.includes(parola) ||
+              cognome.includes(parola) ||
+              email.includes(parola) ||
+              telefono.includes(parola) ||
+              codiceFiscale.includes(parola) ||
+              indirizzo.includes(parola) ||
+              tipoTerapia.includes(parola) ||
+              dataNascita.includes(parola) ||
+              labelTerapia.includes(parola)
+            )
+          : false
+
+        // Ricerca per date in vari formati (es: "1990", "12/1990", "12/03/1990")
+        const matchData = term.match(/^\d{1,4}/) ? (
+          dataNascita.includes(term) ||
+          dataNascitaISO.includes(term) ||
+          paziente.dataDiNascita?.includes(term)
+        ) : false
+
+        return matchCampiBase ||
+               matchCampiAggiuntivi ||
+               matchCombinazioni ||
+               matchTerapiaLabel ||
+               matchParoleMultiple ||
+               matchData
+      })
     }
   },
 
@@ -79,7 +157,7 @@ export const usePazientiStore = defineStore('pazienti', {
     async fetchPazienti() {
       this.loading = true
       this.error = null
-      
+
       try {
         const pazienti = await PazienteService.getAllPazienti()
         this.pazienti = pazienti
@@ -99,10 +177,10 @@ export const usePazientiStore = defineStore('pazienti', {
     async fetchPazientiPaginated(params = {}) {
       this.loading = true
       this.error = null
-      
+
       try {
         const response = await PazienteService.getPazientiPaginated(params)
-        
+
         // Aggiorniamo i pazienti e la paginazione
         this.pazienti = response.data || []
         this.pagination = {
@@ -111,7 +189,7 @@ export const usePazientiStore = defineStore('pazienti', {
           totalItems: response.recordsTotal || 0,
           totalPages: Math.ceil((response.recordsTotal || 0) / (params.pageSize || 10))
         }
-        
+
         console.log('Pazienti paginati caricati:', this.pazienti.length)
       } catch (error) {
         this.error = 'Errore nel caricamento dei pazienti'
@@ -128,13 +206,13 @@ export const usePazientiStore = defineStore('pazienti', {
     async createPaziente(pazienteData) {
       this.loading = true
       this.error = null
-      
+
       try {
         const nuovoPaziente = await PazienteService.createPaziente(pazienteData)
-        
+
         // Aggiungiamo il nuovo paziente alla lista
         this.pazienti.unshift(nuovoPaziente)
-        
+
         console.log('Paziente creato:', nuovoPaziente)
         return nuovoPaziente
       } catch (error) {
@@ -153,17 +231,17 @@ export const usePazientiStore = defineStore('pazienti', {
     async updatePaziente(pazienteData) {
       this.loading = true
       this.error = null
-      
+
       try {
         const pazienteAggiornato = await PazienteService.updatePaziente(pazienteData)
-        
+
         // Troviamo l'indice del paziente da aggiornare
         const index = this.pazienti.findIndex(p => p.id === pazienteAggiornato.id)
         if (index !== -1) {
           // Sostituiamo il paziente nella lista
           this.pazienti[index] = pazienteAggiornato
         }
-        
+
         console.log('Paziente aggiornato:', pazienteAggiornato)
         return pazienteAggiornato
       } catch (error) {

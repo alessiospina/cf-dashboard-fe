@@ -80,6 +80,19 @@ import {
   cilUserFemale,
   cilUserFollow,
   cilXCircle,
+  // Icone aggiuntive per la modale pazienti
+  cilPhone,
+  cilAddressBook,
+  cilDescription,
+  cilMedicalCross,
+  cilHeart,
+  cilX,
+  cilUserPlus,
+  cilWarning,
+  cilSave,
+  cilPlus,
+  // Icone per l'ordinamento
+  cilSwapVertical
 } from '@coreui/icons'
 
 export const iconsSet = Object.assign(
@@ -139,6 +152,19 @@ export const iconsSet = Object.assign(
     cilUserFemale,
     cilUserFollow,
     cilXCircle,
+    // Icone aggiuntive per la modale pazienti
+    cilPhone,
+    cilAddressBook,
+    cilDescription,
+    cilMedicalCross,
+    cilHeart,
+    cilX,
+    cilUserPlus,
+    cilWarning,
+    cilSave,
+    cilPlus,
+    // Icone per l'ordinamento
+    cilSwapVertical
   },
   {
     cifUs,

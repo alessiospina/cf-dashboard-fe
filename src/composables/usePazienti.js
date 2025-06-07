@@ -1,6 +1,6 @@
 /**
  * Composable per la gestione dei Pazienti
- * 
+ *
  * Questo composable fornisce funzionalità riutilizzabili per:
  * - Gestire la lista dei pazienti
  * - Validare i form
@@ -15,7 +15,7 @@ import { TIPI_TERAPIA_OPTIONS } from '@/services/pazienteService'
 export function usePazienti() {
   // Accesso allo store Pinia
   const pazientiStore = usePazientiStore()
-  
+
   // Stato reattivo locale
   const searchTerm = ref('')
   const showCreateModal = ref(false)
@@ -55,9 +55,9 @@ export function usePazienti() {
 
   const createPaziente = async (pazienteData) => {
     try {
-      await pazientiStore.createPaziente(pazienteData)
-      showCreateModal.value = false
+      const result = await pazientiStore.createPaziente(pazienteData)
       showNotification('Paziente creato con successo', 'success')
+      return result
     } catch (error) {
       showNotification('Errore nella creazione del paziente', 'error')
       throw error
@@ -66,10 +66,9 @@ export function usePazienti() {
 
   const updatePaziente = async (pazienteData) => {
     try {
-      await pazientiStore.updatePaziente(pazienteData)
-      showEditModal.value = false
-      pazientiStore.clearSelectedPaziente()
+      const result = await pazientiStore.updatePaziente(pazienteData)
       showNotification('Paziente aggiornato con successo', 'success')
+      return result
     } catch (error) {
       showNotification('Errore nell\'aggiornamento del paziente', 'error')
       throw error
@@ -125,11 +124,11 @@ export function usePazienti() {
     const birthDate = new Date(dataNascita)
     let age = today.getFullYear() - birthDate.getFullYear()
     const monthDiff = today.getMonth() - birthDate.getMonth()
-    
+
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--
     }
-    
+
     return `${age} anni`
   }
 
@@ -161,7 +160,8 @@ export function usePazienti() {
       errors.email = 'L\'email non è valida'
     }
 
-    if (!formData.tipoTerapia) {
+    // Correzione: verifica che il tipo terapia non sia vuoto o nullo
+    if (!formData.tipoTerapia || formData.tipoTerapia.trim() === '') {
       errors.tipoTerapia = 'Il tipo di terapia è obbligatorio'
     }
 
@@ -190,7 +190,7 @@ export function usePazienti() {
     showCreateModal,
     showEditModal,
     notification,
-    
+
     // Metodi
     loadPazienti,
     loadPazientiPaginated,
@@ -202,13 +202,13 @@ export function usePazienti() {
     closeEditModal,
     showNotification,
     clearNotification,
-    
+
     // Utility
     formatDate,
     formatTipoTerapia,
     calculateAge,
     validatePazienteForm,
-    
+
     // Costanti
     TIPI_TERAPIA_OPTIONS
   }
