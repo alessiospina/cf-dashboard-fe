@@ -82,7 +82,7 @@
                     <option value="25">25</option>
                     <option value="50">50</option>
                     <option value="100">100</option>
-                    <option :value="sortedAndFilteredPazienti.length">Tutti</option>
+                    <!-- <option :value="sortedAndFilteredPazienti.length">Tutti</option> -->
                   </CFormSelect>
                 </div>
               </CCol>
@@ -195,25 +195,6 @@
             </CCol>
             <CCol md="6">
               <CRow class="align-items-center">
-                <!-- Selettore righe per pagina -->
-                <CCol md="auto">
-                  <div class="d-flex align-items-center">
-                    <label class="text-muted small me-2">Righe per pagina:</label>
-                    <CFormSelect
-                      v-model="itemsPerPage"
-                      @change="handleItemsPerPageChange"
-                      size="sm"
-                      style="width: auto;"
-                    >
-                      <option value="5">5</option>
-                      <option value="10">10</option>
-                      <option value="25">25</option>
-                      <option value="50">50</option>
-                      <option value="100">100</option>
-                      <option :value="sortedAndFilteredPazienti.length">Tutti ({{ sortedAndFilteredPazienti.length }})</option>
-                    </CFormSelect>
-                  </div>
-                </CCol>
                 <!-- Pulsanti selezione globale -->
                 <CCol md="auto" class="ms-auto">
                   <CButtonGroup size="sm">
@@ -1531,36 +1512,78 @@ const handleBulkDelete = async () => {
   }
 }
 
-/* Stili per i controlli nell'header */
+/* Stili per i controlli nell'header - supporto tema dark */
 .card-header {
-  background-color: #f8f9fa;
-  border-bottom: 2px solid #e9ecef;
+  background-color: var(--cui-card-header-bg, #f8f9fa);
+  border-bottom: 2px solid var(--cui-border-color, #e9ecef);
+}
+
+/* Override per tema dark */
+[data-coreui-theme="dark"] .card-header {
+  background-color: var(--cui-dark-bg, #2e3440);
+  border-bottom-color: var(--cui-dark-border, #4c566a);
 }
 
 .card-header h5 {
-  color: #2c3e50;
+  color: var(--cui-body-color, #2c3e50);
   font-weight: 600;
+}
+
+/* Miglioramento testo per tema dark */
+[data-coreui-theme="dark"] .card-header h5 {
+  color: var(--cui-dark-color, #eceff4);
 }
 
 .card-header small {
   display: block;
   margin-top: 0.25rem;
+  color: var(--cui-text-muted, #6c757d);
 }
 
-/* Controlli paginazione compatti nell'header */
+[data-coreui-theme="dark"] .card-header small {
+  color: var(--cui-dark-text-muted, #81a1c1);
+}
+
+/* Controlli paginazione compatti nell'header - tema dark */
 .header-pagination-controls .btn {
   border-radius: 4px;
   font-size: 0.875rem;
+  background-color: var(--cui-btn-bg, transparent);
+  border-color: var(--cui-btn-border-color, #6c757d);
+  color: var(--cui-btn-color, #495057);
 }
 
 .header-pagination-controls .btn:not(:disabled):hover {
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: var(--cui-btn-hover-bg, #e9ecef);
+}
+
+/* Override per tema dark */
+[data-coreui-theme="dark"] .header-pagination-controls .btn {
+  background-color: var(--cui-dark-btn-bg, #3b4252);
+  border-color: var(--cui-dark-btn-border, #4c566a);
+  color: var(--cui-dark-btn-color, #eceff4);
+}
+
+[data-coreui-theme="dark"] .header-pagination-controls .btn:not(:disabled):hover {
+  background-color: var(--cui-dark-btn-hover-bg, #434c5e);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .header-pagination-controls .form-select {
   border-radius: 4px;
   font-size: 0.875rem;
+  background-color: var(--cui-form-select-bg, #fff);
+  border-color: var(--cui-form-select-border, #ced4da);
+  color: var(--cui-form-select-color, #495057);
+}
+
+/* Select per tema dark */
+[data-coreui-theme="dark"] .header-pagination-controls .form-select {
+  background-color: var(--cui-dark-form-bg, #3b4252);
+  border-color: var(--cui-dark-form-border, #4c566a);
+  color: var(--cui-dark-form-color, #eceff4);
 }
 
 /* Icone nei controlli - assicura visibilità */
@@ -1573,7 +1596,7 @@ const handleBulkDelete = async () => {
   vertical-align: middle;
 }
 
-/* Stili specifici per icone FontAwesome nei controlli */
+/* Stili specifici per icone FontAwesome nei controlli - tema dark */
 .pagination-controls .fas,
 .header-pagination-controls .fas,
 .pagination-controls svg,
@@ -1589,6 +1612,19 @@ const handleBulkDelete = async () => {
   opacity: 0.5;
 }
 
+/* Miglioramento visibilità icone tema dark */
+[data-coreui-theme="dark"] .pagination-controls .fas,
+[data-coreui-theme="dark"] .header-pagination-controls .fas,
+[data-coreui-theme="dark"] .pagination-controls svg,
+[data-coreui-theme="dark"] .header-pagination-controls svg {
+  color: var(--cui-dark-icon-color, #eceff4);
+}
+
+[data-coreui-theme="dark"] .btn:disabled .fas,
+[data-coreui-theme="dark"] .btn:disabled svg {
+  opacity: 0.3;
+}
+
 /* Consistency tra icone CoreUI e FontAwesome */
 .btn .fas,
 .btn svg {
@@ -1596,7 +1632,7 @@ const handleBulkDelete = async () => {
   text-align: center;
 }
 
-/* Responsive aggiuntivo per header */
+/* Responsive aggiuntivo per header - tema dark supportato */
 @media (max-width: 768px) {
   .card-header .row > .col-md-3,
   .card-header .row > .col-md-5,
@@ -1618,5 +1654,33 @@ const handleBulkDelete = async () => {
     font-size: 0.75rem;
     padding: 0.25rem 0.5rem;
   }
+}
+
+/* Supporto aggiuntivo per tema dark - elementi della pagina */
+[data-coreui-theme="dark"] .text-muted {
+  color: var(--cui-dark-text-muted, #81a1c1) !important;
+}
+
+[data-coreui-theme="dark"] .page-title {
+  color: var(--cui-dark-heading-color, #eceff4);
+}
+
+/* Input di ricerca tema dark */
+[data-coreui-theme="dark"] .form-control {
+  background-color: var(--cui-dark-form-bg, #3b4252);
+  border-color: var(--cui-dark-form-border, #4c566a);
+  color: var(--cui-dark-form-color, #eceff4);
+}
+
+[data-coreui-theme="dark"] .form-control:focus {
+  background-color: var(--cui-dark-form-bg, #3b4252);
+  border-color: var(--cui-primary, #0d6efd);
+  color: var(--cui-dark-form-color, #eceff4);
+}
+
+[data-coreui-theme="dark"] .input-group-text {
+  background-color: var(--cui-dark-form-bg, #3b4252);
+  border-color: var(--cui-dark-form-border, #4c566a);
+  color: var(--cui-dark-form-color, #eceff4);
 }
 </style>
