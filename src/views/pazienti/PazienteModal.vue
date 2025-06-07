@@ -451,13 +451,32 @@ const handleSubmit = async () => {
   }
 }
 
-// Auto-conversione codice fiscale in maiuscolo
+// Auto-conversione in maiuscolo
 watch(
-  () => form.codiceFiscale,
-  (newValue) => {
-    if (newValue) {
-      form.codiceFiscale = newValue.toUpperCase()
-    }
+  [
+    () => form.codiceFiscale,
+    () => form.nome,
+    () => form.cognome,
+    () => form.indirizzo,
+    () => form.email
+  ],
+  ([newCodiceFiscale, newNome, newCognome, newIndirizzo, newEmail]) => {
+
+    if (newCodiceFiscale)
+      form.codiceFiscale = newCodiceFiscale.toUpperCase()
+
+    if (newNome)
+      form.nome = newNome.toUpperCase()
+
+    if (newCognome)
+      form.cognome = newCognome.toUpperCase()
+
+    if (newIndirizzo)
+      form.indirizzo = newIndirizzo.toUpperCase()
+
+    if(newEmail)
+      form.email = newEmail.toLowerCase()
+
   }
 )
 </script>

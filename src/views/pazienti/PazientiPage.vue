@@ -230,7 +230,7 @@
           >
             <div class="d-flex align-items-center">
               <CIcon icon="cilCheckCircle" class="me-2" />
-              <strong>{{ selectedCount }} paziente{{ selectedCount > 1 ? 'i' : '' }} selezionat{{ selectedCount > 1 ? 'i' : 'o' }}</strong>
+              <strong>{{ selectedCount }} pazient{{ selectedCount > 1 ? 'i' : 'e' }} selezionat{{ selectedCount > 1 ? 'i' : 'o' }}</strong>
             </div>
             <div>
               <CButton
@@ -629,7 +629,7 @@
           <CIcon icon="cilTrash" size="3xl" class="text-danger mb-3" />
           <h5 class="mb-3">
             Sei sicuro di voler eliminare {{ selectedCount }}
-            paziente{{ selectedCount > 1 ? 'i' : '' }}?
+            pazient{{ selectedCount > 1 ? 'i' : 'e' }}?
           </h5>
         </div>
 
@@ -991,6 +991,13 @@ const handlePazienteCreated = (newPaziente) => {
   console.log('Paziente creato:', newPaziente)
   // Chiudiamo esplicitamente la modale di creazione
   closeCreateModal()
+
+  showNotificationWithAutoHide(
+    `Paziente ${newPaziente.nome} ${newPaziente.cognome} creato con successo`,
+    'success',
+    4000 // Mostra per 4 secondi
+  )
+
   // Reset paginazione per mostrare il nuovo paziente
   resetPagination()
 }
