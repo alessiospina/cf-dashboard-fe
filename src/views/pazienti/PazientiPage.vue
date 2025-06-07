@@ -647,11 +647,6 @@
               :color="bulkDeleteProgress === 100 ? 'success' : 'danger'"
             />
           </CProgress>
-          <!-- Messaggio di completamento -->
-          <div v-if="bulkDeleteProgress === 100" class="text-center mt-3">
-            <CIcon icon="cilCheckCircle" class="text-success me-2" />
-            <span class="text-success fw-bold">La modale si chiuderà automaticamente...</span>
-          </div>
         </div>
 
         <!-- Lista pazienti selezionati (limitata per performance) -->
@@ -698,15 +693,6 @@
         >
           <CIcon icon="cilTrash" class="me-2" />
           Elimina {{ selectedCount > 1 ? selectedCount + ' Pazienti' : 'Paziente' }}
-        </CButton>
-        <!-- Pulsante alternativo quando l'operazione è completata -->
-        <CButton
-          v-else-if="bulkDeleteProgress === 100"
-          color="success"
-          @click="cancelBulkDelete"
-        >
-          <CIcon icon="cilCheckCircle" class="me-2" />
-          Operazione Completata
         </CButton>
       </CModalFooter>
     </CModal>
@@ -1207,35 +1193,35 @@ const handleBulkDelete = async () => {
     // Reset stati di loading
     bulkDeleting.value = false
 
-    // Mostra il risultato dell'operazione con auto-hide
-    if (errors === 0 && completed > 0) {
-      showNotificationWithAutoHide(
-        `${completed} paziente${completed > 1 ? 'i' : ''} eliminat${completed > 1 ? 'i' : 'o'} con successo`,
-        'success',
-        3000 // 3 secondi per messaggi di successo
-      )
-    } else if (completed > 0 && errors > 0) {
-      showNotificationWithAutoHide(
-        `${completed} paziente${completed > 1 ? 'i' : ''} eliminat${completed > 1 ? 'i' : 'o'}, ${errors} errore${errors > 1 ? 'i' : ''}`,
-        'warning',
-        5000 // 5 secondi per messaggi di warning
-      )
-    } else if (completed === 0) {
-      // Errori restano visibili fino alla chiusura manuale
-      notification.value = {
-        message: 'Errore nell\'eliminazione dei pazienti selezionati',
-        type: 'error'
-      }
-    }
-
-    // Pulisci sempre la selezione e chiudi la modale
+    // Pulisci sempre la selezione e reset paginazione IMMEDIATAMENTE
     clearSelection()
     resetPagination()
 
-    // Chiudi la modale dopo un breve delay per permettere di vedere il progress al 100%
+    // 1. PRIMA chiudi la modale subito
+    cancelBulkDelete()
+
+    // 2. POI mostra la notifica dopo un breve delay per permettere alla modale di chiudersi
     setTimeout(() => {
-      cancelBulkDelete()
-    }, 500)
+      if (errors === 0 && completed > 0) {
+        showNotificationWithAutoHide(
+          `${completed} pazient${completed > 1 ? 'i' : 'e'} eliminat${completed > 1 ? 'i' : 'o'} con successo`,
+          'success',
+          4000 // 4 secondi per messaggi di successo
+        )
+      } else if (completed > 0 && errors > 0) {
+        showNotificationWithAutoHide(
+          `${completed} pazient${completed > 1 ? 'i' : 'e'} eliminat${completed > 1 ? 'i' : 'o'}, ${errors} errore${errors > 1 ? 'i' : ''}`,
+          'warning',
+          6000 // 6 secondi per messaggi di warning
+        )
+      } else if (completed === 0) {
+        // Errori restano visibili fino alla chiusura manuale
+        notification.value = {
+          message: 'Errore nell\'eliminazione dei pazienti selezionati',
+          type: 'error'
+        }
+      }
+    }, 300) // Delay di 300ms per permettere alla modale di chiudersi completamente
   }
 }
 </script>
