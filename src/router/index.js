@@ -30,6 +30,15 @@ const routes = [
             /* webpackChunkName: "pazienti" */ '@/views/pazienti/PazientiPage.vue'
           ),
       },
+      {
+        path: '/calendario',
+        name: 'Calendario',
+        // Pagina di gestione calendario con lazy loading
+        component: () =>
+          import(
+            /* webpackChunkName: "calendario" */ '@/views/calendario/CalendarioView.vue'
+          ),
+      },
     ],
   },
   {

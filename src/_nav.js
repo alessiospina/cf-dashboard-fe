@@ -24,4 +24,14 @@ export default [
       text: 'NEW',
     },
   },
+  {
+    component: 'CNavItem',
+    name: 'Calendario',
+    to: '/calendario',
+    icon: 'cil-calendar',
+    badge: {
+      color: 'success',
+      text: 'NEW',
+    },
+  },
 ]
