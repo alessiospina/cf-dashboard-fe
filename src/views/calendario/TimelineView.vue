@@ -86,8 +86,7 @@
                   :key="`${specialista.id}-${slot.ora}`"
                   class="time-slot"
                   :class="{
-                    'ora-corrente-slot': isOraCorrente(slot.ora),
-                    'slot-passato': isSlotPassato(slot.ora)
+                    'ora-corrente-slot': isOraCorrente(slot.ora)
                   }"
                   @click="creaEventoInSlot(specialista.id, slot.ora)"
                 >
@@ -172,8 +171,8 @@ const emit = defineEmits(['eventoClick', 'creaEvento'])
 const { formatTime, COLORI_TERAPIA } = useCalendario()
 
 // Costanti per la timeline
-const ORARIO_INIZIO = 8
-const ORARIO_FINE = 20
+const ORARIO_INIZIO = 0
+const ORARIO_FINE = 24
 const INTERVALLO_MINUTI = 30
 const LARGHEZZA_SLOT = 80
 
@@ -272,17 +271,6 @@ const isOraCorrente = (oraSlot) => {
   return oraSlot === oraCorrenteString
 }
 
-// Verifica se lo slot è nel passato
-const isSlotPassato = (oraSlot) => {
-  if (!mostraIndicatoreOra.value) return false
-  const [oraSlotH, oraSlotM] = oraSlot.split(':').map(Number)
-  const slotTimestamp = oraSlotH * 60 + oraSlotM
-  const ora = oraCorrente.value.getHours()
-  const minuti = oraCorrente.value.getMinutes()
-  const oraCorrenteTimestamp = ora * 60 + minuti
-  return slotTimestamp < oraCorrenteTimestamp
-}
-
 // Ottiene l'ora corrente formattata
 const getOraCorrente = () => {
   return oraCorrente.value.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
@@ -334,6 +322,9 @@ const getEventoStyle = (evento) => {
 
 // Crea un nuovo evento in uno slot
 const creaEventoInSlot = (specialistaId, oraSlot) => {
+  console.log('🖱️ Click su slot:', { specialistaId, oraSlot })
+  console.log('✅ Creazione evento in corso...')
+
   const [ora, minuti] = oraSlot.split(':').map(Number)
   const dataInizio = new Date(props.dataSelezionata)
   dataInizio.setHours(ora, minuti, 0, 0)
@@ -544,23 +535,27 @@ onUnmounted(() => {
 .time-slot {
   min-width: 80px;
   border-right: 1px solid #f0f0f0;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease;
   position: relative;
   height: 100%;
+  background-color: transparent;
 }
 
 .time-slot:hover {
-  background-color: rgba(0, 123, 255, 0.1);
+  background-color: rgba(0, 123, 255, 0.1) !important;
+  border-color: rgba(0, 123, 255, 0.2);
+  cursor: pointer !important;
 }
 
 .time-slot.ora-corrente-slot {
   background-color: rgba(255, 193, 7, 0.2);
+  cursor: pointer !important;
 }
 
-.time-slot.slot-passato {
-  background-color: rgba(0, 0, 0, 0.05);
-  cursor: not-allowed;
+.time-slot.ora-corrente-slot:hover {
+  background-color: rgba(255, 193, 7, 0.3) !important;
+  cursor: pointer !important;
 }
 
 .indicatore-ora-corrente {
@@ -580,6 +575,7 @@ onUnmounted(() => {
   right: 0;
   bottom: 0;
   pointer-events: none;
+  z-index: 10;
 }
 
 .evento-timeline {
@@ -587,6 +583,7 @@ onUnmounted(() => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s, box-shadow 0.2s;
   pointer-events: auto;
+  z-index: 15;
 }
 
 .evento-timeline:hover {
