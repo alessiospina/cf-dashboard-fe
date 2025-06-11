@@ -6,7 +6,7 @@
 // Enum per la frequenza degli eventi (dal backend)
 export const FrequenzaEvento = {
   GIORNALIERA: 'GIORNALIERA',
-  SETTIMANALE: 'SETTIMANALE', 
+  SETTIMANALE: 'SETTIMANALE',
   MENSILE: 'MENSILE',
   UNICA: 'UNICA'
 }
@@ -56,7 +56,7 @@ export class SlotBackend {
 
 /**
  * DTO per la creazione di un evento
- * Corrisponde a CreateEventoDto
+ * Corrisponde a CreateEventoDto del backend
  */
 export class CreateEventoDto {
   constructor(data = {}) {
@@ -65,10 +65,9 @@ export class CreateEventoDto {
     this.professionista = data.professionista || ''
     this.dataInizio = data.dataInizio || null
     this.dataFine = data.dataFine || null
-    this.postiDisponibili = data.postiDisponibili || 1
-    this.frequenza = data.frequenza || FrequenzaEvento.UNICA
-    this.dataFineRipetizione = data.dataFineRipetizione || null
-    this.eventoNextId = data.eventoNextId || null
+    // Campi rimossi: postiDisponibili, frequenza, dataFineRipetizione, eventoNextId
+    // Campo aggiunto per associare direttamente un paziente
+    this.pazienteId = data.pazienteId || null
   }
 }
 
@@ -98,15 +97,17 @@ export class EventoMapper {
   static frontendToBackend(eventoFrontend) {
     return new CreateEventoDto({
       titolo: eventoFrontend.titolo || `EVENTO ${eventoFrontend.tipoTerapia?.replace('_', ' ') || ''}`,
-      stanza: eventoFrontend.sala || '',
-      professionista: eventoFrontend.specialista?.nomeCompleto || 
+      stanza: eventoFrontend.sala || eventoFrontend.stanza || '',
+      professionista: eventoFrontend.specialista?.nomeCompleto ||
                      `${eventoFrontend.specialista?.nome || ''} ${eventoFrontend.specialista?.cognome || ''}`.trim(),
       dataInizio: eventoFrontend.dataInizio,
       dataFine: eventoFrontend.dataFine,
       postiDisponibili: eventoFrontend.postiDisponibili || 1,
       frequenza: eventoFrontend.frequenza || FrequenzaEvento.UNICA,
       dataFineRipetizione: eventoFrontend.dataFineRipetizione || null,
-      eventoNextId: eventoFrontend.eventoNextId || null
+      eventoNextId: eventoFrontend.eventoNextId || null,
+      // Supporto per l'associazione diretta del paziente
+      pazienteId: eventoFrontend.pazienteId || eventoFrontend.paziente?.id || null
     })
   }
 
@@ -130,12 +131,18 @@ export class EventoMapper {
         nomeCompleto: nomeCompleto,
         specializzazione: eventoBackend.tipoTerapia || 'LOGOPEDIA' // Default fallback
       },
-      paziente: eventoBackend.slots?.[0]?.paziente ? {
+      // Paziente direttamente dalla relazione dell'evento o dai slot
+      paziente: eventoBackend.paziente ? {
+        id: eventoBackend.paziente.id?.toString(),
+        nome: eventoBackend.paziente.nome,
+        cognome: eventoBackend.paziente.cognome,
+        nomeCompleto: `${eventoBackend.paziente.nome} ${eventoBackend.paziente.cognome}`
+      } : (eventoBackend.slots?.[0]?.paziente ? {
         id: eventoBackend.slots[0].paziente.id?.toString(),
         nome: eventoBackend.slots[0].paziente.nome,
         cognome: eventoBackend.slots[0].paziente.cognome,
         nomeCompleto: `${eventoBackend.slots[0].paziente.nome} ${eventoBackend.slots[0].paziente.cognome}`
-      } : null,
+      } : null),
       dataInizio: eventoBackend.dataInizio,
       dataFine: eventoBackend.dataFine,
       tipoTerapia: 'LOGOPEDIA', // Da determinare in base alla logica di business
@@ -143,7 +150,7 @@ export class EventoMapper {
       note: '',
       sala: eventoBackend.stanza,
       colore: '#0d6efd', // Default
-      
+
       // Nuovi campi dal backend
       postiDisponibili: eventoBackend.postiDisponibili,
       frequenza: eventoBackend.frequenza,

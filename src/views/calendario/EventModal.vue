@@ -2,7 +2,7 @@
   <CModal :visible="visible" @close="handleClose" size="xl" class="event-modal">
     <CModalHeader class="bg-primary text-white">
       <CModalTitle class="d-flex align-items-center">
-        <CIcon :icon="isEdit ? 'cil-pencil' : 'cil-plus'" class="me-2" />
+        <CIcon :icon="isEdit ? 'cil-pencil' : 'cil-plus'" class="me-2"/>
         {{ isEdit ? 'Modifica Appuntamento' : 'Nuovo Appuntamento' }}
       </CModalTitle>
     </CModalHeader>
@@ -13,7 +13,7 @@
         <CCard class="mb-3">
           <CCardHeader>
             <h6 class="mb-0">
-              <CIcon icon="cil-calendar" class="me-2" />
+              <CIcon icon="cil-calendar" class="me-2"/>
               Informazioni Evento
             </h6>
           </CCardHeader>
@@ -47,123 +47,90 @@
               </CCol>
             </CRow>
 
-            <div class="mb-3">
-              <CFormLabel class="fw-semibold">Professionista</CFormLabel>
-              <CFormInput
-                v-model="form.professionista"
-                :invalid="!!errors.professionista"
-                placeholder="Nome Cognome del professionista"
-                maxlength="50"
-                required
-              />
-              <CFormFeedback v-if="errors.professionista" invalid>{{ errors.professionista }}</CFormFeedback>
-            </div>
-
-            <!-- Data e Orari -->
-            <CRow>
-              <CCol md="4">
-                <div class="mb-3">
-                  <CFormLabel class="fw-semibold">Data</CFormLabel>
-                  <CFormInput v-model="form.data" type="date" :invalid="!!errors.data" required />
-                  <CFormFeedback v-if="errors.data" invalid>{{ errors.data }}</CFormFeedback>
-                </div>
-              </CCol>
-              <CCol md="4">
-                <div class="mb-3">
-                  <CFormLabel class="fw-semibold">Ora Inizio</CFormLabel>
-                  <CFormInput v-model="form.oraInizio" type="time" :invalid="!!errors.oraInizio" required />
-                  <CFormFeedback v-if="errors.oraInizio" invalid>{{ errors.oraInizio }}</CFormFeedback>
-                </div>
-              </CCol>
-              <CCol md="4">
-                <div class="mb-3">
-                  <CFormLabel class="fw-semibold">Ora Fine</CFormLabel>
-                  <CFormInput v-model="form.oraFine" type="time" :invalid="!!errors.oraFine" required />
-                  <CFormFeedback v-if="errors.oraFine" invalid>{{ errors.oraFine }}</CFormFeedback>
-                </div>
-              </CCol>
-            </CRow>
-
+            <!-- Professionista e Tipo Terapia -->
             <CRow>
               <CCol md="6">
                 <div class="mb-3">
-                  <CFormLabel class="fw-semibold">Posti Disponibili</CFormLabel>
-                  <CFormInput
-                    v-model.number="form.postiDisponibili"
-                    type="number"
-                    min="1"
-                    max="50"
-                    :invalid="!!errors.postiDisponibili"
-                    required
-                  />
-                  <CFormFeedback v-if="errors.postiDisponibili" invalid>{{ errors.postiDisponibili }}</CFormFeedback>
-                </div>
-              </CCol>
-              <CCol md="6">
-                <div class="mb-3">
-                  <CFormLabel class="fw-semibold">Frequenza Evento</CFormLabel>
-                  <CFormSelect v-model="form.frequenza" :invalid="!!errors.frequenza" required>
-                    <option v-for="freq in FREQUENZA_EVENTO_OPTIONS" :key="freq.value" :value="freq.value">
-                      {{ freq.label }}
-                    </option>
-                  </CFormSelect>
-                  <CFormFeedback v-if="errors.frequenza" invalid>{{ errors.frequenza }}</CFormFeedback>
-                </div>
-              </CCol>
-            </CRow>
+                  <CFormLabel class="fw-semibold">Professionista</CFormLabel>
+                  <div class="position-relative">
+                    <CFormInput
+                      v-model="form.professionistaInput"
+                      :invalid="!!errors.professionista"
+                      placeholder="Clicca per selezionare un professionista..."
+                      maxlength="50"
+                      required
+                      @input="filtraProfessionisti"
+                      @focus="onFocusProfessionisti"
+                      @blur="nascondiProfessionistiDropdown"
+                    />
+                    <CFormFeedback v-if="errors.professionista" invalid>{{ errors.professionista }}</CFormFeedback>
+                    <CFormText class="text-muted">
+                      Clicca sul campo per visualizzare tutti i professionisti disponibili
+                    </CFormText>
 
-            <!-- Data Fine Ripetizione - Solo se frequenza non è UNICA -->
-            <div v-if="form.frequenza !== FrequenzaEvento.UNICA" class="mb-3">
-              <CFormLabel class="fw-semibold">Data Fine Ripetizione</CFormLabel>
-              <CFormInput
-                v-model="form.dataFineRipetizione"
-                type="date"
-                :invalid="!!errors.dataFineRipetizione"
-                :required="form.frequenza !== FrequenzaEvento.UNICA"
-              />
-              <CFormFeedback v-if="errors.dataFineRipetizione" invalid>{{ errors.dataFineRipetizione }}</CFormFeedback>
-              <CFormText class="text-muted">
-                La data fino alla quale l'evento si ripeterà secondo la frequenza selezionata
-              </CFormText>
-            </div>
-          </CCardBody>
-        </CCard>
+                    <!-- Dropdown suggerimenti professionisti -->
+                    <div
+                      v-if="showProfessionistiDropdown && professionistiFiltrati.length > 0"
+                      class="suggestions-dropdown"
+                    >
+                      <div
+                        v-for="prof in professionistiFiltrati"
+                        :key="prof.id"
+                        class="suggestion-item"
+                        @mousedown="selezionaProfessionista(prof)"
+                      >
+                        <div class="d-flex justify-content-between align-items-center">
+                          <span class="fw-semibold">{{ prof.nominativo }}</span>
+                          <CBadge :color="getBadgeColorTerapia(prof.tipoTerapia)" size="sm" v-if="prof.tipoTerapia">
+                            {{ formatTipoTerapia(prof.tipoTerapia) }}
+                          </CBadge>
+                        </div>
+                      </div>
+                    </div>
 
-        <!-- Configurazione Frontend -->
-        <CCard class="mb-3">
-          <CCardHeader>
-            <h6 class="mb-0">
-              <CIcon icon="cil-settings" class="me-2" />
-              Configurazione Display
-            </h6>
-          </CCardHeader>
-          <CCardBody>
-            <CRow>
-              <CCol md="6">
-                <div class="mb-3">
-                  <CFormLabel class="fw-semibold">Specialista (per visualizzazione)</CFormLabel>
-                  <CFormSelect v-model="form.specialistaId" :invalid="!!errors.specialistaId">
-                    <option value="">Seleziona specialista</option>
-                    <option v-for="specialista in specialisti" :key="specialista.id" :value="specialista.id">
-                      {{ specialista.nome }} {{ specialista.cognome }} - {{ formatTipoTerapia(specialista.specializzazione) }}
-                    </option>
-                  </CFormSelect>
-                  <CFormFeedback v-if="errors.specialistaId" invalid>{{ errors.specialistaId }}</CFormFeedback>
-                  <CFormText class="text-muted">
-                    Seleziona per associazione con specialista esistente
-                  </CFormText>
+                    <!-- Debug info (rimuovi dopo il test) -->
+                    <div v-if="showProfessionistiDropdown" class="small text-muted mt-1">
+                      Debug: Dropdown visibile: {{ showProfessionistiDropdown }},
+                      Professionisti trovati: {{ professionistiFiltrati.length }}
+                    </div>
+                  </div>
                 </div>
               </CCol>
               <CCol md="6">
                 <div class="mb-3">
-                  <CFormLabel class="fw-semibold">Tipo Terapia (per categorizzazione)</CFormLabel>
-                  <CFormSelect v-model="form.tipoTerapia" :invalid="!!errors.tipoTerapia">
+                  <CFormLabel class="fw-semibold">Tipo Terapia</CFormLabel>
+                  <CFormSelect v-model="form.tipoTerapia" :invalid="!!errors.tipoTerapia" required>
                     <option value="">Seleziona tipo terapia</option>
                     <option v-for="terapia in TIPI_TERAPIA_OPTIONS" :key="terapia.value" :value="terapia.value">
                       {{ terapia.label }}
                     </option>
                   </CFormSelect>
                   <CFormFeedback v-if="errors.tipoTerapia" invalid>{{ errors.tipoTerapia }}</CFormFeedback>
+                </div>
+              </CCol>
+            </CRow>
+
+            <!-- Data e Orari -->
+            <CRow>
+              <CCol md="4">
+                <div class="mb-3">
+                  <CFormLabel class="fw-semibold">Data</CFormLabel>
+                  <CFormInput v-model="form.data" type="date" :invalid="!!errors.data" required/>
+                  <CFormFeedback v-if="errors.data" invalid>{{ errors.data }}</CFormFeedback>
+                </div>
+              </CCol>
+              <CCol md="4">
+                <div class="mb-3">
+                  <CFormLabel class="fw-semibold">Ora Inizio</CFormLabel>
+                  <CFormInput v-model="form.oraInizio" type="time" :invalid="!!errors.oraInizio" required/>
+                  <CFormFeedback v-if="errors.oraInizio" invalid>{{ errors.oraInizio }}</CFormFeedback>
+                </div>
+              </CCol>
+              <CCol md="4">
+                <div class="mb-3">
+                  <CFormLabel class="fw-semibold">Ora Fine</CFormLabel>
+                  <CFormInput v-model="form.oraFine" type="time" :invalid="!!errors.oraFine" required/>
+                  <CFormFeedback v-if="errors.oraFine" invalid>{{ errors.oraFine }}</CFormFeedback>
                 </div>
               </CCol>
             </CRow>
@@ -174,67 +141,90 @@
         <CCard class="mb-3">
           <CCardHeader>
             <h6 class="mb-0">
-              <CIcon icon="cil-user" class="me-2" />
-              Paziente (opzionale per prenotazione)
+              <CIcon icon="cil-user" class="me-2"/>
+              Paziente Associato (opzionale)
             </h6>
           </CCardHeader>
           <CCardBody>
             <CRow>
-              <CCol md="6">
+              <CCol md="12">
                 <div class="mb-3">
-                  <CFormLabel class="fw-semibold">Nome</CFormLabel>
-                  <CFormInput
-                    v-model="form.nomePaziente"
-                    :invalid="!!errors.nomePaziente"
-                    placeholder="Nome paziente"
-                  />
-                  <CFormFeedback v-if="errors.nomePaziente" invalid>{{ errors.nomePaziente }}</CFormFeedback>
-                </div>
-              </CCol>
-              <CCol md="6">
-                <div class="mb-3">
-                  <CFormLabel class="fw-semibold">Cognome</CFormLabel>
-                  <CFormInput
-                    v-model="form.cognomePaziente"
-                    :invalid="!!errors.cognomePaziente"
-                    placeholder="Cognome paziente"
-                  />
-                  <CFormFeedback v-if="errors.cognomePaziente" invalid>{{ errors.cognomePaziente }}</CFormFeedback>
+                  <CFormLabel class="fw-semibold">Seleziona Paziente</CFormLabel>
+                  <div class="position-relative">
+                    <CFormInput
+                      v-model="form.pazienteInput"
+                      :invalid="!!errors.pazienteId"
+                      :disabled="props.loadingPazienti"
+                      placeholder="Clicca per selezionare un paziente..."
+                      @input="filtraPazienti"
+                      @focus="onFocusPazienti"
+                      @blur="nascondiPazientiDropdown"
+                    />
+                    <CFormFeedback v-if="errors.pazienteId" invalid>{{ errors.pazienteId }}</CFormFeedback>
+                    <CFormText class="text-muted">
+                      Clicca sul campo per visualizzare tutti i pazienti o digita per filtrarli
+                    </CFormText>
+
+                    <!-- Dropdown suggerimenti pazienti -->
+                    <div
+                      v-if="showPazientiDropdown && pazientiFiltrati.length > 0"
+                      class="suggestions-dropdown"
+                    >
+                      <div
+                        v-for="paziente in pazientiFiltrati"
+                        :key="paziente.id"
+                        class="suggestion-item"
+                        @mousedown="selezionaPaziente(paziente)"
+                      >
+                        <div class="d-flex justify-content-between align-items-center">
+                          <span class="fw-semibold">{{ paziente.nome }} {{ paziente.cognome }}</span>
+                          <CBadge :color="getBadgeColorTerapia(paziente.tipoTerapia)" size="sm">
+                            {{ formatTipoTerapia(paziente.tipoTerapia) }}
+                          </CBadge>
+                        </div>
+                        <small class="text-muted d-block">{{ paziente.email }}</small>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </CCol>
             </CRow>
-          </CCardBody>
-        </CCard>
 
-        <!-- Dettagli Aggiuntivi -->
-        <CCard>
-          <CCardHeader>
-            <h6 class="mb-0">
-              <CIcon icon="cil-info" class="me-2" />
-              Dettagli Aggiuntivi
-            </h6>
-          </CCardHeader>
-          <CCardBody>
-            <div class="mb-3">
-              <CFormLabel class="fw-semibold">Stato</CFormLabel>
-              <CFormSelect v-model="form.stato">
-                <option value="confermato">Confermato</option>
-                <option value="in_attesa">In Attesa</option>
-                <option value="completato">Completato</option>
-                <option value="cancellato">Cancellato</option>
-              </CFormSelect>
-            </div>
-
-            <div class="mb-0">
-              <CFormLabel class="fw-semibold">Note</CFormLabel>
-              <CFormTextarea v-model="form.note" rows="3" placeholder="Note aggiuntive per l'appuntamento..." />
+            <!-- Dettagli paziente selezionato -->
+            <div v-if="pazienteSelezionato" class="patient-details mt-3 p-3 bg-light rounded">
+              <h6 class="mb-2">
+                <CIcon icon="cil-info" class="me-2"/>
+                Dettagli Paziente
+              </h6>
+              <CRow>
+                <CCol md="6">
+                  <strong>Nome Completo:</strong> {{ pazienteSelezionato.nome }} {{ pazienteSelezionato.cognome }}
+                </CCol>
+                <CCol md="6">
+                  <strong>Tipo Terapia:</strong>
+                  <CBadge
+                    :color="getBadgeColorTerapia(pazienteSelezionato.tipoTerapia)"
+                    class="ms-2"
+                  >
+                    {{ formatTipoTerapia(pazienteSelezionato.tipoTerapia) }}
+                  </CBadge>
+                </CCol>
+              </CRow>
+              <CRow class="mt-2">
+                <CCol md="6">
+                  <strong>Email:</strong> {{ pazienteSelezionato.email }}
+                </CCol>
+                <CCol md="6" v-if="pazienteSelezionato.telefono">
+                  <strong>Telefono:</strong> {{ pazienteSelezionato.telefono }}
+                </CCol>
+              </CRow>
             </div>
           </CCardBody>
         </CCard>
 
         <!-- Errore generale -->
         <CAlert v-if="submitError" color="danger" class="mt-3">
-          <CIcon icon="cil-warning" class="me-2" />
+          <CIcon icon="cil-warning" class="me-2"/>
           {{ submitError }}
         </CAlert>
       </CForm>
@@ -242,19 +232,19 @@
 
     <CModalFooter>
       <CButton color="secondary" @click="handleClose" :disabled="submitting">
-        <CIcon icon="cil-x" class="me-2" />
+        <CIcon icon="cil-x" class="me-2"/>
         Annulla
       </CButton>
 
       <CButton v-if="isEdit" color="danger" @click="handleDelete" :disabled="submitting" class="me-2">
-        <CSpinner v-if="deleting" size="sm" class="me-2" />
-        <CIcon v-else icon="cil-trash" class="me-2" />
+        <CSpinner v-if="deleting" size="sm" class="me-2"/>
+        <CIcon v-else icon="cil-trash" class="me-2"/>
         Elimina
       </CButton>
 
       <CButton color="primary" @click="handleSubmit" :disabled="submitting">
-        <CSpinner v-if="submitting" size="sm" class="me-2" />
-        <CIcon v-else :icon="isEdit ? 'cil-save' : 'cil-plus'" class="me-2" />
+        <CSpinner v-if="submitting" size="sm" class="me-2"/>
+        <CIcon v-else :icon="isEdit ? 'cil-save' : 'cil-plus'" class="me-2"/>
         {{ isEdit ? 'Salva' : 'Crea' }}
       </CButton>
     </CModalFooter>
@@ -262,13 +252,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch } from 'vue'
-import { useCalendario } from '@/composables/useCalendario'
+import {ref, reactive, computed, watch} from 'vue'
+import {useCalendario} from '@/composables/useCalendario'
 
 const props = defineProps({
-  visible: { type: Boolean, default: false },
-  evento: { type: Object, default: null },
-  specialisti: { type: Array, default: () => [] }
+  visible: {type: Boolean, default: false},
+  evento: {type: Object, default: null},
+  specialisti: {type: Array, default: () => []},
+  professionisti: {type: Array, default: () => []}, // Lista professionisti già caricata
+  pazienti: {type: Array, default: () => []}, // Lista pazienti già caricata
+  loadingProfessionisti: {type: Boolean, default: false},
+  loadingPazienti: {type: Boolean, default: false}
 })
 
 const emit = defineEmits(['close', 'created', 'updated', 'deleted'])
@@ -281,10 +275,18 @@ const {
   FrequenzaEvento,
   FREQUENZA_EVENTO_OPTIONS,
   EventoMapper,
-  EventoValidator
+  EventoValidator,
+  cercaProfessionisti, // Funzione di ricerca che utilizza la cache
+  cercaPazienti // Funzione di ricerca che utilizza la cache
 } = useCalendario()
 
 const isEdit = computed(() => !!props.evento?.id)
+
+// Stato per gestione dropdown suggerimenti
+const professionistiFiltrati = ref([])
+const showProfessionistiDropdown = ref(false)
+const pazientiFiltrati = ref([])
+const showPazientiDropdown = ref(false)
 
 const form = reactive({
   // Campi dell'evento (backend)
@@ -301,8 +303,17 @@ const form = reactive({
   oraInizio: '',
   oraFine: '',
   tipoTerapia: '',
-  nomePaziente: '',
-  cognomePaziente: '',
+
+  // Gestione paziente - nuovo
+  pazienteId: '', // ID del paziente selezionato dalla lista
+  aggiungiPazienteManuale: false, // Flag per aggiunta manuale
+  nomePaziente: '', // Nome manuale (solo se paziente non in lista)
+  cognomePaziente: '', // Cognome manuale (solo se paziente non in lista)
+
+  // Gestione professionista - nuovi campi per il dropdown
+  professionistaInput: '', // Input per la ricerca del professionista
+  pazienteInput: '', // Input per la ricerca del paziente
+
   stato: 'confermato',
   note: ''
 })
@@ -311,6 +322,85 @@ const errors = ref({})
 const submitting = ref(false)
 const deleting = ref(false)
 const submitError = ref('')
+
+// Computed per il paziente selezionato
+const pazienteSelezionato = computed(() => {
+  if (!form.pazienteId) return null
+  return props.pazienti.find(p => p.id.toString() === form.pazienteId.toString())
+})
+
+// Gestione ricerca e selezione professionisti (utilizzo cache da props)
+const filtraProfessionisti = async (event) => {
+  const query = event.target.value
+  form.professionistaInput = query
+
+  // Utilizza la funzione di ricerca che usa la cache
+  try {
+    professionistiFiltrati.value = await cercaProfessionisti(query)
+  } catch (error) {
+    console.error('Errore nella ricerca professionisti:', error)
+    professionistiFiltrati.value = []
+  }
+}
+
+const selezionaProfessionista = (professionista) => {
+  form.professionistaInput = professionista.nominativo
+  form.professionista = professionista.nominativo
+  showProfessionistiDropdown.value = false
+  professionistiFiltrati.value = []
+}
+
+// Gestione focus professionisti - mostra suggerimenti quando il campo viene evidenziato
+const onFocusProfessionisti = async () => {
+  showProfessionistiDropdown.value = true
+  // Utilizza la cache già caricata
+  try {
+    professionistiFiltrati.value = await cercaProfessionisti(form.professionistaInput || '')
+    console.log('Professionisti filtrati:', professionistiFiltrati.value)
+  } catch (error) {
+    console.error('Errore nel caricamento professionisti al focus:', error)
+    professionistiFiltrati.value = []
+  }
+}
+
+const nascondiProfessionistiDropdown = () => {
+  // Usa un timeout per permettere il click sull'elemento
+  setTimeout(() => {
+    showProfessionistiDropdown.value = false
+    professionistiFiltrati.value = []
+  }, 150)
+}
+
+// Gestione ricerca e selezione pazienti (utilizzo cache da props)
+const filtraPazienti = (event) => {
+  const query = event.target.value
+  form.pazienteInput = query
+
+  // Utilizza i pazienti già caricati tramite props
+  pazientiFiltrati.value = cercaPazienti(query)
+}
+
+const selezionaPaziente = (paziente) => {
+  form.pazienteInput = `${paziente.nome} ${paziente.cognome}`
+  form.pazienteId = paziente.id.toString()
+  showPazientiDropdown.value = false
+  pazientiFiltrati.value = []
+}
+
+// Gestione focus pazienti - mostra suggerimenti quando il campo viene evidenziato
+const onFocusPazienti = () => {
+  showPazientiDropdown.value = true
+  // Utilizza i pazienti già caricati tramite props
+  pazientiFiltrati.value = cercaPazienti(form.pazienteInput || '')
+}
+
+const nascondiPazientiDropdown = () => {
+  // Usa un timeout per permettere il click sull'elemento
+  setTimeout(() => {
+    showPazientiDropdown.value = false
+    pazientiFiltrati.value = []
+  }, 150)
+}
 
 const resetForm = () => {
   // Reset ai valori di default
@@ -326,10 +416,25 @@ const resetForm = () => {
   form.oraInizio = ''
   form.oraFine = ''
   form.tipoTerapia = ''
+
+  // Reset campi paziente
+  form.pazienteId = ''
+  form.aggiungiPazienteManuale = false
   form.nomePaziente = ''
   form.cognomePaziente = ''
+
+  // Reset campi professionista
+  form.professionistaInput = ''
+  form.pazienteInput = ''
+
   form.stato = 'confermato'
   form.note = ''
+
+  // Reset stato dropdown
+  professionistiFiltrati.value = []
+  showProfessionistiDropdown.value = false
+  pazientiFiltrati.value = []
+  showPazientiDropdown.value = false
 
   errors.value = {}
   submitError.value = ''
@@ -344,11 +449,12 @@ const populateForm = (evento) => {
     form.titolo = evento.titolo || `TERAPIA ${evento.tipoTerapia?.replace('_', ' ') || ''}`
     form.stanza = evento.sala || evento.stanza || ''
     form.professionista = evento.specialista?.nomeCompleto ||
-                         `${evento.specialista?.nome || ''} ${evento.specialista?.cognome || ''}`.trim()
+      `${evento.specialista?.nome || ''} ${evento.specialista?.cognome || ''}`.trim() ||
+      evento.professionista || ''
     form.postiDisponibili = evento.postiDisponibili || 1
     form.frequenza = evento.frequenza || FrequenzaEvento.UNICA
     form.dataFineRipetizione = evento.dataFineRipetizione ?
-                              new Date(evento.dataFineRipetizione).toISOString().split('T')[0] : ''
+      new Date(evento.dataFineRipetizione).toISOString().split('T')[0] : ''
 
     // Campi interfaccia
     form.specialistaId = evento.specialista?.id || ''
@@ -356,8 +462,34 @@ const populateForm = (evento) => {
     form.oraInizio = dataInizio.toTimeString().slice(0, 5)
     form.oraFine = dataFine.toTimeString().slice(0, 5)
     form.tipoTerapia = evento.tipoTerapia || ''
-    form.nomePaziente = evento.paziente?.nome || ''
-    form.cognomePaziente = evento.paziente?.cognome || ''
+
+    // Popolamento campi input
+    form.professionistaInput = form.professionista
+
+    // Gestione paziente - controllo se è un paziente esistente o manuale
+    if (evento.paziente?.id && props.pazienti.some(p => p.id.toString() === evento.paziente.id.toString())) {
+      // Paziente esistente nel database
+      form.pazienteId = evento.paziente.id.toString()
+      form.aggiungiPazienteManuale = false
+      form.nomePaziente = ''
+      form.cognomePaziente = ''
+      form.pazienteInput = `${evento.paziente.nome} ${evento.paziente.cognome}`
+    } else if (evento.paziente?.nome || evento.paziente?.cognome) {
+      // Paziente aggiunto manualmente (non nel database)
+      form.pazienteId = ''
+      form.aggiungiPazienteManuale = true
+      form.nomePaziente = evento.paziente?.nome || ''
+      form.cognomePaziente = evento.paziente?.cognome || ''
+      form.pazienteInput = `${evento.paziente?.nome || ''} ${evento.paziente?.cognome || ''}`.trim()
+    } else {
+      // Nessun paziente
+      form.pazienteId = ''
+      form.aggiungiPazienteManuale = false
+      form.nomePaziente = ''
+      form.cognomePaziente = ''
+      form.pazienteInput = ''
+    }
+
     form.stato = evento.stato || 'confermato'
     form.note = evento.note || ''
   }
@@ -420,6 +552,9 @@ const handleSubmit = async () => {
       dataFineRipetizione: form.dataFineRipetizione ?
         new Date(`${form.dataFineRipetizione}T23:59:59`).toISOString() : null,
 
+      // Gestione paziente - priorità al paziente selezionato dalla lista
+      pazienteId: form.pazienteId || null,
+
       // Campi per compatibilità frontend
       specialista: form.specialistaId ? {
         id: form.specialistaId,
@@ -430,12 +565,17 @@ const handleSubmit = async () => {
         cognome: form.professionista.split(' ').slice(1).join(' ') || '',
         nomeCompleto: form.professionista
       },
-      paziente: (form.nomePaziente && form.cognomePaziente) ? {
-        id: Date.now().toString(),
-        nome: form.nomePaziente,
-        cognome: form.cognomePaziente,
-        nomeCompleto: `${form.nomePaziente} ${form.cognomePaziente}`
-      } : null,
+
+      // Paziente per frontend (se non selezionato dalla lista ma aggiunto manualmente)
+      paziente: form.pazienteId ? pazienteSelezionato.value : (
+        (form.aggiungiPazienteManuale && form.nomePaziente && form.cognomePaziente) ? {
+          id: `temp-${Date.now()}`,
+          nome: form.nomePaziente,
+          cognome: form.cognomePaziente,
+          nomeCompleto: `${form.nomePaziente} ${form.cognomePaziente}`
+        } : null
+      ),
+
       tipoTerapia: form.tipoTerapia || 'LOGOPEDIA',
       stato: form.stato,
       sala: form.stanza, // Mapping per compatibilità
@@ -496,6 +636,43 @@ const formatTipoTerapia = (tipoTerapia) => {
   return labels[tipoTerapia] || tipoTerapia
 }
 
+const getBadgeColorTerapia = (tipoTerapia) => {
+  const colors = {
+    'LOGOPEDIA': 'primary',
+    'NEUROPSICHIATRIA_INFANTILE': 'success',
+    'NEUROPSICOMOTRICITÀ': 'info',
+    'TERAPIA_ABA': 'warning',
+    'PSICOLOGA': 'secondary',
+    'COLLOQUIO_CONOSCITIVO': 'dark'
+  }
+  return colors[tipoTerapia] || 'light'
+}
+
+// Watcher per auto-popolamento quando si seleziona un paziente
+watch(() => form.pazienteId, (newPazienteId) => {
+  if (newPazienteId) {
+    // Se viene selezionato un paziente, disabilita l'aggiunta manuale
+    form.aggiungiPazienteManuale = false
+    form.nomePaziente = ''
+    form.cognomePaziente = ''
+
+    // Se non c'è titolo, suggerisci in base al tipo terapia del paziente
+    const paziente = props.pazienti.find(p => p.id.toString() === newPazienteId.toString())
+    if (paziente && !form.titolo && !form.tipoTerapia) {
+      form.tipoTerapia = paziente.tipoTerapia
+      form.titolo = `Sessione di ${formatTipoTerapia(paziente.tipoTerapia)}`
+    }
+  }
+})
+
+// Watcher per controllare coerenza tra selezione paziente e aggiunta manuale
+watch(() => form.aggiungiPazienteManuale, (nuovoValore) => {
+  if (nuovoValore && form.pazienteId) {
+    // Se viene attivata l'aggiunta manuale, deseleziona il paziente dalla lista
+    form.pazienteId = ''
+  }
+})
+
 // Auto-popolamento del professionista quando si seleziona uno specialista
 watch(() => form.specialistaId, (newSpecialistaId) => {
   if (newSpecialistaId) {
@@ -519,6 +696,22 @@ watch(() => form.tipoTerapia, (newTipoTerapia) => {
   }
 })
 
+// Watcher per reset paziente quando si cambia input manualmente
+watch(() => form.pazienteInput, (newValue) => {
+  if (!newValue) {
+    form.pazienteId = ''
+  }
+})
+
+// Watcher per reset professionista quando si cambia input manualmente
+watch(() => form.professionistaInput, (newValue) => {
+  if (!newValue) {
+    form.professionista = ''
+  } else {
+    form.professionista = newValue
+  }
+})
+
 watch(() => props.visible, (newVisible) => {
   if (newVisible) {
     if (isEdit.value) {
@@ -530,7 +723,7 @@ watch(() => props.visible, (newVisible) => {
       }
     }
   }
-}, { immediate: true })
+}, {immediate: true})
 </script>
 
 <style scoped>
@@ -566,6 +759,45 @@ watch(() => props.visible, (newVisible) => {
   box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
 }
 
+/* Stili per i dropdown di suggerimenti */
+.suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ced4da;
+  border-top: none;
+  border-radius: 0 0 0.375rem 0.375rem;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1050;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.suggestion-item {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f8f9fa;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.suggestion-item:hover {
+  background-color: #f8f9fa;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item .fw-semibold {
+  color: #212529;
+}
+
+.suggestion-item small {
+  font-size: 0.875em;
+}
+
 /* Separazione visiva tra sezioni */
 .event-modal .card + .card {
   margin-top: 1rem;
@@ -581,5 +813,67 @@ watch(() => props.visible, (newVisible) => {
 .event-modal .form-text {
   font-size: 0.875em;
   margin-top: 0.25rem;
+}
+
+/* Stili per i dettagli del paziente selezionato */
+.patient-details {
+  border: 1px solid #e9ecef;
+  background-color: #f8f9fa !important;
+  transition: all 0.3s ease;
+}
+
+.patient-details h6 {
+  color: #495057;
+  margin-bottom: 0.75rem;
+}
+
+.patient-details strong {
+  color: #2c3e50;
+}
+
+/* Stili per il loading state del dropdown pazienti */
+.event-modal .form-select:disabled {
+  background-color: #e9ecef;
+  opacity: 0.6;
+}
+
+/* Stili per il checkbox aggiunta manuale */
+.event-modal .form-check {
+  padding: 0.5rem 0;
+  border-top: 1px solid #e9ecef;
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+.event-modal .form-check-label {
+  font-size: 0.9rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* Evidenziazione paziente selezionato */
+.event-modal .form-select option:checked {
+  background-color: #0d6efd;
+  color: white;
+}
+
+/* Responsive per mobile */
+@media (max-width: 768px) {
+  .patient-details .col-md-6 {
+    margin-bottom: 0.5rem;
+  }
+
+  .patient-details strong {
+    display: inline-block;
+    min-width: 100px;
+  }
+
+  .suggestions-dropdown {
+    max-height: 150px;
+  }
+
+  .suggestion-item {
+    padding: 0.5rem 0.75rem;
+  }
 }
 </style>

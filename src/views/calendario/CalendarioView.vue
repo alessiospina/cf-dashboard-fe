@@ -1,7 +1,7 @@
 <template>
   <!--
     Pagina principale per la gestione del Calendario
-    
+
     Questa pagina include:
     - Header con titolo e controlli vista
     - Toolbar con filtri e azioni
@@ -89,6 +89,10 @@
       :visible="showEventModal"
       :evento="eventoSelezionato"
       :specialisti="specialisti"
+      :professionisti="professionisti"
+      :pazienti="pazienti"
+      :loading-professionisti="loadingProfessionisti"
+      :loading-pazienti="loadingPazienti"
       @close="chiudiModalEvento"
       @created="handleEventoCreato"
       @updated="handleEventoAggiornato"
@@ -100,7 +104,7 @@
 <script setup>
 /**
  * Pagina Calendario - Container principale
- * 
+ *
  * Gestisce:
  * - Switch tra viste Timeline/Lista
  * - Filtri e stato globale
@@ -120,16 +124,21 @@ const {
   // Stato
   eventi,
   specialisti,
+  professionisti, // Lista professionisti dal backend
+  pazienti, // Lista pazienti dal backend
   loading,
+  loadingProfessionisti,
+  loadingPazienti,
   error,
-  
+
   // Metodi
   caricaEventi,
   caricaSpecialisti,
+  inizializzaCalendario, // Nuovo metodo per inizializzazione completa
   creaEvento,
   aggiornaEvento,
   eliminaEvento,
-  
+
   // Utilità
   filtraEventi
 } = useCalendario()
@@ -203,10 +212,11 @@ const handleEventoEliminato = (eventoId) => {
   chiudiModalEvento()
 }
 
-// Caricamento iniziale
+// Caricamento iniziale - Inizializza tutto il calendario una sola volta
 onMounted(async () => {
-  await caricaSpecialisti()
-  await caricaEventi()
+  console.log('Inizializzazione pagina calendario...')
+  await inizializzaCalendario()
+  console.log('Pagina calendario pronta')
 })
 </script>
 

@@ -9,7 +9,7 @@
  * - Mapping tra entità frontend e backend
  */
 
-import { ref, computed } from 'vue'
+import {ref, computed} from 'vue'
 import {
   EventoBackend,
   SlotBackend,
@@ -19,14 +19,18 @@ import {
   FREQUENZA_EVENTO_OPTIONS
 } from '@/types/backend.types'
 
+// Import dei service per professionisti e pazienti
+import {ProfessionistaService} from '@/services/professionistaService'
+import {PazienteService} from '@/services/pazienteService'
+
 // Tipi di terapia dal sistema esistente
 export const TIPI_TERAPIA_OPTIONS = [
-  { value: 'LOGOPEDIA', label: 'Logopedia' },
-  { value: 'NEUROPSICHIATRIA_INFANTILE', label: 'Neuropsichiatria Infantile' },
-  { value: 'NEUROPSICOMOTRICITÀ', label: 'Neuropsicomotricità' },
-  { value: 'TERAPIA_ABA', label: 'Terapia ABA' },
-  { value: 'PSICOLOGA', label: 'Psicologa' },
-  { value: 'COLLOQUIO_CONOSCITIVO', label: 'Colloquio Conoscitivo' }
+  {value: 'LOGOPEDIA', label: 'Logopedia'},
+  {value: 'NEUROPSICHIATRIA_INFANTILE', label: 'Neuropsichiatria Infantile'},
+  {value: 'NEUROPSICOMOTRICITÀ', label: 'Neuropsicomotricità'},
+  {value: 'TERAPIA_ABA', label: 'Terapia ABA'},
+  {value: 'PSICOLOGA', label: 'Psicologa'},
+  {value: 'COLLOQUIO_CONOSCITIVO', label: 'Colloquio Conoscitivo'}
 ]
 
 // Colori per i tipi di terapia
@@ -41,26 +45,26 @@ export const COLORI_TERAPIA = {
 
 // Dati mock specialisti
 const SPECIALISTI_MOCK = [
-  { id: '1', nome: 'Anna', cognome: 'Rossi', specializzazione: 'LOGOPEDIA' },
-  { id: '2', nome: 'Marco', cognome: 'Bianchi', specializzazione: 'NEUROPSICHIATRIA_INFANTILE' },
-  { id: '3', nome: 'Laura', cognome: 'Verdi', specializzazione: 'NEUROPSICOMOTRICITÀ' },
-  { id: '4', nome: 'Giuseppe', cognome: 'Neri', specializzazione: 'TERAPIA_ABA' },
-  { id: '5', nome: 'Sofia', cognome: 'Gialli', specializzazione: 'PSICOLOGA' },
-  { id: '6', nome: 'Roberto', cognome: 'Blu', specializzazione: 'LOGOPEDIA' },
-  { id: '7', nome: 'Francesca', cognome: 'Viola', specializzazione: 'NEUROPSICOMOTRICITÀ' },
-  { id: '8', nome: 'Alessandro', cognome: 'Rosa', specializzazione: 'TERAPIA_ABA' },
-  { id: '9', nome: 'Elena', cognome: 'Grigi', specializzazione: 'PSICOLOGA' },
-  { id: '10', nome: 'Davide', cognome: 'Marroni', specializzazione: 'COLLOQUIO_CONOSCITIVO' },
-  { id: '11', nome: 'Chiara', cognome: 'Celesti', specializzazione: 'LOGOPEDIA' },
-  { id: '12', nome: 'Matteo', cognome: 'Arancioni', specializzazione: 'NEUROPSICHIATRIA_INFANTILE' },
-  { id: '13', nome: 'Valentina', cognome: 'Indaco', specializzazione: 'NEUROPSICOMOTRICITÀ' },
-  { id: '14', nome: 'Luca', cognome: 'Beige', specializzazione: 'TERAPIA_ABA' },
-  { id: '15', nome: 'Simona', cognome: 'Turchesi', specializzazione: 'PSICOLOGA' },
-  { id: '16', nome: 'Andrea', cognome: 'Corallo', specializzazione: 'LOGOPEDIA' },
-  { id: '17', nome: 'Paola', cognome: 'Magenta', specializzazione: 'NEUROPSICHIATRIA_INFANTILE' },
-  { id: '18', nome: 'Fabio', cognome: 'Ciano', specializzazione: 'NEUROPSICOMOTRICITÀ' },
-  { id: '19', nome: 'Giorgia', cognome: 'Senape', specializzazione: 'TERAPIA_ABA' },
-  { id: '20', nome: 'Nicola', cognome: 'Vinaccia', specializzazione: 'COLLOQUIO_CONOSCITIVO' }
+  {id: '1', nome: 'Anna', cognome: 'Rossi', specializzazione: 'LOGOPEDIA'},
+  {id: '2', nome: 'Marco', cognome: 'Bianchi', specializzazione: 'NEUROPSICHIATRIA_INFANTILE'},
+  {id: '3', nome: 'Laura', cognome: 'Verdi', specializzazione: 'NEUROPSICOMOTRICITÀ'},
+  {id: '4', nome: 'Giuseppe', cognome: 'Neri', specializzazione: 'TERAPIA_ABA'},
+  {id: '5', nome: 'Sofia', cognome: 'Gialli', specializzazione: 'PSICOLOGA'},
+  {id: '6', nome: 'Roberto', cognome: 'Blu', specializzazione: 'LOGOPEDIA'},
+  {id: '7', nome: 'Francesca', cognome: 'Viola', specializzazione: 'NEUROPSICOMOTRICITÀ'},
+  {id: '8', nome: 'Alessandro', cognome: 'Rosa', specializzazione: 'TERAPIA_ABA'},
+  {id: '9', nome: 'Elena', cognome: 'Grigi', specializzazione: 'PSICOLOGA'},
+  {id: '10', nome: 'Davide', cognome: 'Marroni', specializzazione: 'COLLOQUIO_CONOSCITIVO'},
+  {id: '11', nome: 'Chiara', cognome: 'Celesti', specializzazione: 'LOGOPEDIA'},
+  {id: '12', nome: 'Matteo', cognome: 'Arancioni', specializzazione: 'NEUROPSICHIATRIA_INFANTILE'},
+  {id: '13', nome: 'Valentina', cognome: 'Indaco', specializzazione: 'NEUROPSICOMOTRICITÀ'},
+  {id: '14', nome: 'Luca', cognome: 'Beige', specializzazione: 'TERAPIA_ABA'},
+  {id: '15', nome: 'Simona', cognome: 'Turchesi', specializzazione: 'PSICOLOGA'},
+  {id: '16', nome: 'Andrea', cognome: 'Corallo', specializzazione: 'LOGOPEDIA'},
+  {id: '17', nome: 'Paola', cognome: 'Magenta', specializzazione: 'NEUROPSICHIATRIA_INFANTILE'},
+  {id: '18', nome: 'Fabio', cognome: 'Ciano', specializzazione: 'NEUROPSICOMOTRICITÀ'},
+  {id: '19', nome: 'Giorgia', cognome: 'Senape', specializzazione: 'TERAPIA_ABA'},
+  {id: '20', nome: 'Nicola', cognome: 'Vinaccia', specializzazione: 'COLLOQUIO_CONOSCITIVO'}
 ]
 
 // Funzione per generare eventi mock realistici
@@ -136,7 +140,11 @@ export function useCalendario() {
   // Stato reattivo
   const eventi = ref([])
   const specialisti = ref([])
+  const professionisti = ref([]) // Lista professionisti dal backend
+  const pazienti = ref([]) // Lista pazienti dal backend
   const loading = ref(false)
+  const loadingProfessionisti = ref(false) // Loading specifico per professionisti
+  const loadingPazienti = ref(false) // Loading specifico per pazienti
   const error = ref('')
 
   // Funzioni per caricare i dati (mock)
@@ -151,6 +159,110 @@ export function useCalendario() {
       console.error(err)
     } finally {
       loading.value = false
+    }
+  }
+
+  // Funzione per caricare professionisti dal backend (una sola volta)
+  const caricaProfessionisti = async () => {
+    // Se già caricati, non rifare la chiamata
+    if (professionisti.value.length > 0) {
+      console.log('Professionisti già caricati, utilizzo cache')
+      return professionisti.value
+    }
+
+    loadingProfessionisti.value = true
+    try {
+      console.log('Caricamento professionisti dal backend...')
+      professionisti.value = await ProfessionistaService.getAllProfessionisti()
+      console.log(`Caricati ${professionisti.value.length} professionisti`)
+      return professionisti.value
+    } catch (err) {
+      error.value = 'Errore nel caricamento dei professionisti dal backend'
+      console.error(err)
+      professionisti.value = [] // Array vuoto in caso di errore
+      return []
+    } finally {
+      loadingProfessionisti.value = false
+    }
+  }
+
+  // Funzione per caricare pazienti dal backend (una sola volta)
+  const caricaPazienti = async () => {
+    // Se già caricati, non rifare la chiamata
+    if (pazienti.value.length > 0) {
+      console.log('Pazienti già caricati, utilizzo cache')
+      return pazienti.value
+    }
+
+    loadingPazienti.value = true
+    try {
+      console.log('Caricamento pazienti dal backend...')
+      pazienti.value = await PazienteService.getAllPazienti()
+      console.log(`Caricati ${pazienti.value.length} pazienti`)
+      return pazienti.value
+    } catch (err) {
+      error.value = 'Errore nel caricamento dei pazienti dal backend'
+      console.error(err)
+      pazienti.value = [] // Array vuoto in caso di errore
+      return []
+    } finally {
+      loadingPazienti.value = false
+    }
+  }
+
+  // Funzione per cercare professionisti (utilizzo cache locale)
+  const cercaProfessionisti = async (query = '') => {
+    try {
+      // Assicurati che i professionisti siano caricati
+      if (professionisti.value.length === 0) {
+        await caricaProfessionisti()
+      }
+
+      // Filtra localmente senza chiamate API
+      if (!query || query.trim() === '') {
+        return professionisti.value
+      }
+
+      const queryLower = query.toLowerCase()
+      return professionisti.value.filter(professionista =>
+        professionista.nominativo.toLowerCase().includes(queryLower) ||
+        professionista.nome.toLowerCase().includes(queryLower) ||
+        professionista.cognome.toLowerCase().includes(queryLower)
+      )
+    } catch (err) {
+      console.error('Errore nella ricerca professionisti:', err)
+      return []
+    }
+  }
+
+  // Funzione per cercare pazienti (utilizzo cache locale)
+  const cercaPazienti = (query = '') => {
+    // Filtra localmente senza chiamate API
+    if (!query || query.trim() === '') {
+      return pazienti.value
+    }
+
+    const queryLower = query.toLowerCase()
+    return pazienti.value.filter(paziente =>
+      `${paziente.nome} ${paziente.cognome}`.toLowerCase().includes(queryLower) ||
+      paziente.email.toLowerCase().includes(queryLower)
+    )
+  }
+
+  // Funzione per inizializzare tutti i dati (da chiamare all'apertura del calendario)
+  const inizializzaCalendario = async () => {
+    console.log('Inizializzazione calendario...')
+    try {
+      await Promise.all([
+        caricaEventi(),
+        caricaSpecialisti(),
+        caricaProfessionisti(),
+        caricaPazienti()
+      ])
+      console.log('Calendario inizializzato con successo')
+    } catch (err) {
+      console.error('Errore nell\'inizializzazione calendario:', err)
+      error.value = 'Errore nell\'inizializzazione del calendario'
     }
   }
 
@@ -258,7 +370,7 @@ export function useCalendario() {
       const ora = new Date(dataOra)
 
       return evento.specialista.id === specialistaId &&
-             ora >= inizio && ora < fine
+        ora >= inizio && ora < fine
     })
   }
 
@@ -310,12 +422,21 @@ export function useCalendario() {
     // Stato
     eventi,
     specialisti,
+    professionisti, // Lista professionisti dal backend
+    pazienti, // Lista pazienti dal backend
     loading,
+    loadingProfessionisti, // Loading specifico per professionisti
+    loadingPazienti, // Loading specifico per pazienti
     error,
 
     // Metodi
     caricaEventi,
     caricaSpecialisti,
+    caricaProfessionisti, // Carica professionisti una sola volta
+    caricaPazienti, // Carica pazienti una sola volta
+    cercaProfessionisti, // Cerca professionisti in cache
+    cercaPazienti, // Cerca pazienti in cache
+    inizializzaCalendario, // Inizializza tutto il calendario
     creaEvento,
     aggiornaEvento,
     eliminaEvento,
@@ -332,7 +453,7 @@ export function useCalendario() {
     TIPI_TERAPIA_OPTIONS,
     COLORI_TERAPIA,
 
-    // Nuove funzionalità backend
+    // Funzionalità backend
     FrequenzaEvento,
     FREQUENZA_EVENTO_OPTIONS,
     EventoMapper,
