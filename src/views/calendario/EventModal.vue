@@ -1,5 +1,5 @@
 <template>
-  <CModal :visible="visible" @close="handleClose" size="lg" class="event-modal">
+  <CModal :visible="visible" @close="handleClose" size="xl" class="event-modal">
     <CModalHeader class="bg-primary text-white">
       <CModalTitle class="d-flex align-items-center">
         <CIcon :icon="isEdit ? 'cil-pencil' : 'cil-plus'" class="me-2" />
@@ -9,25 +9,54 @@
 
     <CModalBody>
       <CForm @submit.prevent="handleSubmit">
-        <!-- Informazioni Appuntamento -->
+        <!-- Informazioni Evento (Backend) -->
         <CCard class="mb-3">
           <CCardHeader>
             <h6 class="mb-0">
               <CIcon icon="cil-calendar" class="me-2" />
-              Informazioni Appuntamento
+              Informazioni Evento
             </h6>
           </CCardHeader>
           <CCardBody>
-            <!-- Specialista -->
+            <CRow>
+              <CCol md="6">
+                <div class="mb-3">
+                  <CFormLabel class="fw-semibold">Titolo Evento</CFormLabel>
+                  <CFormInput
+                    v-model="form.titolo"
+                    :invalid="!!errors.titolo"
+                    placeholder="Es: Sessione di Logopedia"
+                    maxlength="50"
+                    required
+                  />
+                  <CFormFeedback v-if="errors.titolo" invalid>{{ errors.titolo }}</CFormFeedback>
+                </div>
+              </CCol>
+              <CCol md="6">
+                <div class="mb-3">
+                  <CFormLabel class="fw-semibold">Stanza</CFormLabel>
+                  <CFormInput
+                    v-model="form.stanza"
+                    :invalid="!!errors.stanza"
+                    placeholder="Es: Sala 1"
+                    maxlength="50"
+                    required
+                  />
+                  <CFormFeedback v-if="errors.stanza" invalid>{{ errors.stanza }}</CFormFeedback>
+                </div>
+              </CCol>
+            </CRow>
+
             <div class="mb-3">
-              <CFormLabel class="fw-semibold">Specialista</CFormLabel>
-              <CFormSelect v-model="form.specialistaId" :invalid="!!errors.specialistaId" required>
-                <option value="">Seleziona specialista</option>
-                <option v-for="specialista in specialisti" :key="specialista.id" :value="specialista.id">
-                  {{ specialista.nome }} {{ specialista.cognome }} - {{ formatTipoTerapia(specialista.specializzazione) }}
-                </option>
-              </CFormSelect>
-              <CFormFeedback v-if="errors.specialistaId" invalid>{{ errors.specialistaId }}</CFormFeedback>
+              <CFormLabel class="fw-semibold">Professionista</CFormLabel>
+              <CFormInput
+                v-model="form.professionista"
+                :invalid="!!errors.professionista"
+                placeholder="Nome Cognome del professionista"
+                maxlength="50"
+                required
+              />
+              <CFormFeedback v-if="errors.professionista" invalid>{{ errors.professionista }}</CFormFeedback>
             </div>
 
             <!-- Data e Orari -->
@@ -55,17 +84,89 @@
               </CCol>
             </CRow>
 
-            <!-- Tipo Terapia -->
-            <div class="mb-3">
-              <CFormLabel class="fw-semibold">Tipo Terapia</CFormLabel>
-              <CFormSelect v-model="form.tipoTerapia" :invalid="!!errors.tipoTerapia" required>
-                <option value="">Seleziona tipo terapia</option>
-                <option v-for="terapia in TIPI_TERAPIA_OPTIONS" :key="terapia.value" :value="terapia.value">
-                  {{ terapia.label }}
-                </option>
-              </CFormSelect>
-              <CFormFeedback v-if="errors.tipoTerapia" invalid>{{ errors.tipoTerapia }}</CFormFeedback>
+            <CRow>
+              <CCol md="6">
+                <div class="mb-3">
+                  <CFormLabel class="fw-semibold">Posti Disponibili</CFormLabel>
+                  <CFormInput
+                    v-model.number="form.postiDisponibili"
+                    type="number"
+                    min="1"
+                    max="50"
+                    :invalid="!!errors.postiDisponibili"
+                    required
+                  />
+                  <CFormFeedback v-if="errors.postiDisponibili" invalid>{{ errors.postiDisponibili }}</CFormFeedback>
+                </div>
+              </CCol>
+              <CCol md="6">
+                <div class="mb-3">
+                  <CFormLabel class="fw-semibold">Frequenza Evento</CFormLabel>
+                  <CFormSelect v-model="form.frequenza" :invalid="!!errors.frequenza" required>
+                    <option v-for="freq in FREQUENZA_EVENTO_OPTIONS" :key="freq.value" :value="freq.value">
+                      {{ freq.label }}
+                    </option>
+                  </CFormSelect>
+                  <CFormFeedback v-if="errors.frequenza" invalid>{{ errors.frequenza }}</CFormFeedback>
+                </div>
+              </CCol>
+            </CRow>
+
+            <!-- Data Fine Ripetizione - Solo se frequenza non è UNICA -->
+            <div v-if="form.frequenza !== FrequenzaEvento.UNICA" class="mb-3">
+              <CFormLabel class="fw-semibold">Data Fine Ripetizione</CFormLabel>
+              <CFormInput
+                v-model="form.dataFineRipetizione"
+                type="date"
+                :invalid="!!errors.dataFineRipetizione"
+                :required="form.frequenza !== FrequenzaEvento.UNICA"
+              />
+              <CFormFeedback v-if="errors.dataFineRipetizione" invalid>{{ errors.dataFineRipetizione }}</CFormFeedback>
+              <CFormText class="text-muted">
+                La data fino alla quale l'evento si ripeterà secondo la frequenza selezionata
+              </CFormText>
             </div>
+          </CCardBody>
+        </CCard>
+
+        <!-- Configurazione Frontend -->
+        <CCard class="mb-3">
+          <CCardHeader>
+            <h6 class="mb-0">
+              <CIcon icon="cil-settings" class="me-2" />
+              Configurazione Display
+            </h6>
+          </CCardHeader>
+          <CCardBody>
+            <CRow>
+              <CCol md="6">
+                <div class="mb-3">
+                  <CFormLabel class="fw-semibold">Specialista (per visualizzazione)</CFormLabel>
+                  <CFormSelect v-model="form.specialistaId" :invalid="!!errors.specialistaId">
+                    <option value="">Seleziona specialista</option>
+                    <option v-for="specialista in specialisti" :key="specialista.id" :value="specialista.id">
+                      {{ specialista.nome }} {{ specialista.cognome }} - {{ formatTipoTerapia(specialista.specializzazione) }}
+                    </option>
+                  </CFormSelect>
+                  <CFormFeedback v-if="errors.specialistaId" invalid>{{ errors.specialistaId }}</CFormFeedback>
+                  <CFormText class="text-muted">
+                    Seleziona per associazione con specialista esistente
+                  </CFormText>
+                </div>
+              </CCol>
+              <CCol md="6">
+                <div class="mb-3">
+                  <CFormLabel class="fw-semibold">Tipo Terapia (per categorizzazione)</CFormLabel>
+                  <CFormSelect v-model="form.tipoTerapia" :invalid="!!errors.tipoTerapia">
+                    <option value="">Seleziona tipo terapia</option>
+                    <option v-for="terapia in TIPI_TERAPIA_OPTIONS" :key="terapia.value" :value="terapia.value">
+                      {{ terapia.label }}
+                    </option>
+                  </CFormSelect>
+                  <CFormFeedback v-if="errors.tipoTerapia" invalid>{{ errors.tipoTerapia }}</CFormFeedback>
+                </div>
+              </CCol>
+            </CRow>
           </CCardBody>
         </CCard>
 
@@ -74,7 +175,7 @@
           <CCardHeader>
             <h6 class="mb-0">
               <CIcon icon="cil-user" class="me-2" />
-              Paziente
+              Paziente (opzionale per prenotazione)
             </h6>
           </CCardHeader>
           <CCardBody>
@@ -82,14 +183,22 @@
               <CCol md="6">
                 <div class="mb-3">
                   <CFormLabel class="fw-semibold">Nome</CFormLabel>
-                  <CFormInput v-model="form.nomePaziente" :invalid="!!errors.nomePaziente" placeholder="Nome paziente" required />
+                  <CFormInput
+                    v-model="form.nomePaziente"
+                    :invalid="!!errors.nomePaziente"
+                    placeholder="Nome paziente"
+                  />
                   <CFormFeedback v-if="errors.nomePaziente" invalid>{{ errors.nomePaziente }}</CFormFeedback>
                 </div>
               </CCol>
               <CCol md="6">
                 <div class="mb-3">
                   <CFormLabel class="fw-semibold">Cognome</CFormLabel>
-                  <CFormInput v-model="form.cognomePaziente" :invalid="!!errors.cognomePaziente" placeholder="Cognome paziente" required />
+                  <CFormInput
+                    v-model="form.cognomePaziente"
+                    :invalid="!!errors.cognomePaziente"
+                    placeholder="Cognome paziente"
+                  />
                   <CFormFeedback v-if="errors.cognomePaziente" invalid>{{ errors.cognomePaziente }}</CFormFeedback>
                 </div>
               </CCol>
@@ -102,29 +211,20 @@
           <CCardHeader>
             <h6 class="mb-0">
               <CIcon icon="cil-info" class="me-2" />
-              Dettagli
+              Dettagli Aggiuntivi
             </h6>
           </CCardHeader>
           <CCardBody>
-            <CRow>
-              <CCol md="6">
-                <div class="mb-3">
-                  <CFormLabel class="fw-semibold">Stato</CFormLabel>
-                  <CFormSelect v-model="form.stato">
-                    <option value="confermato">Confermato</option>
-                    <option value="in_attesa">In Attesa</option>
-                    <option value="completato">Completato</option>
-                    <option value="cancellato">Cancellato</option>
-                  </CFormSelect>
-                </div>
-              </CCol>
-              <CCol md="6">
-                <div class="mb-3">
-                  <CFormLabel class="fw-semibold">Sala</CFormLabel>
-                  <CFormInput v-model="form.sala" placeholder="Es: Sala 1" />
-                </div>
-              </CCol>
-            </CRow>
+            <div class="mb-3">
+              <CFormLabel class="fw-semibold">Stato</CFormLabel>
+              <CFormSelect v-model="form.stato">
+                <option value="confermato">Confermato</option>
+                <option value="in_attesa">In Attesa</option>
+                <option value="completato">Completato</option>
+                <option value="cancellato">Cancellato</option>
+              </CFormSelect>
+            </div>
+
             <div class="mb-0">
               <CFormLabel class="fw-semibold">Note</CFormLabel>
               <CFormTextarea v-model="form.note" rows="3" placeholder="Note aggiuntive per l'appuntamento..." />
@@ -173,13 +273,38 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'created', 'updated', 'deleted'])
 
-const { creaEvento, aggiornaEvento, eliminaEvento, TIPI_TERAPIA_OPTIONS } = useCalendario()
+const {
+  creaEvento,
+  aggiornaEvento,
+  eliminaEvento,
+  TIPI_TERAPIA_OPTIONS,
+  FrequenzaEvento,
+  FREQUENZA_EVENTO_OPTIONS,
+  EventoMapper,
+  EventoValidator
+} = useCalendario()
 
 const isEdit = computed(() => !!props.evento?.id)
 
 const form = reactive({
-  specialistaId: '', data: '', oraInizio: '', oraFine: '', tipoTerapia: '',
-  nomePaziente: '', cognomePaziente: '', stato: 'confermato', sala: '', note: ''
+  // Campi dell'evento (backend)
+  titolo: '',
+  stanza: '',
+  professionista: '',
+  postiDisponibili: 1,
+  frequenza: FrequenzaEvento.UNICA,
+  dataFineRipetizione: '',
+
+  // Campi per l'interfaccia utente
+  specialistaId: '',
+  data: '',
+  oraInizio: '',
+  oraFine: '',
+  tipoTerapia: '',
+  nomePaziente: '',
+  cognomePaziente: '',
+  stato: 'confermato',
+  note: ''
 })
 
 const errors = ref({})
@@ -188,9 +313,24 @@ const deleting = ref(false)
 const submitError = ref('')
 
 const resetForm = () => {
-  Object.keys(form).forEach(key => {
-    form[key] = key === 'stato' ? 'confermato' : ''
-  })
+  // Reset ai valori di default
+  form.titolo = ''
+  form.stanza = ''
+  form.professionista = ''
+  form.postiDisponibili = 1
+  form.frequenza = FrequenzaEvento.UNICA
+  form.dataFineRipetizione = ''
+
+  form.specialistaId = ''
+  form.data = ''
+  form.oraInizio = ''
+  form.oraFine = ''
+  form.tipoTerapia = ''
+  form.nomePaziente = ''
+  form.cognomePaziente = ''
+  form.stato = 'confermato'
+  form.note = ''
+
   errors.value = {}
   submitError.value = ''
 }
@@ -199,7 +339,18 @@ const populateForm = (evento) => {
   if (evento) {
     const dataInizio = new Date(evento.dataInizio)
     const dataFine = new Date(evento.dataFine)
-    
+
+    // Campi backend
+    form.titolo = evento.titolo || `TERAPIA ${evento.tipoTerapia?.replace('_', ' ') || ''}`
+    form.stanza = evento.sala || evento.stanza || ''
+    form.professionista = evento.specialista?.nomeCompleto ||
+                         `${evento.specialista?.nome || ''} ${evento.specialista?.cognome || ''}`.trim()
+    form.postiDisponibili = evento.postiDisponibili || 1
+    form.frequenza = evento.frequenza || FrequenzaEvento.UNICA
+    form.dataFineRipetizione = evento.dataFineRipetizione ?
+                              new Date(evento.dataFineRipetizione).toISOString().split('T')[0] : ''
+
+    // Campi interfaccia
     form.specialistaId = evento.specialista?.id || ''
     form.data = dataInizio.toISOString().split('T')[0]
     form.oraInizio = dataInizio.toTimeString().slice(0, 5)
@@ -208,60 +359,89 @@ const populateForm = (evento) => {
     form.nomePaziente = evento.paziente?.nome || ''
     form.cognomePaziente = evento.paziente?.cognome || ''
     form.stato = evento.stato || 'confermato'
-    form.sala = evento.sala || ''
     form.note = evento.note || ''
   }
 }
 
 const validateForm = () => {
   const newErrors = {}
-  
-  if (!form.specialistaId) newErrors.specialistaId = 'Specialista obbligatorio'
+
+  // Validazione campi backend obbligatori
+  if (!form.titolo) newErrors.titolo = 'Titolo obbligatorio'
+  if (!form.stanza) newErrors.stanza = 'Stanza obbligatoria'
+  if (!form.professionista) newErrors.professionista = 'Professionista obbligatorio'
+  if (!form.postiDisponibili || form.postiDisponibili < 1) {
+    newErrors.postiDisponibili = 'Posti disponibili deve essere almeno 1'
+  }
+
+  // Validazione campi interfaccia
   if (!form.data) newErrors.data = 'Data obbligatoria'
   if (!form.oraInizio) newErrors.oraInizio = 'Ora inizio obbligatoria'
   if (!form.oraFine) newErrors.oraFine = 'Ora fine obbligatoria'
-  if (!form.tipoTerapia) newErrors.tipoTerapia = 'Tipo terapia obbligatorio'
-  if (!form.nomePaziente) newErrors.nomePaziente = 'Nome paziente obbligatorio'
-  if (!form.cognomePaziente) newErrors.cognomePaziente = 'Cognome paziente obbligatorio'
-  
+
+  // Validazione logica date/orari
   if (form.oraInizio && form.oraFine && form.oraInizio >= form.oraFine) {
     newErrors.oraFine = 'Ora fine deve essere successiva all\'ora inizio'
   }
-  
+
+  // Validazione data fine ripetizione
+  if (form.frequenza !== FrequenzaEvento.UNICA && !form.dataFineRipetizione) {
+    newErrors.dataFineRipetizione = 'Data fine ripetizione obbligatoria per eventi ricorrenti'
+  }
+
+  if (form.dataFineRipetizione && form.data && form.dataFineRipetizione <= form.data) {
+    newErrors.dataFineRipetizione = 'Data fine ripetizione deve essere successiva alla data evento'
+  }
+
   errors.value = newErrors
   return Object.keys(newErrors).length === 0
 }
 
 const handleSubmit = async () => {
   if (!validateForm()) return
-  
+
   submitting.value = true
   submitError.value = ''
-  
+
   try {
     const dataInizio = new Date(`${form.data}T${form.oraInizio}:00`)
     const dataFine = new Date(`${form.data}T${form.oraFine}:00`)
-    
+
+    // Preparazione dati evento con mapping backend
     const eventoData = {
-      specialista: {
+      // Campi backend
+      titolo: form.titolo,
+      stanza: form.stanza,
+      professionista: form.professionista,
+      dataInizio: dataInizio.toISOString(),
+      dataFine: dataFine.toISOString(),
+      postiDisponibili: form.postiDisponibili,
+      frequenza: form.frequenza,
+      dataFineRipetizione: form.dataFineRipetizione ?
+        new Date(`${form.dataFineRipetizione}T23:59:59`).toISOString() : null,
+
+      // Campi per compatibilità frontend
+      specialista: form.specialistaId ? {
         id: form.specialistaId,
         ...props.specialisti.find(s => s.id === form.specialistaId)
+      } : {
+        id: `temp-${Date.now()}`,
+        nome: form.professionista.split(' ')[0] || '',
+        cognome: form.professionista.split(' ').slice(1).join(' ') || '',
+        nomeCompleto: form.professionista
       },
-      paziente: {
+      paziente: (form.nomePaziente && form.cognomePaziente) ? {
         id: Date.now().toString(),
         nome: form.nomePaziente,
         cognome: form.cognomePaziente,
         nomeCompleto: `${form.nomePaziente} ${form.cognomePaziente}`
-      },
-      dataInizio: dataInizio.toISOString(),
-      dataFine: dataFine.toISOString(),
-      tipoTerapia: form.tipoTerapia,
-      titolo: `TERAPIA ${form.tipoTerapia.replace('_', ' ')}`,
+      } : null,
+      tipoTerapia: form.tipoTerapia || 'LOGOPEDIA',
       stato: form.stato,
-      sala: form.sala,
+      sala: form.stanza, // Mapping per compatibilità
       note: form.note
     }
-    
+
     if (isEdit.value) {
       eventoData.id = props.evento.id
       const updated = await aggiornaEvento(eventoData)
@@ -270,7 +450,9 @@ const handleSubmit = async () => {
       const created = await creaEvento(eventoData)
       emit('created', created)
     }
-    
+
+    handleClose()
+
   } catch (error) {
     console.error('Errore salvataggio evento:', error)
     submitError.value = 'Errore nel salvataggio dell\'evento'
@@ -281,12 +463,13 @@ const handleSubmit = async () => {
 
 const handleDelete = async () => {
   if (!props.evento?.id) return
-  
+
   deleting.value = true
-  
+
   try {
     await eliminaEvento(props.evento.id)
     emit('deleted', props.evento.id)
+    handleClose()
   } catch (error) {
     console.error('Errore eliminazione evento:', error)
     submitError.value = 'Errore nell\'eliminazione dell\'evento'
@@ -313,6 +496,29 @@ const formatTipoTerapia = (tipoTerapia) => {
   return labels[tipoTerapia] || tipoTerapia
 }
 
+// Auto-popolamento del professionista quando si seleziona uno specialista
+watch(() => form.specialistaId, (newSpecialistaId) => {
+  if (newSpecialistaId) {
+    const specialista = props.specialisti.find(s => s.id === newSpecialistaId)
+    if (specialista) {
+      form.professionista = `${specialista.nome} ${specialista.cognome}`
+      if (!form.tipoTerapia) {
+        form.tipoTerapia = specialista.specializzazione
+      }
+      if (!form.titolo) {
+        form.titolo = `Sessione di ${formatTipoTerapia(specialista.specializzazione)}`
+      }
+    }
+  }
+})
+
+// Auto-popolamento del titolo quando si cambia tipo terapia
+watch(() => form.tipoTerapia, (newTipoTerapia) => {
+  if (newTipoTerapia && !form.titolo) {
+    form.titolo = `Sessione di ${formatTipoTerapia(newTipoTerapia)}`
+  }
+})
+
 watch(() => props.visible, (newVisible) => {
   if (newVisible) {
     if (isEdit.value) {
@@ -328,10 +534,52 @@ watch(() => props.visible, (newVisible) => {
 </script>
 
 <style scoped>
-.event-modal :deep(.modal-content) { border-radius: 12px; overflow: hidden; }
-.event-modal .modal-header { border-bottom: none; }
-.event-modal .card-header { background-color: #f8f9fa; border-bottom: 2px solid #e9ecef; padding: 0.75rem 1rem; }
-.event-modal .card-header h6 { color: #495057; font-weight: 600; }
-.event-modal .form-label { color: #495057; font-weight: 500; }
-.event-modal .form-control:focus, .event-modal .form-select:focus { border-color: #0d6efd; box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25); }
+/* Stili per la modal migliorata */
+.event-modal :deep(.modal-content) {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.event-modal .modal-header {
+  border-bottom: none;
+}
+
+.event-modal .card-header {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #e9ecef;
+  padding: 0.75rem 1rem;
+}
+
+.event-modal .card-header h6 {
+  color: #495057;
+  font-weight: 600;
+}
+
+.event-modal .form-label {
+  color: #495057;
+  font-weight: 500;
+}
+
+.event-modal .form-control:focus,
+.event-modal .form-select:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Separazione visiva tra sezioni */
+.event-modal .card + .card {
+  margin-top: 1rem;
+}
+
+/* Evidenziazione campi obbligatori backend */
+.event-modal .card:first-of-type .form-label::after {
+  content: " *";
+  color: #dc3545;
+}
+
+/* Stile per campi condizionali */
+.event-modal .form-text {
+  font-size: 0.875em;
+  margin-top: 0.25rem;
+}
 </style>

@@ -1,14 +1,23 @@
 /**
  * Composable per la gestione del Calendario
- * 
+ *
  * Fornisce:
  * - Gestione eventi e specialisti
  * - Dati mock di esempio
  * - Logica di filtring e validazione
  * - Utilità per la timeline
+ * - Mapping tra entità frontend e backend
  */
 
 import { ref, computed } from 'vue'
+import {
+  EventoBackend,
+  SlotBackend,
+  EventoMapper,
+  EventoValidator,
+  FrequenzaEvento,
+  FREQUENZA_EVENTO_OPTIONS
+} from '@/types/backend.types'
 
 // Tipi di terapia dal sistema esistente
 export const TIPI_TERAPIA_OPTIONS = [
@@ -23,7 +32,7 @@ export const TIPI_TERAPIA_OPTIONS = [
 // Colori per i tipi di terapia
 export const COLORI_TERAPIA = {
   'LOGOPEDIA': '#0d6efd', // primary
-  'NEUROPSICHIATRIA_INFANTILE': '#198754', // success  
+  'NEUROPSICHIATRIA_INFANTILE': '#198754', // success
   'NEUROPSICOMOTRICITÀ': '#0dcaf0', // info
   'TERAPIA_ABA': '#ffc107', // warning
   'PSICOLOGA': '#6c757d', // secondary
@@ -58,42 +67,42 @@ const SPECIALISTI_MOCK = [
 const generaEventiMock = () => {
   const eventi = []
   const oggi = new Date()
-  
+
   // Genera eventi per oggi e i prossimi 7 giorni
   for (let giorno = 0; giorno < 7; giorno++) {
     const dataCorrente = new Date(oggi)
     dataCorrente.setDate(oggi.getDate() + giorno)
-    
+
     // Per ogni giorno, genera 10-12 eventi distribuiti tra gli specialisti
     const numEventi = 10 + Math.floor(Math.random() * 3) // 10-12 eventi
-    
+
     for (let i = 0; i < numEventi; i++) {
       const specialista = SPECIALISTI_MOCK[Math.floor(Math.random() * SPECIALISTI_MOCK.length)]
       const tipoTerapia = specialista.specializzazione
-      
+
       // Orario casuale tra 8:00 e 15:00 (per permettere slot di 4-5 ore)
       const oraInizio = 8 + Math.floor(Math.random() * 7) // 8-14
       const minutoInizio = Math.floor(Math.random() * 4) * 15 // 0, 15, 30, 45
-      
+
       // Durata casuale tra 4-5 ore (in base alle tue specifiche)
       const durataOre = 4 + Math.random() // 4.0 - 5.0 ore
-      
+
       const dataInizio = new Date(dataCorrente)
       dataInizio.setHours(oraInizio, minutoInizio, 0, 0)
-      
+
       const dataFine = new Date(dataInizio)
       dataFine.setMilliseconds(dataFine.getMilliseconds() + (durataOre * 60 * 60 * 1000))
-      
+
       // Genera nomi pazienti casuali
       const nomiPazienti = ['Mario', 'Giulia', 'Luca', 'Sara', 'Paolo', 'Anna', 'Marco', 'Elena', 'Davide', 'Chiara']
       const cognomiPazienti = ['Rossi', 'Bianchi', 'Verdi', 'Neri', 'Gialli', 'Blu', 'Viola', 'Rosa', 'Grigi', 'Marroni']
-      
+
       const nomePaziente = nomiPazienti[Math.floor(Math.random() * nomiPazienti.length)]
       const cognomePaziente = cognomiPazienti[Math.floor(Math.random() * cognomiPazienti.length)]
-      
+
       const stati = ['confermato', 'in_attesa', 'completato']
       const stato = dataCorrente < oggi ? 'completato' : stati[Math.floor(Math.random() * 2)] // Solo confermato/in_attesa per eventi futuri
-      
+
       eventi.push({
         id: `${giorno}-${i}`,
         titolo: `TERAPIA ${tipoTerapia.replace('_', ' ')}`,
@@ -119,7 +128,7 @@ const generaEventiMock = () => {
       })
     }
   }
-  
+
   return eventi.sort((a, b) => new Date(a.dataInizio) - new Date(b.dataInizio))
 }
 
@@ -129,7 +138,7 @@ export function useCalendario() {
   const specialisti = ref([])
   const loading = ref(false)
   const error = ref('')
-  
+
   // Funzioni per caricare i dati (mock)
   const caricaSpecialisti = async () => {
     loading.value = true
@@ -144,7 +153,7 @@ export function useCalendario() {
       loading.value = false
     }
   }
-  
+
   const caricaEventi = async () => {
     loading.value = true
     try {
@@ -158,19 +167,19 @@ export function useCalendario() {
       loading.value = false
     }
   }
-  
+
   // Funzioni CRUD eventi
   const creaEvento = async (eventoData) => {
     try {
       // Simula chiamata API
       await new Promise(resolve => setTimeout(resolve, 500))
-      
+
       const nuovoEvento = {
         id: Date.now().toString(),
         ...eventoData,
         colore: COLORI_TERAPIA[eventoData.tipoTerapia]
       }
-      
+
       eventi.value.push(nuovoEvento)
       return nuovoEvento
     } catch (err) {
@@ -178,12 +187,12 @@ export function useCalendario() {
       throw err
     }
   }
-  
+
   const aggiornaEvento = async (eventoAggiornato) => {
     try {
       // Simula chiamata API
       await new Promise(resolve => setTimeout(resolve, 500))
-      
+
       const index = eventi.value.findIndex(e => e.id === eventoAggiornato.id)
       if (index !== -1) {
         eventi.value[index] = {
@@ -191,30 +200,30 @@ export function useCalendario() {
           colore: COLORI_TERAPIA[eventoAggiornato.tipoTerapia]
         }
       }
-      
+
       return eventi.value[index]
     } catch (err) {
       error.value = 'Errore nell\'aggiornamento dell\'evento'
       throw err
     }
   }
-  
+
   const eliminaEvento = async (eventoId) => {
     try {
       // Simula chiamata API
       await new Promise(resolve => setTimeout(resolve, 500))
-      
+
       eventi.value = eventi.value.filter(e => e.id !== eventoId)
     } catch (err) {
       error.value = 'Errore nell\'eliminazione dell\'evento'
       throw err
     }
   }
-  
+
   // Utilità per filtri
   const filtraEventi = (listaEventi, filtri) => {
     let eventiFiltrati = [...listaEventi]
-    
+
     // Filtro per data
     if (filtri.data) {
       const dataFiltro = new Date(filtri.data)
@@ -223,51 +232,51 @@ export function useCalendario() {
         return dataEvento.toDateString() === dataFiltro.toDateString()
       })
     }
-    
+
     // Filtro per specialista
     if (filtri.specialista) {
-      eventiFiltrati = eventiFiltrati.filter(evento => 
+      eventiFiltrati = eventiFiltrati.filter(evento =>
         evento.specialista.id === filtri.specialista
       )
     }
-    
+
     // Filtro per tipo terapia
     if (filtri.tipoTerapia) {
-      eventiFiltrati = eventiFiltrati.filter(evento => 
+      eventiFiltrati = eventiFiltrati.filter(evento =>
         evento.tipoTerapia === filtri.tipoTerapia
       )
     }
-    
+
     return eventiFiltrati
   }
-  
+
   // Utilità per la timeline
   const getEventoInOrario = (specialistaId, dataOra) => {
     return eventi.value.find(evento => {
       const inizio = new Date(evento.dataInizio)
       const fine = new Date(evento.dataFine)
       const ora = new Date(dataOra)
-      
-      return evento.specialista.id === specialistaId && 
+
+      return evento.specialista.id === specialistaId &&
              ora >= inizio && ora < fine
     })
   }
-  
+
   const isSlotLibero = (specialistaId, dataInizio, dataFine) => {
     const inizio = new Date(dataInizio)
     const fine = new Date(dataFine)
-    
+
     return !eventi.value.some(evento => {
       if (evento.specialista.id !== specialistaId) return false
-      
+
       const eventoInizio = new Date(evento.dataInizio)
       const eventoFine = new Date(evento.dataFine)
-      
+
       // Controlla sovrapposizioni
       return (inizio < eventoFine) && (fine > eventoInizio)
     })
   }
-  
+
   // Utilità per formattazione
   const formatTime = (dateString) => {
     return new Date(dateString).toLocaleTimeString('it-IT', {
@@ -275,7 +284,7 @@ export function useCalendario() {
       minute: '2-digit'
     })
   }
-  
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('it-IT', {
       day: '2-digit',
@@ -283,34 +292,34 @@ export function useCalendario() {
       year: 'numeric'
     })
   }
-  
+
   const formatDuration = (dataInizio, dataFine) => {
     const inizio = new Date(dataInizio)
     const fine = new Date(dataFine)
     const durataMs = fine - inizio
     const durataOre = Math.floor(durataMs / (1000 * 60 * 60))
     const durataMinuti = Math.floor((durataMs % (1000 * 60 * 60)) / (1000 * 60))
-    
+
     if (durataMinuti === 0) {
       return `${durataOre}h`
     }
     return `${durataOre}h ${durataMinuti}m`
   }
-  
+
   return {
     // Stato
     eventi,
     specialisti,
     loading,
     error,
-    
+
     // Metodi
     caricaEventi,
     caricaSpecialisti,
     creaEvento,
     aggiornaEvento,
     eliminaEvento,
-    
+
     // Utilità
     filtraEventi,
     getEventoInOrario,
@@ -318,9 +327,15 @@ export function useCalendario() {
     formatTime,
     formatDate,
     formatDuration,
-    
+
     // Costanti
     TIPI_TERAPIA_OPTIONS,
-    COLORI_TERAPIA
+    COLORI_TERAPIA,
+
+    // Nuove funzionalità backend
+    FrequenzaEvento,
+    FREQUENZA_EVENTO_OPTIONS,
+    EventoMapper,
+    EventoValidator
   }
 }
