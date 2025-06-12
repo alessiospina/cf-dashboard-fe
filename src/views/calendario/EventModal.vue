@@ -56,7 +56,7 @@
                     <CFormInput
                       v-model="form.professionistaInput"
                       :invalid="!!errors.professionista"
-                      placeholder="Clicca per selezionare un professionista..."
+                      placeholder="Digita almeno 2 caratteri per cercare un professionista..."
                       maxlength="50"
                       required
                       @input="filtraProfessionisti"
@@ -64,9 +64,6 @@
                       @blur="nascondiProfessionistiDropdown"
                     />
                     <CFormFeedback v-if="errors.professionista" invalid>{{ errors.professionista }}</CFormFeedback>
-                    <CFormText class="text-muted">
-                      Clicca sul campo per visualizzare tutti i professionisti disponibili
-                    </CFormText>
 
                     <!-- Dropdown suggerimenti professionisti -->
                     <div
@@ -77,7 +74,7 @@
                         v-for="prof in professionistiFiltrati"
                         :key="prof.id"
                         class="suggestion-item"
-                        @mousedown="selezionaProfessionista(prof)"
+                        @click="selezionaProfessionista(prof)"
                       >
                         <div class="d-flex justify-content-between align-items-center">
                           <span class="fw-semibold">{{ prof.nominativo }}</span>
@@ -86,12 +83,6 @@
                           </CBadge>
                         </div>
                       </div>
-                    </div>
-
-                    <!-- Debug info (rimuovi dopo il test) -->
-                    <div v-if="showProfessionistiDropdown" class="small text-muted mt-1">
-                      Debug: Dropdown visibile: {{ showProfessionistiDropdown }},
-                      Professionisti trovati: {{ professionistiFiltrati.length }}
                     </div>
                   </div>
                 </div>
@@ -155,15 +146,12 @@
                       v-model="form.pazienteInput"
                       :invalid="!!errors.pazienteId"
                       :disabled="props.loadingPazienti"
-                      placeholder="Clicca per selezionare un paziente..."
+                      placeholder="Digita almeno 2 caratteri per cercare un paziente..."
                       @input="filtraPazienti"
                       @focus="onFocusPazienti"
                       @blur="nascondiPazientiDropdown"
                     />
                     <CFormFeedback v-if="errors.pazienteId" invalid>{{ errors.pazienteId }}</CFormFeedback>
-                    <CFormText class="text-muted">
-                      Clicca sul campo per visualizzare tutti i pazienti o digita per filtrarli
-                    </CFormText>
 
                     <!-- Dropdown suggerimenti pazienti -->
                     <div
@@ -174,7 +162,7 @@
                         v-for="paziente in pazientiFiltrati"
                         :key="paziente.id"
                         class="suggestion-item"
-                        @mousedown="selezionaPaziente(paziente)"
+                        @click="selezionaPaziente(paziente)"
                       >
                         <div class="d-flex justify-content-between align-items-center">
                           <span class="fw-semibold">{{ paziente.nome }} {{ paziente.cognome }}</span>
@@ -329,77 +317,199 @@ const pazienteSelezionato = computed(() => {
   return props.pazienti.find(p => p.id.toString() === form.pazienteId.toString())
 })
 
-// Gestione ricerca e selezione professionisti (utilizzo cache da props)
+// Gestione ricerca e selezione professionisti (min 2 caratteri)
 const filtraProfessionisti = async (event) => {
-  const query = event.target.value
+  // Controllo sicuro dell'input event
+  const query = event?.target?.value || ''
   form.professionistaInput = query
+
+  console.log('Filtraggio professionisti con query:', query)
+  console.log('Lunghezza query:', query.length)
+
+  // Mostra la dropdown solo se ci sono almeno 2 caratteri
+  if (query.length < 2) {
+    console.log('Query troppo corta (< 2 caratteri), nascondo dropdown professionisti')
+    professionistiFiltrati.value = []
+    showProfessionistiDropdown.value = false
+    return
+  }
 
   // Utilizza la funzione di ricerca che usa la cache
   try {
     professionistiFiltrati.value = await cercaProfessionisti(query)
+    showProfessionistiDropdown.value = professionistiFiltrati.value.length > 0
   } catch (error) {
     console.error('Errore nella ricerca professionisti:', error)
     professionistiFiltrati.value = []
+    // Nascondi la dropdown in caso di errore
+    showProfessionistiDropdown.value = false
   }
 }
 
 const selezionaProfessionista = (professionista) => {
+  // Aggiorna i campi del form con i dati del professionista selezionato
   form.professionistaInput = professionista.nominativo
   form.professionista = professionista.nominativo
+
+  // Chiudi immediatamente la dropdown e pulisci i suggerimenti
   showProfessionistiDropdown.value = false
   professionistiFiltrati.value = []
+
+  // Rimuovi il focus dal campo input per evitare che si riapra subito la dropdown
+  const input = document.querySelector('input[placeholder*="professionista"]')
+  if (input) {
+    input.blur()
+  }
 }
 
-// Gestione focus professionisti - mostra suggerimenti quando il campo viene evidenziato
+// Gestione focus professionisti - mostra suggerimenti solo dopo 2 caratteri
 const onFocusProfessionisti = async () => {
+  // Non mostrare la dropdown al focus se non ci sono almeno 2 caratteri
+  const inputValue = form.professionistaInput || ''
+  if (inputValue.length < 2) {
+    showProfessionistiDropdown.value = false
+    professionistiFiltrati.value = []
+    return
+  }
+
   showProfessionistiDropdown.value = true
-  // Utilizza la cache già caricata
+
   try {
-    professionistiFiltrati.value = await cercaProfessionisti(form.professionistaInput || '')
-    console.log('Professionisti filtrati:', professionistiFiltrati.value)
+    // Utilizza la cache già caricata con controllo sicuro dell'input
+    professionistiFiltrati.value = await cercaProfessionisti(inputValue)
+    console.log('Professionisti filtrati al focus:', professionistiFiltrati.value.length)
   } catch (error) {
     console.error('Errore nel caricamento professionisti al focus:', error)
     professionistiFiltrati.value = []
+    // Non mostrare la dropdown se c'è un errore
+    showProfessionistiDropdown.value = false
   }
 }
 
 const nascondiProfessionistiDropdown = () => {
-  // Usa un timeout per permettere il click sull'elemento
+  // Usa un timeout leggermente più lungo per permettere il click sull'elemento
   setTimeout(() => {
     showProfessionistiDropdown.value = false
     professionistiFiltrati.value = []
-  }, 150)
+  }, 200)
 }
 
-// Gestione ricerca e selezione pazienti (utilizzo cache da props)
+// Gestione ricerca e selezione pazienti (utilizzo diretto props - min 2 caratteri)
 const filtraPazienti = (event) => {
-  const query = event.target.value
+  // Controllo sicuro dell'input event
+  const query = event?.target?.value || ''
   form.pazienteInput = query
 
-  // Utilizza i pazienti già caricati tramite props
-  pazientiFiltrati.value = cercaPazienti(query)
+  console.log('Filtraggio pazienti con query:', query)
+  console.log('Lunghezza query:', query.length)
+
+  try {
+    // Verifica che i pazienti siano disponibili dai props
+    if (!props.pazienti || props.pazienti.length === 0) {
+      console.log('Nessun paziente disponibile dai props per il filtro')
+      pazientiFiltrati.value = []
+      showPazientiDropdown.value = false
+      return
+    }
+
+    // Mostra la dropdown solo se ci sono almeno 2 caratteri
+    if (query.length < 2) {
+      console.log('Query troppo corta (< 2 caratteri), nascondo dropdown')
+      pazientiFiltrati.value = []
+      showPazientiDropdown.value = false
+      return
+    }
+
+    // Filtra localmente usando direttamente i props pazienti
+    pazientiFiltrati.value = filtropazientiLocale(props.pazienti, query)
+    console.log('Risultati filtro pazienti:', pazientiFiltrati.value.length)
+
+    // Mostra la dropdown solo se ci sono risultati
+    showPazientiDropdown.value = pazientiFiltrati.value.length > 0
+
+  } catch (error) {
+    console.error('Errore nel filtro pazienti:', error)
+    pazientiFiltrati.value = []
+    showPazientiDropdown.value = false
+  }
+}
+
+// Funzione locale per filtrare i pazienti direttamente dai props
+const filtropazientiLocale = (listaPazienti, query = '') => {
+  // Richiede almeno 2 caratteri per performance migliori
+  if (!query || query.trim().length < 2) {
+    return []
+  }
+
+  const queryLower = query.toLowerCase()
+  return listaPazienti.filter(paziente => {
+    // Controlli di sicurezza per evitare errori con valori undefined/null
+    const nome = paziente.nome || ''
+    const cognome = paziente.cognome || ''
+    const email = paziente.email || ''
+    const nomeCompleto = `${nome} ${cognome}`.trim()
+
+    // Filtra solo se i campi sono validi
+    return nomeCompleto.toLowerCase().includes(queryLower) ||
+           email.toLowerCase().includes(queryLower)
+  })
 }
 
 const selezionaPaziente = (paziente) => {
+  // Aggiorna i campi del form con i dati del paziente selezionato
   form.pazienteInput = `${paziente.nome} ${paziente.cognome}`
   form.pazienteId = paziente.id.toString()
+
+  // Chiudi immediatamente la dropdown e pulisci i suggerimenti
   showPazientiDropdown.value = false
   pazientiFiltrati.value = []
+
+  // Rimuovi il focus dal campo input per evitare che si riapra subito la dropdown
+  const input = document.querySelector('input[placeholder*="paziente"]')
+  if (input) {
+    input.blur()
+  }
 }
 
-// Gestione focus pazienti - mostra suggerimenti quando il campo viene evidenziato
-const onFocusPazienti = () => {
+// Gestione focus pazienti - mostra suggerimenti solo dopo 2 caratteri
+const onFocusPazienti = async () => {
+  console.log('Focus sui pazienti - props.pazienti:', props.pazienti.length)
+
+  // Non mostrare la dropdown al focus se non ci sono almeno 2 caratteri
+  const inputValue = form.pazienteInput || ''
+  if (inputValue.length < 2) {
+    showPazientiDropdown.value = false
+    pazientiFiltrati.value = []
+    return
+  }
+
   showPazientiDropdown.value = true
-  // Utilizza i pazienti già caricati tramite props
-  pazientiFiltrati.value = cercaPazienti(form.pazienteInput || '')
+
+  try {
+    // Verifica che i pazienti siano caricati dai props
+    if (!props.pazienti || props.pazienti.length === 0) {
+      console.log('Nessun paziente caricato tramite props')
+      showPazientiDropdown.value = false
+      return
+    }
+
+    // Filtra solo se ci sono almeno 2 caratteri
+    pazientiFiltrati.value = filtropazientiLocale(props.pazienti, inputValue)
+    console.log('Pazienti filtrati al focus:', pazientiFiltrati.value.length)
+
+  } catch (error) {
+    console.error('Errore nel caricamento pazienti al focus:', error)
+    pazientiFiltrati.value = []
+    showPazientiDropdown.value = false
+  }
 }
 
 const nascondiPazientiDropdown = () => {
-  // Usa un timeout per permettere il click sull'elemento
+  // Usa un timeout leggermente più lungo per permettere il click sull'elemento
   setTimeout(() => {
     showPazientiDropdown.value = false
     pazientiFiltrati.value = []
-  }, 150)
+  }, 200)
 }
 
 const resetForm = () => {

@@ -224,11 +224,17 @@ export function useCalendario() {
       }
 
       const queryLower = query.toLowerCase()
-      return professionisti.value.filter(professionista =>
-        professionista.nominativo.toLowerCase().includes(queryLower) ||
-        professionista.nome.toLowerCase().includes(queryLower) ||
-        professionista.cognome.toLowerCase().includes(queryLower)
-      )
+      return professionisti.value.filter(professionista => {
+        // Controlli di sicurezza per evitare errori con valori undefined/null
+        const nominativo = professionista.nominativo || ''
+        const nome = professionista.nome || ''
+        const cognome = professionista.cognome || ''
+
+        // Filtra solo se i campi sono validi
+        return nominativo.toLowerCase().includes(queryLower) ||
+               nome.toLowerCase().includes(queryLower) ||
+               cognome.toLowerCase().includes(queryLower)
+      })
     } catch (err) {
       console.error('Errore nella ricerca professionisti:', err)
       return []
@@ -243,10 +249,17 @@ export function useCalendario() {
     }
 
     const queryLower = query.toLowerCase()
-    return pazienti.value.filter(paziente =>
-      `${paziente.nome} ${paziente.cognome}`.toLowerCase().includes(queryLower) ||
-      paziente.email.toLowerCase().includes(queryLower)
-    )
+    return pazienti.value.filter(paziente => {
+      // Controlli di sicurezza per evitare errori con valori undefined/null
+      const nome = paziente.nome || ''
+      const cognome = paziente.cognome || ''
+      const email = paziente.email || ''
+      const nomeCompleto = `${nome} ${cognome}`.trim()
+
+      // Filtra solo se i campi sono validi
+      return nomeCompleto.toLowerCase().includes(queryLower) ||
+             email.toLowerCase().includes(queryLower)
+    })
   }
 
   // Funzione per inizializzare tutti i dati (da chiamare all'apertura del calendario)
