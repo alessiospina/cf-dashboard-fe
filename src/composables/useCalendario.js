@@ -2,8 +2,8 @@
  * Composable per la gestione del Calendario
  *
  * Fornisce:
- * - Gestione eventi e specialisti
- * - Dati mock di esempio
+ * - Gestione eventi dal backend
+ * - Gestione specialisti e professionisti
  * - Logica di filtring e validazione
  * - Utilità per la timeline
  * - Mapping tra entità frontend e backend
@@ -19,9 +19,10 @@ import {
   FREQUENZA_EVENTO_OPTIONS
 } from '@/types/backend.types'
 
-// Import dei service per professionisti e pazienti
+// Import dei service per professionisti, pazienti ed eventi
 import {ProfessionistaService} from '@/services/professionistaService'
 import {PazienteService} from '@/services/pazienteService'
+import {EventoService} from '@/services/calendarioService'
 
 // Tipi di terapia dal sistema esistente
 export const TIPI_TERAPIA_OPTIONS = [
@@ -43,7 +44,7 @@ export const COLORI_TERAPIA = {
   'COLLOQUIO_CONOSCITIVO': '#212529' // dark
 }
 
-// Dati mock specialisti
+// Dati mock specialisti (mantenuti per compatibilità con il frontend esistente)
 const SPECIALISTI_MOCK = [
   {id: '1', nome: 'Anna', cognome: 'Rossi', specializzazione: 'LOGOPEDIA'},
   {id: '2', nome: 'Marco', cognome: 'Bianchi', specializzazione: 'NEUROPSICHIATRIA_INFANTILE'},
@@ -67,73 +68,14 @@ const SPECIALISTI_MOCK = [
   {id: '20', nome: 'Nicola', cognome: 'Vinaccia', specializzazione: 'COLLOQUIO_CONOSCITIVO'}
 ]
 
-// Funzione per generare eventi mock realistici
-const generaEventiMock = () => {
-  const eventi = []
-  const oggi = new Date()
-
-  // Genera eventi per oggi e i prossimi 7 giorni
-  for (let giorno = 0; giorno < 7; giorno++) {
-    const dataCorrente = new Date(oggi)
-    dataCorrente.setDate(oggi.getDate() + giorno)
-
-    // Per ogni giorno, genera 10-12 eventi distribuiti tra gli specialisti
-    const numEventi = 10 + Math.floor(Math.random() * 3) // 10-12 eventi
-
-    for (let i = 0; i < numEventi; i++) {
-      const specialista = SPECIALISTI_MOCK[Math.floor(Math.random() * SPECIALISTI_MOCK.length)]
-      const tipoTerapia = specialista.specializzazione
-
-      // Orario casuale tra 8:00 e 15:00 (per permettere slot di 4-5 ore)
-      const oraInizio = 8 + Math.floor(Math.random() * 7) // 8-14
-      const minutoInizio = Math.floor(Math.random() * 4) * 15 // 0, 15, 30, 45
-
-      // Durata casuale tra 4-5 ore (in base alle tue specifiche)
-      const durataOre = 4 + Math.random() // 4.0 - 5.0 ore
-
-      const dataInizio = new Date(dataCorrente)
-      dataInizio.setHours(oraInizio, minutoInizio, 0, 0)
-
-      const dataFine = new Date(dataInizio)
-      dataFine.setMilliseconds(dataFine.getMilliseconds() + (durataOre * 60 * 60 * 1000))
-
-      // Genera nomi pazienti casuali
-      const nomiPazienti = ['Mario', 'Giulia', 'Luca', 'Sara', 'Paolo', 'Anna', 'Marco', 'Elena', 'Davide', 'Chiara']
-      const cognomiPazienti = ['Rossi', 'Bianchi', 'Verdi', 'Neri', 'Gialli', 'Blu', 'Viola', 'Rosa', 'Grigi', 'Marroni']
-
-      const nomePaziente = nomiPazienti[Math.floor(Math.random() * nomiPazienti.length)]
-      const cognomePaziente = cognomiPazienti[Math.floor(Math.random() * cognomiPazienti.length)]
-
-      const stati = ['confermato', 'in_attesa', 'completato']
-      const stato = dataCorrente < oggi ? 'completato' : stati[Math.floor(Math.random() * 2)] // Solo confermato/in_attesa per eventi futuri
-
-      eventi.push({
-        id: `${giorno}-${i}`,
-        titolo: `TERAPIA ${tipoTerapia.replace('_', ' ')}`,
-        specialista: {
-          id: specialista.id,
-          nome: specialista.nome,
-          cognome: specialista.cognome,
-          nomeCompleto: `${specialista.nome} ${specialista.cognome}`
-        },
-        paziente: {
-          id: `paziente-${Math.floor(Math.random() * 1000)}`,
-          nome: nomePaziente,
-          cognome: cognomePaziente,
-          nomeCompleto: `${nomePaziente} ${cognomePaziente}`
-        },
-        dataInizio: dataInizio.toISOString(),
-        dataFine: dataFine.toISOString(),
-        tipoTerapia,
-        stato,
-        note: Math.random() > 0.7 ? 'Note aggiuntive per la terapia' : '',
-        sala: `Sala ${Math.floor(Math.random() * 5) + 1}`,
-        colore: COLORI_TERAPIA[tipoTerapia]
-      })
-    }
-  }
-
-  return eventi.sort((a, b) => new Date(a.dataInizio) - new Date(b.dataInizio))
+/**
+ * Formatta una data nel formato YYYY-MM-DD per le API
+ * @param {Date|string} data - Data da formattare
+ * @returns {string} Data formattata
+ */
+const formatDateForAPI = (data) => {
+  const date = new Date(data)
+  return date.toISOString().split('T')[0]
 }
 
 export function useCalendario() {
@@ -146,6 +88,11 @@ export function useCalendario() {
   const loadingProfessionisti = ref(false) // Loading specifico per professionisti
   const loadingPazienti = ref(false) // Loading specifico per pazienti
   const error = ref('')
+
+  // Funzione per resettare gli errori
+  const clearError = () => {
+    error.value = ''
+  }
 
   // Funzioni per caricare i dati (mock)
   const caricaSpecialisti = async () => {
@@ -263,11 +210,11 @@ export function useCalendario() {
   }
 
   // Funzione per inizializzare tutti i dati (da chiamare all'apertura del calendario)
-  const inizializzaCalendario = async () => {
-    console.log('Inizializzazione calendario...')
+  const inizializzaCalendario = async (dataIniziale = new Date()) => {
+    console.log('Inizializzazione calendario per data:', formatDateForAPI(dataIniziale))
     try {
       await Promise.all([
-        caricaEventi(),
+        caricaEventi(dataIniziale), // Carica eventi per la data specificata
         caricaSpecialisti(),
         caricaProfessionisti(),
         caricaPazienti()
@@ -279,15 +226,74 @@ export function useCalendario() {
     }
   }
 
-  const caricaEventi = async () => {
+  /**
+   * Carica eventi dal backend per una data specifica
+   * @param {Date|string} data - Data per cui caricare gli eventi (default: oggi)
+   * @returns {Promise<Array>} Lista eventi caricati
+   */
+  const caricaEventi = async (data = new Date()) => {
     loading.value = true
+    error.value = ''
+
     try {
-      // Simula chiamata API
-      await new Promise(resolve => setTimeout(resolve, 300))
-      eventi.value = generaEventiMock()
+      // Formatta la data per l'API (YYYY-MM-DD)
+      const dataFormattata = formatDateForAPI(data)
+
+      console.log(`Caricamento eventi per il ${dataFormattata}...`)
+
+      // Chiama l'API backend per gli eventi del giorno specificato
+      // Usiamo la stessa data per from e to per ottenere eventi di un singolo giorno
+      const eventiBackend = await EventoService.getEventiBetween(dataFormattata, dataFormattata)
+
+      console.log(`Caricati ${eventiBackend.length} eventi dal backend`)
+
+      // Aggiorna lo stato reattivo
+      eventi.value = eventiBackend
+
+      return eventiBackend
+
     } catch (err) {
-      error.value = 'Errore nel caricamento degli eventi'
-      console.error(err)
+      const errorMessage = 'Errore nel caricamento degli eventi dal backend'
+      error.value = errorMessage
+      console.error(errorMessage, err)
+
+      // In caso di errore, mantieni gli eventi esistenti invece di svuotare
+      console.warn('Mantengo gli eventi esistenti a causa dell\'errore')
+
+      // Rilancia l'errore per permettere al chiamante di gestirlo
+      throw new Error(errorMessage)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * Carica eventi per un intervallo di date
+   * @param {Date|string} dataInizio - Data inizio intervallo
+   * @param {Date|string} dataFine - Data fine intervallo
+   * @returns {Promise<Array>} Lista eventi nell'intervallo
+   */
+  const caricaEventiIntervallo = async (dataInizio, dataFine) => {
+    loading.value = true
+    error.value = ''
+
+    try {
+      const dataInizioFormattata = formatDateForAPI(dataInizio)
+      const dataFineFormattata = formatDateForAPI(dataFine)
+
+      console.log(`Caricamento eventi dall'${dataInizioFormattata} al ${dataFineFormattata}...`)
+
+      const eventiBackend = await EventoService.getEventiBetween(dataInizioFormattata, dataFineFormattata)
+
+      console.log(`Caricati ${eventiBackend.length} eventi dal backend per l'intervallo`)
+
+      return eventiBackend
+
+    } catch (err) {
+      const errorMessage = 'Errore nel caricamento degli eventi per l\'intervallo'
+      error.value = errorMessage
+      console.error(errorMessage, err)
+      throw new Error(errorMessage)
     } finally {
       loading.value = false
     }
@@ -296,139 +302,340 @@ export function useCalendario() {
   // Funzioni CRUD eventi
   const creaEvento = async (eventoData) => {
     try {
-      // Simula chiamata API
-      await new Promise(resolve => setTimeout(resolve, 500))
+      console.log('Creazione nuovo evento:', eventoData)
 
-      const nuovoEvento = {
-        id: Date.now().toString(),
-        ...eventoData,
-        colore: COLORI_TERAPIA[eventoData.tipoTerapia]
-      }
+      // Usa il service del backend per creare l'evento
+      const nuovoEvento = await EventoService.createEvento(eventoData)
 
+      // Aggiorna la lista locale degli eventi
       eventi.value.push(nuovoEvento)
+
+      console.log('Evento creato con successo:', nuovoEvento)
       return nuovoEvento
     } catch (err) {
       error.value = 'Errore nella creazione dell\'evento'
+      console.error('Errore creazione evento:', err)
       throw err
     }
   }
 
   const aggiornaEvento = async (eventoAggiornato) => {
     try {
-      // Simula chiamata API
-      await new Promise(resolve => setTimeout(resolve, 500))
+      console.log('Aggiornamento evento:', eventoAggiornato)
 
+      // Usa il service del backend per aggiornare l'evento
+      const eventoAggiornato_result = await EventoService.updateEvento(eventoAggiornato)
+
+      // Aggiorna la lista locale degli eventi
       const index = eventi.value.findIndex(e => e.id === eventoAggiornato.id)
       if (index !== -1) {
-        eventi.value[index] = {
-          ...eventoAggiornato,
-          colore: COLORI_TERAPIA[eventoAggiornato.tipoTerapia]
-        }
+        eventi.value[index] = eventoAggiornato_result
       }
 
-      return eventi.value[index]
+      console.log('Evento aggiornato con successo:', eventoAggiornato_result)
+      return eventoAggiornato_result
     } catch (err) {
       error.value = 'Errore nell\'aggiornamento dell\'evento'
+      console.error('Errore aggiornamento evento:', err)
       throw err
     }
   }
 
   const eliminaEvento = async (eventoId) => {
     try {
-      // Simula chiamata API
-      await new Promise(resolve => setTimeout(resolve, 500))
+      console.log('Eliminazione evento ID:', eventoId)
 
+      // Usa il service del backend per eliminare l'evento
+      await EventoService.deleteEvento(eventoId)
+
+      // Rimuovi dalla lista locale
       eventi.value = eventi.value.filter(e => e.id !== eventoId)
+
+      console.log('Evento eliminato con successo')
     } catch (err) {
       error.value = 'Errore nell\'eliminazione dell\'evento'
+      console.error('Errore eliminazione evento:', err)
       throw err
     }
   }
 
+  /**
+   * Estrae i professionisti unici dalla lista degli eventi
+   * Crea oggetti professionista con id, nome, cognome e specializzazione
+   * @param {Array} listaEventi - Lista degli eventi dal backend
+   * @returns {Array} Lista di professionisti unici ordinati alfabeticamente
+   */
+  const estraiProfessionistiDaEventi = (listaEventi) => {
+    try {
+      // Controlli di sicurezza più rigorosi
+      if (!listaEventi || !Array.isArray(listaEventi) || listaEventi.length === 0) {
+        console.log('Lista eventi vuota o non valida per estrazione professionisti')
+        return []
+      }
+
+      // Crea un Map per evitare duplicati usando il nome completo come chiave
+      const professionistiUnici = new Map()
+
+      listaEventi.forEach((evento, index) => {
+        try {
+          // Controlli di sicurezza per ogni evento
+          if (!evento || typeof evento !== 'object') {
+            console.warn(`Evento ${index} non valido:`, evento)
+            return
+          }
+
+          if (!evento.professionista || typeof evento.professionista !== 'string') {
+            console.warn(`Evento ${index} senza professionista valido:`, evento)
+            return
+          }
+
+          const nomeCompleto = evento.professionista.trim()
+
+          // Verifica che il nome completo non sia vuoto
+          if (!nomeCompleto) {
+            console.warn(`Evento ${index} con professionista vuoto`)
+            return
+          }
+
+          // Se non è già presente, aggiungi il professionista
+          if (!professionistiUnici.has(nomeCompleto)) {
+            // Separa nome e cognome dalla stringa completa
+            const partiNome = nomeCompleto.split(' ')
+            const nome = partiNome[0] || ''
+            const cognome = partiNome.slice(1).join(' ') || ''
+
+            // Crea un ID univoco basato sul nome completo
+            const id = nomeCompleto.toLowerCase().replace(/\s+/g, '_')
+
+            professionistiUnici.set(nomeCompleto, {
+              id: id,
+              nome: nome,
+              cognome: cognome,
+              nomeCompleto: nomeCompleto,
+              specializzazione: 'GENERALE' // Valore di default se non disponibile
+            })
+          }
+        } catch (eventoError) {
+          console.error(`Errore nell'elaborazione evento ${index}:`, eventoError)
+        }
+      })
+
+      // Converte la Map in Array e ordina alfabeticamente per nome completo
+      const risultato = Array.from(professionistiUnici.values())
+        .sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto, 'it'))
+
+      console.log(`Estratti ${risultato.length} professionisti unici da ${listaEventi.length} eventi`)
+      return risultato
+
+    } catch (error) {
+      console.error('Errore generale nell\'estrazione professionisti:', error)
+      return []
+    }
+  }
+
+  // Computed property per i professionisti derivati dagli eventi
+  const professionistiDaEventi = computed(() => {
+    try {
+      // Controllo di sicurezza per evitare errori durante l'inizializzazione
+      if (!eventi.value || !Array.isArray(eventi.value)) {
+        console.warn('Array eventi non valido o non inizializzato')
+        return []
+      }
+
+      return estraiProfessionistiDaEventi(eventi.value)
+    } catch (error) {
+      console.error('Errore nel calcolo professionisti da eventi:', error)
+      return []
+    }
+  })
+
   // Utilità per filtri
   const filtraEventi = (listaEventi, filtri) => {
-    let eventiFiltrati = [...listaEventi]
+    try {
+      // Controlli di sicurezza
+      if (!listaEventi || !Array.isArray(listaEventi)) {
+        console.warn('Lista eventi non valida per il filtraggio')
+        return []
+      }
 
-    // Filtro per data
-    if (filtri.data) {
-      const dataFiltro = new Date(filtri.data)
-      eventiFiltrati = eventiFiltrati.filter(evento => {
-        const dataEvento = new Date(evento.dataInizio)
-        return dataEvento.toDateString() === dataFiltro.toDateString()
-      })
+      if (!filtri || typeof filtri !== 'object') {
+        console.warn('Filtri non validi, restituisco tutti gli eventi')
+        return [...listaEventi]
+      }
+
+      let eventiFiltrati = [...listaEventi]
+
+      // Filtro per data
+      if (filtri.data) {
+        try {
+          const dataFiltro = new Date(filtri.data)
+          if (!isNaN(dataFiltro.getTime())) {
+            eventiFiltrati = eventiFiltrati.filter(evento => {
+              if (!evento || !evento.dataInizio) return false
+
+              try {
+                const dataEvento = new Date(evento.dataInizio)
+                return !isNaN(dataEvento.getTime()) &&
+                       dataEvento.toDateString() === dataFiltro.toDateString()
+              } catch (dateError) {
+                console.warn('Errore nella data evento:', evento, dateError)
+                return false
+              }
+            })
+          }
+        } catch (dateError) {
+          console.warn('Errore nel filtro data:', dateError)
+        }
+      }
+
+      // Filtro per specialista (ora usa il nome completo del professionista)
+      if (filtri.specialista) {
+        eventiFiltrati = eventiFiltrati.filter(evento => {
+          if (!evento || !evento.professionista) return false
+          return evento.professionista === filtri.specialista ||
+                 evento.professionista.includes(filtri.specialista)
+        })
+      }
+
+      // Filtro per tipo terapia
+      if (filtri.tipoTerapia) {
+        eventiFiltrati = eventiFiltrati.filter(evento => {
+          if (!evento) return false
+          return evento.tipoTerapia === filtri.tipoTerapia
+        })
+      }
+
+      return eventiFiltrati
+
+    } catch (error) {
+      console.error('Errore generale nel filtraggio eventi:', error)
+      return listaEventi || []
     }
-
-    // Filtro per specialista
-    if (filtri.specialista) {
-      eventiFiltrati = eventiFiltrati.filter(evento =>
-        evento.specialista.id === filtri.specialista
-      )
-    }
-
-    // Filtro per tipo terapia
-    if (filtri.tipoTerapia) {
-      eventiFiltrati = eventiFiltrati.filter(evento =>
-        evento.tipoTerapia === filtri.tipoTerapia
-      )
-    }
-
-    return eventiFiltrati
   }
 
   // Utilità per la timeline
   const getEventoInOrario = (specialistaId, dataOra) => {
-    return eventi.value.find(evento => {
-      const inizio = new Date(evento.dataInizio)
-      const fine = new Date(evento.dataFine)
-      const ora = new Date(dataOra)
+    try {
+      if (!eventi.value || !Array.isArray(eventi.value)) return null
+      if (!specialistaId || !dataOra) return null
 
-      return evento.specialista.id === specialistaId &&
-        ora >= inizio && ora < fine
-    })
+      return eventi.value.find(evento => {
+        if (!evento || !evento.dataInizio || !evento.dataFine) return false
+        if (!evento.specialista || !evento.specialista.id) return false
+
+        try {
+          const inizio = new Date(evento.dataInizio)
+          const fine = new Date(evento.dataFine)
+          const ora = new Date(dataOra)
+
+          if (isNaN(inizio.getTime()) || isNaN(fine.getTime()) || isNaN(ora.getTime())) {
+            return false
+          }
+
+          return evento.specialista.id === specialistaId &&
+                 ora >= inizio && ora < fine
+        } catch (error) {
+          return false
+        }
+      })
+    } catch (error) {
+      console.error('Errore in getEventoInOrario:', error)
+      return null
+    }
   }
 
   const isSlotLibero = (specialistaId, dataInizio, dataFine) => {
-    const inizio = new Date(dataInizio)
-    const fine = new Date(dataFine)
+    try {
+      if (!eventi.value || !Array.isArray(eventi.value)) return true
+      if (!specialistaId || !dataInizio || !dataFine) return true
 
-    return !eventi.value.some(evento => {
-      if (evento.specialista.id !== specialistaId) return false
+      const inizio = new Date(dataInizio)
+      const fine = new Date(dataFine)
 
-      const eventoInizio = new Date(evento.dataInizio)
-      const eventoFine = new Date(evento.dataFine)
+      if (isNaN(inizio.getTime()) || isNaN(fine.getTime())) return true
 
-      // Controlla sovrapposizioni
-      return (inizio < eventoFine) && (fine > eventoInizio)
-    })
+      return !eventi.value.some(evento => {
+        if (!evento || !evento.specialista || !evento.specialista.id) return false
+        if (evento.specialista.id !== specialistaId) return false
+        if (!evento.dataInizio || !evento.dataFine) return false
+
+        try {
+          const eventoInizio = new Date(evento.dataInizio)
+          const eventoFine = new Date(evento.dataFine)
+
+          if (isNaN(eventoInizio.getTime()) || isNaN(eventoFine.getTime())) {
+            return false
+          }
+
+          // Controlla sovrapposizioni
+          return (inizio < eventoFine) && (fine > eventoInizio)
+        } catch (error) {
+          return false
+        }
+      })
+    } catch (error) {
+      console.error('Errore in isSlotLibero:', error)
+      return true
+    }
   }
 
   // Utilità per formattazione
   const formatTime = (dateString) => {
-    return new Date(dateString).toLocaleTimeString('it-IT', {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+    try {
+      if (!dateString) return '--:--'
+      const date = new Date(dateString)
+      if (isNaN(date.getTime())) return '--:--'
+
+      return date.toLocaleTimeString('it-IT', {
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    } catch (error) {
+      console.warn('Errore nel formato time:', error)
+      return '--:--'
+    }
   }
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('it-IT', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
+    try {
+      if (!dateString) return '--/--/----'
+      const date = new Date(dateString)
+      if (isNaN(date.getTime())) return '--/--/----'
+
+      return date.toLocaleDateString('it-IT', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      })
+    } catch (error) {
+      console.warn('Errore nel formato date:', error)
+      return '--/--/----'
+    }
   }
 
   const formatDuration = (dataInizio, dataFine) => {
-    const inizio = new Date(dataInizio)
-    const fine = new Date(dataFine)
-    const durataMs = fine - inizio
-    const durataOre = Math.floor(durataMs / (1000 * 60 * 60))
-    const durataMinuti = Math.floor((durataMs % (1000 * 60 * 60)) / (1000 * 60))
+    try {
+      if (!dataInizio || !dataFine) return '--'
 
-    if (durataMinuti === 0) {
-      return `${durataOre}h`
+      const inizio = new Date(dataInizio)
+      const fine = new Date(dataFine)
+
+      if (isNaN(inizio.getTime()) || isNaN(fine.getTime())) return '--'
+
+      const durataMs = fine - inizio
+      if (durataMs < 0) return '--'
+
+      const durataOre = Math.floor(durataMs / (1000 * 60 * 60))
+      const durataMinuti = Math.floor((durataMs % (1000 * 60 * 60)) / (1000 * 60))
+
+      if (durataMinuti === 0) {
+        return `${durataOre}h`
+      }
+      return `${durataOre}h ${durataMinuti}m`
+    } catch (error) {
+      console.warn('Errore nel formato duration:', error)
+      return '--'
     }
-    return `${durataOre}h ${durataMinuti}m`
   }
 
   return {
@@ -436,31 +643,36 @@ export function useCalendario() {
     eventi,
     specialisti,
     professionisti, // Lista professionisti dal backend
+    professionistiDaEventi, // Lista professionisti estratti dagli eventi (computed)
     pazienti, // Lista pazienti dal backend
     loading,
     loadingProfessionisti, // Loading specifico per professionisti
     loadingPazienti, // Loading specifico per pazienti
     error,
 
-    // Metodi
-    caricaEventi,
+    // Metodi principali
+    caricaEventi, // Carica eventi per una data specifica
+    caricaEventiIntervallo, // Carica eventi per un intervallo di date
     caricaSpecialisti,
     caricaProfessionisti, // Carica professionisti una sola volta
     caricaPazienti, // Carica pazienti una sola volta
     cercaProfessionisti, // Cerca professionisti in cache
     cercaPazienti, // Cerca pazienti in cache
-    inizializzaCalendario, // Inizializza tutto il calendario
+    inizializzaCalendario, // Inizializza tutto il calendario con data specifica
     creaEvento,
     aggiornaEvento,
     eliminaEvento,
 
     // Utilità
     filtraEventi,
+    estraiProfessionistiDaEventi, // Funzione per estrarre professionisti da eventi
     getEventoInOrario,
     isSlotLibero,
     formatTime,
     formatDate,
     formatDuration,
+    formatDateForAPI, // Utility per formattare date per API
+    clearError, // Utility per pulire errori
 
     // Costanti
     TIPI_TERAPIA_OPTIONS,

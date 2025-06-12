@@ -10,11 +10,11 @@
     <div v-else-if="eventi.length > 0" class="eventi-lista">
       <div
         v-for="evento in eventiRaggruppati"
-        :key="evento.id"
+        :key="evento.id || `evento-${Math.random()}`"
         class="evento-lista-item"
-        @click="$emit('eventoClick', evento)"
+        @click="evento && $emit('eventoClick', evento)"
       >
-        <CCard class="evento-card">
+        <CCard v-if="evento" class="evento-card">
           <CCardBody>
             <CRow class="align-items-center">
               <!-- Orario -->
@@ -29,14 +29,14 @@
               <!-- Informazioni principali -->
               <CCol md="6">
                 <div class="evento-info">
-                  <h6 class="evento-titolo">{{ evento.titolo }}</h6>
+                  <h6 class="evento-titolo">{{ evento.titolo || 'Evento senza titolo' }}</h6>
                   <div class="evento-paziente">
                     <CIcon icon="cil-user" class="me-1" />
-                    {{ evento.paziente.nomeCompleto }}
+                    {{ evento.paziente?.nomeCompleto || 'Paziente non specificato' }}
                   </div>
-                  <div class="evento-specialista">
+                  <div class="evento-professionista">
                     <CIcon icon="cil-medical-cross" class="me-1" />
-                    {{ evento.specialista.nomeCompleto }}
+                    {{ evento.professionista || 'Professionista non specificato' }}
                   </div>
                 </div>
               </CCol>
@@ -56,6 +56,9 @@
                 <div v-if="evento.sala" class="evento-sala">
                   <CIcon icon="cil-location-pin" class="me-1" />
                   {{ evento.sala }}
+                </div>
+                <div v-else class="evento-sala text-muted">
+                  <small>Sala non specificata</small>
                 </div>
               </CCol>
             </CRow>
@@ -81,6 +84,7 @@ import { useCalendario } from '@/composables/useCalendario'
 
 const props = defineProps({
   eventi: { type: Array, default: () => [] },
+  professionisti: { type: Array, default: () => [] }, // Aggiunto per coerenza con TimelineView
   loading: { type: Boolean, default: false }
 })
 
@@ -88,12 +92,40 @@ const emit = defineEmits(['eventoClick'])
 const { formatTime, formatDuration } = useCalendario()
 
 const eventiRaggruppati = computed(() => {
-  return [...props.eventi].sort((a, b) => 
-    new Date(a.dataInizio) - new Date(b.dataInizio)
-  )
+  try {
+    // Controlli di sicurezza per evitare errori con dati null/undefined
+    if (!props.eventi || !Array.isArray(props.eventi)) {
+      console.warn('Array eventi non valido in ListaView')
+      return []
+    }
+
+    return [...props.eventi]
+      .filter(evento => evento && evento.dataInizio) // Filtra eventi non validi
+      .sort((a, b) => {
+        try {
+          const dateA = new Date(a.dataInizio)
+          const dateB = new Date(b.dataInizio)
+
+          // Verifica che le date siano valide
+          if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
+            return 0
+          }
+
+          return dateA - dateB
+        } catch (error) {
+          console.warn('Errore nell\'ordinamento eventi:', error)
+          return 0
+        }
+      })
+  } catch (error) {
+    console.error('Errore nella computed eventiRaggruppati:', error)
+    return []
+  }
 })
 
 const getStatoBadgeColor = (stato) => {
+  if (!stato) return 'secondary'
+
   const colors = {
     'confermato': 'success',
     'in_attesa': 'warning',
@@ -104,6 +136,8 @@ const getStatoBadgeColor = (stato) => {
 }
 
 const formatStato = (stato) => {
+  if (!stato) return 'Non definito'
+
   const labels = {
     'confermato': 'Confermato',
     'in_attesa': 'In Attesa',
@@ -125,6 +159,6 @@ const formatStato = (stato) => {
 .ora-fine { color: #6c757d; font-size: 0.9rem; }
 .durata { font-size: 0.8rem; color: #8a8a8a; margin-top: 0.25rem; }
 .evento-titolo { color: #2c3e50; margin-bottom: 0.5rem; }
-.evento-paziente, .evento-specialista { font-size: 0.9rem; color: #6c757d; margin-bottom: 0.25rem; }
+.evento-paziente, .evento-professionista { font-size: 0.9rem; color: #6c757d; margin-bottom: 0.25rem; }
 .evento-sala { font-size: 0.9rem; color: #8a8a8a; }
 </style>

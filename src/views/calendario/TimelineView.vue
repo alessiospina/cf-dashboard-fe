@@ -7,12 +7,12 @@
     </div>
 
     <!-- Timeline container con struttura ottimizzata -->
-    <div v-else class="timeline-container">
+    <div v-else-if="professionisti.length > 0" class="timeline-container">
       <!-- Header fisso superiore -->
       <div class="timeline-header-container">
-        <!-- Header specialisti fisso -->
-        <div class="header-specialisti">
-          <div class="specialisti-title">Specialisti</div>
+        <!-- Header professionisti fisso -->
+        <div class="header-professionisti">
+          <div class="professionisti-title">Professionista</div>
         </div>
 
         <!-- Header orari scrollabile -->
@@ -38,28 +38,28 @@
 
       <!-- Corpo principale con scroll sincronizzato -->
       <div class="timeline-body-container">
-        <!-- Sidebar specialisti con scroll verticale -->
+        <!-- Sidebar professionisti con scroll verticale -->
         <div
-          class="sidebar-specialisti"
+          class="sidebar-professionisti"
           ref="sidebarRef"
           @scroll="sincronizzaScrollVerticale"
         >
           <div
-            v-for="specialista in specialisti"
-            :key="`sidebar-${specialista.id}`"
+            v-for="professionista in professionisti"
+            :key="`sidebar-${professionista.id}`"
             class="specialista-row"
           >
             <div class="specialista-info">
               <div class="specialista-nome">
-                {{ specialista.nome }} {{ specialista.cognome }}
+                {{ professionista.nome }} {{ professionista.cognome }}
               </div>
               <div class="specialista-specializzazione">
                 <CBadge
-                  :color="getBadgeColorTerapia(specialista.specializzazione)"
+                  :color="getBadgeColorTerapia(professionista.specializzazione)"
                   shape="rounded-pill"
                   size="sm"
                 >
-                  {{ formatTipoTerapia(specialista.specializzazione) }}
+                  {{ formatTipoTerapia(professionista.specializzazione) }}
                 </CBadge>
               </div>
             </div>
@@ -73,22 +73,22 @@
           @scroll="sincronizzaScrollBidirezionale"
         >
           <div class="griglia-appuntamenti">
-            <!-- Riga per ogni specialista -->
+            <!-- Riga per ogni professionista -->
             <div
-              v-for="specialista in specialisti"
-              :key="`content-${specialista.id}`"
+              v-for="professionista in professionisti"
+              :key="`content-${professionista.id}`"
               class="appuntamento-row"
             >
               <div class="time-slots-container">
                 <!-- Slot orari -->
                 <div
                   v-for="slot in slotsOrari"
-                  :key="`${specialista.id}-${slot.ora}`"
+                  :key="`${professionista.id}-${slot.ora}`"
                   class="time-slot"
                   :class="{
                     'ora-corrente-slot': isOraCorrente(slot.ora)
                   }"
-                  @click="creaEventoInSlot(specialista.id, slot.ora)"
+                  @click="creaEventoInSlot(professionista, slot.ora)"
                 >
                   <!-- Indicatore ora corrente -->
                   <div
@@ -100,8 +100,8 @@
                 <!-- Eventi sovrapposti -->
                 <div class="eventi-layer">
                   <EventCard
-                    v-for="evento in getEventiSpecialista(specialista.id)"
-                    :key="evento.id"
+                    v-for="evento in getEventiProfessionista(professionista)"
+                    :key="`evento-${evento.id}-${professionista.id}`"
                     :evento="evento"
                     :style="getEventoStyle(evento)"
                     class="evento-timeline"
@@ -123,6 +123,20 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Messaggio quando non ci sono professionisti (e quindi eventi) -->
+    <div v-else class="text-center p-5">
+      <CIcon icon="cil-calendar" size="3xl" class="text-muted mb-3" />
+      <h5 class="text-muted">Nessun professionista disponibile</h5>
+      <p class="text-muted mb-3">
+        I professionisti verranno automaticamente mostrati quando ci saranno eventi programmati.
+      </p>
+      <p class="text-muted">
+        <small>
+          Crea il primo appuntamento per iniziare a vedere la timeline dei professionisti.
+        </small>
+      </p>
     </div>
 
     <!-- Legenda -->
@@ -156,13 +170,35 @@
 </template>
 
 <script setup>
+/**
+ * Vista Timeline - Visualizzazione calendario con professionisti estratti dagli eventi
+ *
+ * Caratteristiche:
+ * - Estrae automaticamente i professionisti unici dagli eventi del backend
+ * - Visualizza una riga per ogni professionista con i relativi eventi
+ * - Scroll sincronizzato tra header, sidebar e contenuto
+ * - Indicatori per l'ora corrente
+ * - Click sui slot per creare nuovi eventi
+ * - Gestione responsive
+ */
+
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useCalendario } from '@/composables/useCalendario'
 import EventCard from './EventCard.vue'
 
+// Import componenti CoreUI mancanti
+import {
+  CSpinner,
+  CBadge,
+  CCard,
+  CCardBody,
+  CRow,
+  CCol
+} from '@coreui/vue'
+
 const props = defineProps({
   eventi: { type: Array, default: () => [] },
-  specialisti: { type: Array, default: () => [] },
+  professionisti: { type: Array, default: () => [] }, // Professionisti estratti dagli eventi (computed)
   dataSelezionata: { type: String, required: true },
   loading: { type: Boolean, default: false }
 })
@@ -288,15 +324,56 @@ const getPosizioneOraCorrente = () => {
   return `${posizione}px`
 }
 
-// Filtra gli eventi per specialista
-const getEventiSpecialista = (specialistaId) => {
-  return props.eventi.filter(evento => evento.specialista.id === specialistaId)
+// Filtra gli eventi per professionista
+const getEventiProfessionista = (professionista) => {
+  // Controlli di sicurezza per evitare errori con dati null/undefined
+  if (!professionista || !professionista.nomeCompleto || !props.eventi) {
+    return []
+  }
+
+  // I professionisti ora arrivano dalla computed property che estrae i dati dagli eventi
+  // Il backend restituisce il campo "professionista" come stringa (nome completo)
+  // Confronta direttamente con il nomeCompleto del professionista estratto dagli eventi
+  return props.eventi.filter(evento => {
+    // Controlli di sicurezza per l'evento
+    if (!evento || !evento.professionista) {
+      return false
+    }
+    return evento.professionista === professionista.nomeCompleto
+  })
 }
 
 // Calcola lo stile di posizionamento per un evento
 const getEventoStyle = (evento) => {
+  // Controlli di sicurezza per evitare errori con dati null/undefined
+  if (!evento || !evento.dataInizio || !evento.dataFine) {
+    return {
+      position: 'absolute',
+      left: '0px',
+      width: '80px',
+      top: '4px',
+      bottom: '4px',
+      zIndex: 10,
+      display: 'none' // Nascondi eventi non validi
+    }
+  }
+
   const inizio = new Date(evento.dataInizio)
   const fine = new Date(evento.dataFine)
+
+  // Verifica che le date siano valide
+  if (isNaN(inizio.getTime()) || isNaN(fine.getTime())) {
+    return {
+      position: 'absolute',
+      left: '0px',
+      width: '80px',
+      top: '4px',
+      bottom: '4px',
+      zIndex: 10,
+      display: 'none' // Nascondi eventi con date non valide
+    }
+  }
+
   const oraInizio = inizio.getHours()
   const minutiInizio = inizio.getMinutes()
 
@@ -308,7 +385,7 @@ const getEventoStyle = (evento) => {
   // Calcolo larghezza basata sulla durata
   const durataMinuti = (fine - inizio) / (1000 * 60)
   const slots = durataMinuti / INTERVALLO_MINUTI
-  const width = (slots * LARGHEZZA_SLOT) - 4
+  const width = Math.max((slots * LARGHEZZA_SLOT) - 4, 20) // Larghezza minima di 20px
 
   return {
     position: 'absolute',
@@ -321,21 +398,39 @@ const getEventoStyle = (evento) => {
 }
 
 // Crea un nuovo evento in uno slot
-const creaEventoInSlot = (specialistaId, oraSlot) => {
-  console.log('🖱️ Click su slot:', { specialistaId, oraSlot })
+const creaEventoInSlot = (professionista, oraSlot) => {
+  // Controlli di sicurezza
+  if (!professionista || !professionista.nomeCompleto || !oraSlot) {
+    console.warn('Dati non validi per la creazione evento:', { professionista, oraSlot })
+    return
+  }
+
+  console.log('🖱️ Click su slot:', { professionista: professionista.nomeCompleto, oraSlot })
   console.log('✅ Creazione evento in corso...')
 
-  const [ora, minuti] = oraSlot.split(':').map(Number)
-  const dataInizio = new Date(props.dataSelezionata)
-  dataInizio.setHours(ora, minuti, 0, 0)
-  const dataFine = new Date(dataInizio)
-  dataFine.setHours(dataInizio.getHours() + 1) // Durata default 1 ora
+  try {
+    const [ora, minuti] = oraSlot.split(':').map(Number)
 
-  emit('creaEvento', {
-    specialistaId,
-    dataInizio: dataInizio.toISOString(),
-    dataFine: dataFine.toISOString()
-  })
+    // Verifica che ora e minuti siano numeri validi
+    if (isNaN(ora) || isNaN(minuti)) {
+      console.warn('Orario non valido:', oraSlot)
+      return
+    }
+
+    const dataInizio = new Date(props.dataSelezionata)
+    dataInizio.setHours(ora, minuti, 0, 0)
+    const dataFine = new Date(dataInizio)
+    dataFine.setHours(dataInizio.getHours() + 1) // Durata default 1 ora
+
+    emit('creaEvento', {
+      professionista: professionista, // Passa l'oggetto professionista completo
+      professionistaNome: professionista.nomeCompleto, // Nome completo per backend
+      dataInizio: dataInizio.toISOString(),
+      dataFine: dataFine.toISOString()
+    })
+  } catch (error) {
+    console.error('Errore nella creazione evento:', error)
+  }
 }
 
 // Formatta il tipo di terapia per la visualizzazione
@@ -415,7 +510,7 @@ onUnmounted(() => {
   z-index: 30;
 }
 
-.header-specialisti {
+.header-professionisti {
   width: 280px;
   min-width: 280px;
   background: #e9ecef;
@@ -425,7 +520,7 @@ onUnmounted(() => {
   padding: 1rem;
 }
 
-.specialisti-title {
+.professionisti-title {
   font-weight: 600;
   font-size: 1rem;
   color: #2c3e50;
@@ -476,8 +571,8 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-/* Sidebar specialisti con scroll verticale */
-.sidebar-specialisti {
+/* Sidebar professionisti con scroll verticale */
+.sidebar-professionisti {
   width: 280px;
   min-width: 280px;
   background: #f8f9fa;
@@ -642,36 +737,36 @@ onUnmounted(() => {
 
 /* Personalizzazione scrollbar */
 .header-orari-scrollabile::-webkit-scrollbar,
-.sidebar-specialisti::-webkit-scrollbar,
+.sidebar-professionisti::-webkit-scrollbar,
 .contenuto-appuntamenti::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 .header-orari-scrollabile::-webkit-scrollbar-track,
-.sidebar-specialisti::-webkit-scrollbar-track,
+.sidebar-professionisti::-webkit-scrollbar-track,
 .contenuto-appuntamenti::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 4px;
 }
 
 .header-orari-scrollabile::-webkit-scrollbar-thumb,
-.sidebar-specialisti::-webkit-scrollbar-thumb,
+.sidebar-professionisti::-webkit-scrollbar-thumb,
 .contenuto-appuntamenti::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 4px;
 }
 
 .header-orari-scrollabile::-webkit-scrollbar-thumb:hover,
-.sidebar-specialisti::-webkit-scrollbar-thumb:hover,
+.sidebar-professionisti::-webkit-scrollbar-thumb:hover,
 .contenuto-appuntamenti::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
 
 /* Stili responsive */
 @media (max-width: 768px) {
-  .header-specialisti,
-  .sidebar-specialisti {
+  .header-professionisti,
+  .sidebar-professionisti {
     width: 200px;
     min-width: 200px;
   }

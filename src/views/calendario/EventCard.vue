@@ -2,12 +2,12 @@
   <div
     class="event-card"
     :class="[
-      `event-card--${evento.stato}`,
+      `event-card--${evento.stato || 'default'}`,
       { 'event-card--small': isSmall }
     ]"
     :style="{
-      backgroundColor: evento.colore,
-      borderLeftColor: evento.colore
+      backgroundColor: evento.colore || '#f8f9fa',
+      borderLeftColor: evento.colore || '#dee2e6'
     }"
     @click="$emit('click', evento)"
   >
@@ -29,8 +29,8 @@
 
       <!-- Body con paziente e orario -->
       <div class="event-body">
-        <div class="event-paziente" :title="evento.paziente.nomeCompleto">
-          {{ evento.paziente.nome }} {{ evento.paziente.cognome }}
+        <div class="event-paziente" :title="evento.paziente?.nomeCompleto || 'Paziente non specificato'">
+          {{ evento.paziente?.nome || 'N/A' }} {{ evento.paziente?.cognome || '' }}
         </div>
         <div class="event-orario">
           {{ formatOrario(evento.dataInizio) }} - {{ formatOrario(evento.dataFine) }}
@@ -55,6 +55,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useCalendario } from '@/composables/useCalendario'
+// CIcon è registrato globalmente in main.js, non serve importarlo
 
 const props = defineProps({
   evento: { type: Object, required: true },
@@ -65,30 +66,68 @@ const emit = defineEmits(['click'])
 const { formatTime, formatDuration } = useCalendario()
 
 const isSmall = computed(() => {
-  const inizio = new Date(props.evento.dataInizio)
-  const fine = new Date(props.evento.dataFine)
-  const durataOre = (fine - inizio) / (1000 * 60 * 60)
-  return props.small || durataOre < 1
+  // Controlli di sicurezza per evitare errori con dati null/undefined
+  if (!props.evento || !props.evento.dataInizio || !props.evento.dataFine) {
+    return props.small
+  }
+
+  try {
+    const inizio = new Date(props.evento.dataInizio)
+    const fine = new Date(props.evento.dataFine)
+
+    // Verifica che le date siano valide
+    if (isNaN(inizio.getTime()) || isNaN(fine.getTime())) {
+      return props.small
+    }
+
+    const durataOre = (fine - inizio) / (1000 * 60 * 60)
+    return props.small || durataOre < 1
+  } catch (error) {
+    console.warn('Errore nel calcolo durata evento:', error)
+    return props.small
+  }
 })
 
 const formatOrario = (dateString) => {
-  return new Date(dateString).toLocaleTimeString('it-IT', {
-    hour: '2-digit', minute: '2-digit'
-  })
+  if (!dateString) return '--:--'
+
+  try {
+    return new Date(dateString).toLocaleTimeString('it-IT', {
+      hour: '2-digit', minute: '2-digit'
+    })
+  } catch (error) {
+    console.warn('Errore nel formato orario:', error)
+    return '--:--'
+  }
 }
 
 const formatDurata = (dataInizio, dataFine) => {
-  const inizio = new Date(dataInizio)
-  const fine = new Date(dataFine)
-  const durataMs = fine - inizio
-  const durataOre = Math.floor(durataMs / (1000 * 60 * 60))
-  const durataMinuti = Math.floor((durataMs % (1000 * 60 * 60)) / (1000 * 60))
+  if (!dataInizio || !dataFine) return '--'
 
-  if (durataMinuti === 0) return `${durataOre}h`
-  return `${durataOre}h ${durataMinuti}m`
+  try {
+    const inizio = new Date(dataInizio)
+    const fine = new Date(dataFine)
+
+    // Verifica che le date siano valide
+    if (isNaN(inizio.getTime()) || isNaN(fine.getTime())) {
+      return '--'
+    }
+
+    const durataMs = fine - inizio
+    const durataOre = Math.floor(durataMs / (1000 * 60 * 60))
+    const durataMinuti = Math.floor((durataMs % (1000 * 60 * 60)) / (1000 * 60))
+
+    if (durataMinuti === 0) return `${durataOre}h`
+    return `${durataOre}h ${durataMinuti}m`
+  } catch (error) {
+    console.warn('Errore nel calcolo durata:', error)
+    return '--'
+  }
 }
 
 const getTipoTerapiaShort = (tipoTerapia) => {
+  if (!tipoTerapia) return 'N/A'
+
   const shortcuts = {
     'LOGOPEDIA': 'LOG',
     'NEUROPSICHIATRIA_INFANTILE': 'NPI',
@@ -101,16 +140,20 @@ const getTipoTerapiaShort = (tipoTerapia) => {
 }
 
 const getStatoIcon = (stato) => {
+  if (!stato) return 'cil-options'
+
   const icons = {
     'confermato': 'cil-check-circle',
     'in_attesa': 'cil-clock',
     'completato': 'cil-check',
     'cancellato': 'cil-x-circle'
   }
-  return icons[stato] || 'cil-info'
+  return icons[stato] || 'cil-options'
 }
 
 const getStatoClass = (stato) => {
+  if (!stato) return 'text-muted'
+
   const classes = {
     'confermato': 'text-success',
     'in_attesa': 'text-warning',
@@ -154,6 +197,7 @@ const getStatoClass = (stato) => {
 .event-card--in_attesa { border-left-color: #ffc107; background: rgba(255, 193, 7, 0.1); }
 .event-card--completato { border-left-color: #0d6efd; opacity: 0.8; }
 .event-card--cancellato { border-left-color: #dc3545; background: rgba(220, 53, 69, 0.1); opacity: 0.7; text-decoration: line-through; }
+.event-card--default { border-left-color: #6c757d; background: rgba(108, 117, 125, 0.1); }
 
 .event-content { padding: 0.5rem; flex: 1; display: flex; flex-direction: column; gap: 0.25rem; }
 .event-card--small .event-content { padding: 0.375rem; gap: 0.125rem; }

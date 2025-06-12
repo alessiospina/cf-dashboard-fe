@@ -91,7 +91,8 @@
               <CCol md="auto" v-if="showPagination" class="header-pagination-controls">
                 <CButtonGroup size="sm">
                   <CButton
-                    color="outline-secondary"
+                    variant="outline"
+                    color="secondary"
                     @click="goToFirstPage"
                     :disabled="currentPage === 1"
                     title="Prima pagina"
@@ -99,7 +100,8 @@
                     <font-awesome-icon icon="angle-double-left" />
                   </CButton>
                   <CButton
-                    color="outline-secondary"
+                    variant="outline"
+                    color="secondary"
                     @click="goToPreviousPage"
                     :disabled="currentPage === 1"
                     title="Pagina precedente"
@@ -109,7 +111,8 @@
 
                   <!-- Display pagina corrente -->
                   <CButton
-                    color="outline-primary"
+                    variant="outline"
+                    color="primary"
                     style="min-width: 70px; cursor: default;"
                     disabled
                   >
@@ -117,7 +120,8 @@
                   </CButton>
 
                   <CButton
-                    color="outline-secondary"
+                    variant="outline"
+                    color="secondary"
                     @click="goToNextPage"
                     :disabled="currentPage === totalPages"
                     title="Pagina successiva"
@@ -125,7 +129,8 @@
                     <font-awesome-icon icon="angle-right" />
                   </CButton>
                   <CButton
-                    color="outline-secondary"
+                    variant="outline"
+                    color="secondary"
                     @click="goToLastPage"
                     :disabled="currentPage === totalPages"
                     title="Ultima pagina"
@@ -199,7 +204,8 @@
                 <CCol md="auto" class="ms-auto">
                   <CButtonGroup size="sm">
                     <CButton
-                      color="outline-primary"
+                      variant="outline"
+                      color="primary"
                       @click="selectAllGlobal"
                       :disabled="selectedCount === sortedAndFilteredPazienti.length"
                       title="Seleziona tutti i pazienti (anche nelle altre pagine)"
@@ -209,7 +215,8 @@
                     </CButton>
                     <CButton
                       v-if="hasSelectedPazienti"
-                      color="outline-secondary"
+                      variant="outline"
+                      color="secondary"
                       @click="clearSelection"
                       title="Deseleziona tutti i pazienti"
                     >
@@ -420,7 +427,8 @@
                 <CTableDataCell class="text-center">
                   <CButtonGroup size="sm">
                     <CButton
-                      color="outline-primary"
+                      variant="outline"
+                      color="primary"
                       size="sm"
                       @click="selectPazienteForEdit(paziente)"
                       title="Modifica paziente"
@@ -428,7 +436,8 @@
                       <CIcon icon="cilPencil" />
                     </CButton>
                     <CButton
-                      color="outline-danger"
+                      variant="outline"
+                      color="danger"
                       size="sm"
                       @click="confirmDeletePaziente(paziente)"
                       title="Elimina paziente"
@@ -453,7 +462,8 @@
               <!-- Navigazione veloce -->
               <CButtonGroup size="sm">
                 <CButton
-                  color="outline-secondary"
+                  variant="outline"
+                  color="secondary"
                   @click="goToFirstPage"
                   :disabled="currentPage === 1"
                   title="Prima pagina"
@@ -461,7 +471,8 @@
                   <font-awesome-icon icon="angle-double-left" />
                 </CButton>
                 <CButton
-                  color="outline-secondary"
+                  variant="outline"
+                  color="secondary"
                   @click="goToPreviousPage"
                   :disabled="currentPage === 1"
                   title="Pagina precedente"
@@ -483,7 +494,8 @@
                   />
                 </CInputGroup>
                 <CButton
-                  color="outline-secondary"
+                  variant="outline"
+                  color="secondary"
                   @click="goToNextPage"
                   :disabled="currentPage === totalPages"
                   title="Pagina successiva"
@@ -491,7 +503,8 @@
                   <font-awesome-icon icon="angle-right" />
                 </CButton>
                 <CButton
-                  color="outline-secondary"
+                  variant="outline"
+                  color="secondary"
                   @click="goToLastPage"
                   :disabled="currentPage === totalPages"
                   title="Ultima pagina"

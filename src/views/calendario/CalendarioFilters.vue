@@ -1,10 +1,10 @@
 <template>
   <!--
     Componente Filtri per il Calendario
-    
+
     Fornisce controlli per:
     - Selezione data
-    - Filtro specialista  
+    - Filtro specialista
     - Filtro tipo terapia
     - Navigazione rapida date
     -->
@@ -16,7 +16,8 @@
           <CFormLabel class="fw-semibold">Data</CFormLabel>
           <CInputGroup>
             <CButton
-              color="outline-secondary"
+              variant="outline"
+              color="secondary"
               @click="cambiaGiorno(-1)"
               :disabled="loading"
               title="Giorno precedente"
@@ -30,7 +31,8 @@
               :disabled="loading"
             />
             <CButton
-              color="outline-secondary"
+              variant="outline"
+              color="secondary"
               @click="cambiaGiorno(1)"
               :disabled="loading"
               title="Giorno successivo"
@@ -38,28 +40,32 @@
               <CIcon icon="cil-chevron-right" />
             </CButton>
           </CInputGroup>
-          
+
           <!-- Scorciatoie data -->
           <div class="mt-2">
             <CButtonGroup size="sm">
               <CButton
-                color="outline-primary"
+                variant="outline"
+                color="primary"
                 @click="impostaOggi"
                 :disabled="loading"
               >
+                <CIcon v-if="loading" class="spinner-border spinner-border-sm me-2" />
                 Oggi
               </CButton>
               <CButton
-                color="outline-primary"
+                variant="outline"
+                color="primary"
                 @click="impostaDomani"
                 :disabled="loading"
               >
+                <CIcon v-if="loading" class="spinner-border spinner-border-sm me-2" />
                 Domani
               </CButton>
             </CButtonGroup>
           </div>
         </CCol>
-        
+
         <!-- Filtro Specialista -->
         <CCol md="3">
           <CFormLabel class="fw-semibold">Specialista</CFormLabel>
@@ -78,7 +84,7 @@
             </option>
           </CFormSelect>
         </CCol>
-        
+
         <!-- Filtro Tipo Terapia -->
         <CCol md="3">
           <CFormLabel class="fw-semibold">Tipo Terapia</CFormLabel>
@@ -97,7 +103,7 @@
             </option>
           </CFormSelect>
         </CCol>
-        
+
         <!-- Azioni -->
         <CCol md="2">
           <div class="d-grid gap-2">
@@ -111,9 +117,10 @@
               <CIcon v-else icon="cil-reload" class="me-2" />
               {{ loading ? 'Caricamento...' : 'Aggiorna' }}
             </CButton>
-            
+
             <CButton
-              color="outline-secondary"
+              variant="outline"
+              color="secondary"
               @click="resetFiltri"
               :disabled="loading"
               size="sm"
@@ -124,7 +131,7 @@
           </div>
         </CCol>
       </CRow>
-      
+
       <!-- Informazioni data selezionata -->
       <CRow class="mt-3">
         <CCol>
@@ -149,7 +156,7 @@
 <script setup>
 /**
  * Componente Filtri Calendario
- * 
+ *
  * Gestisce tutti i filtri e controlli di navigazione
  * per la visualizzazione del calendario
  */
@@ -184,7 +191,7 @@ const props = defineProps({
 // Emits
 const emit = defineEmits([
   'update:dataSelezionata',
-  'update:specialistaSelezionato', 
+  'update:specialistaSelezionato',
   'update:tipoTerapiaSelezionato',
   'aggiorna'
 ])
@@ -270,7 +277,7 @@ const getLabelTerapia = (tipoTerapia) => {
   .filtri-calendario .card-body {
     padding: 1rem;
   }
-  
+
   .col-md-4,
   .col-md-3,
   .col-md-2 {
