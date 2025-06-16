@@ -3,6 +3,36 @@
  * Questi tipi sono allineati con le entità NestJS del backend
  */
 
+// Enum per i tipi di terapia (dal backend TipoTerapia enum)
+export const TipoTerapia = {
+  LOGOPEDIA: 'LOGOPEDIA',
+  NEUROPSICHIATRIA_INFANTILE: 'NEUROPSICHIATRIA_INFANTILE',
+  NEUROPSICOMOTRICITÀ: 'NEUROPSICOMOTRICITÀ',
+  TERAPIA_ABA: 'TERAPIA_ABA',
+  PSICOLOGA: 'PSICOLOGA',
+  COLLOQUIO_CONOSCITIVO: 'COLLOQUIO_CONOSCITIVO'
+}
+
+// Opzioni per la select dei tipi di terapia
+export const TIPI_TERAPIA_OPTIONS = [
+  { value: TipoTerapia.LOGOPEDIA, label: 'Logopedia' },
+  { value: TipoTerapia.NEUROPSICHIATRIA_INFANTILE, label: 'Neuropsichiatria Infantile' },
+  { value: TipoTerapia.NEUROPSICOMOTRICITÀ, label: 'Neuropsicomotricità' },
+  { value: TipoTerapia.TERAPIA_ABA, label: 'Terapia ABA' },
+  { value: TipoTerapia.PSICOLOGA, label: 'Psicologa' },
+  { value: TipoTerapia.COLLOQUIO_CONOSCITIVO, label: 'Colloquio Conoscitivo' }
+]
+
+// Colori associati ai tipi di terapia per la UI
+export const COLORI_TERAPIA = {
+  [TipoTerapia.LOGOPEDIA]: '#0d6efd',
+  [TipoTerapia.NEUROPSICHIATRIA_INFANTILE]: '#198754',
+  [TipoTerapia.NEUROPSICOMOTRICITÀ]: '#17a2b8',
+  [TipoTerapia.TERAPIA_ABA]: '#ffc107',
+  [TipoTerapia.PSICOLOGA]: '#6f42c1',
+  [TipoTerapia.COLLOQUIO_CONOSCITIVO]: '#6c757d'
+}
+
 // Enum per la frequenza degli eventi (dal backend)
 export const FrequenzaEvento = {
   GIORNALIERA: 'GIORNALIERA',

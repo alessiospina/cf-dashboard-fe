@@ -41,12 +41,14 @@ export function useSpecialisti() {
       loading.value = true
       error.value = null
 
+      console.log('🔄 [useSpecialisti] Inizio caricamento specialisti dal backend')
       const data = await SpecialistaService.getAllSpecialisti()
       specialisti.value = data || []
 
-      console.log('Specialisti caricati:', specialisti.value.length)
+      console.log('✅ [useSpecialisti] Specialisti caricati:', specialisti.value.length)
+      console.log('📊 [useSpecialisti] Dettaglio specialisti:', specialisti.value)
     } catch (err) {
-      console.error('Errore nel caricamento specialisti:', err)
+      console.error('❌ [useSpecialisti] Errore nel caricamento specialisti:', err)
       error.value = 'Errore nel caricamento degli specialisti. Riprova più tardi.'
 
       // Notifica di errore

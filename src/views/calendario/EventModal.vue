@@ -1,240 +1,289 @@
 <template>
-  <CModal :visible="visible" @close="handleClose" size="xl" class="event-modal">
-    <CModalHeader class="bg-primary text-white">
-      <CModalTitle class="d-flex align-items-center">
-        <CIcon :icon="isEdit ? 'cil-pencil' : 'cil-plus'" class="me-2"/>
+  <CModal :visible="visible" @close="handleClose" size="lg" class="event-modal-simple">
+    <CModalHeader class="border-0 pb-0">
+      <CModalTitle class="h5 fw-bold text-dark">
+        <CIcon :icon="isEdit ? 'cil-pencil' : 'cil-plus'" class="me-2 text-primary"/>
         {{ isEdit ? 'Modifica Appuntamento' : 'Nuovo Appuntamento' }}
       </CModalTitle>
     </CModalHeader>
 
-    <CModalBody>
+    <CModalBody class="pt-2">
       <CForm @submit.prevent="handleSubmit">
-        <!-- Informazioni Evento (Backend) -->
-        <CCard class="mb-3">
-          <CCardHeader>
-            <h6 class="mb-0">
-              <CIcon icon="cil-calendar" class="me-2"/>
-              Informazioni Evento
-            </h6>
-          </CCardHeader>
-          <CCardBody>
-            <CRow>
-              <CCol md="6">
-                <div class="mb-3">
-                  <CFormLabel class="fw-semibold">Titolo Evento</CFormLabel>
-                  <CFormInput
-                    v-model="form.titolo"
-                    :invalid="!!errors.titolo"
-                    placeholder="Es: Sessione di Logopedia"
-                    maxlength="50"
-                    required
-                  />
+
+        <!-- Sezione Principale -->
+        <div class="form-section mb-4">
+          <CRow class="g-3">
+            <!-- Titolo -->
+            <CCol cols="12">
+              <div class="input-group-with-icon">
+                <div class="input-content">
+                  <CFormLabel class="form-label-clean">Titolo appuntamento</CFormLabel>
+                  <div class="d-flex">
+                    <CIcon icon="cil-pencil" class="input-icon"/>
+                    <CFormInput
+                      v-model="form.titolo"
+                      :invalid="!!errors.titolo"
+                      placeholder="Inserisci il titolo dell'appuntamento"
+                      class="form-control-clean"
+                    />
+                  </div>
                   <CFormFeedback v-if="errors.titolo" invalid>{{ errors.titolo }}</CFormFeedback>
                 </div>
-              </CCol>
-              <CCol md="6">
-                <div class="mb-3">
-                  <CFormLabel class="fw-semibold">Stanza</CFormLabel>
-                  <CFormInput
-                    v-model="form.stanza"
-                    :invalid="!!errors.stanza"
-                    placeholder="Es: Sala 1"
-                    maxlength="50"
-                    required
-                  />
-                  <CFormFeedback v-if="errors.stanza" invalid>{{ errors.stanza }}</CFormFeedback>
-                </div>
-              </CCol>
-            </CRow>
+              </div>
+            </CCol>
 
-            <!-- Professionista e Tipo Terapia -->
-            <CRow>
-              <CCol md="6">
-                <div class="mb-3">
-                  <CFormLabel class="fw-semibold">Professionista</CFormLabel>
+            <!-- Specialista -->
+            <CCol cols="12">
+              <div class="input-group-with-icon">
+                <div class="input-content">
+                  <CFormLabel class="form-label-clean">Specialista</CFormLabel>
                   <div class="position-relative">
-                    <CFormInput
-                      v-model="form.professionistaInput"
-                      :invalid="!!errors.professionista"
-                      placeholder="Digita almeno 2 caratteri per cercare un professionista..."
-                      maxlength="50"
-                      required
-                      @input="filtraProfessionisti"
-                      @focus="onFocusProfessionisti"
-                      @blur="nascondiProfessionistiDropdown"
-                    />
-                    <CFormFeedback v-if="errors.professionista" invalid>{{ errors.professionista }}</CFormFeedback>
+                    <div class="d-flex">
+                      <CIcon icon="cil-user" class="input-icon"/>
+                      <CFormInput
+                        v-model="form.specialistaInput"
+                        :invalid="!!errors.specialista"
+                        placeholder="Cerca uno specialista..."
+                        class="form-control-clean"
+                        @input="filtraSpecialisti"
+                        @focus="onFocusSpecialisti"
+                        @blur="nascondiSpecialistiDropdown"
+                      />
+                    </div>
+                    <CFormFeedback v-if="errors.specialista" invalid>{{ errors.specialista }}</CFormFeedback>
 
-                    <!-- Dropdown suggerimenti professionisti -->
+                    <!-- Dropdown specialisti -->
                     <div
-                      v-if="showProfessionistiDropdown && professionistiFiltrati.length > 0"
-                      class="suggestions-dropdown"
+                      v-if="showSpecialistiDropdown && specialistiFiltrati.length > 0"
+                      class="suggestions-dropdown-clean"
                     >
                       <div
-                        v-for="prof in professionistiFiltrati"
-                        :key="prof.id"
-                        class="suggestion-item"
-                        @click="selezionaProfessionista(prof)"
+                        v-for="specialista in specialistiFiltrati"
+                        :key="specialista.id"
+                        class="suggestion-item-clean"
+                        @click="selezionaSpecialista(specialista)"
                       >
                         <div class="d-flex justify-content-between align-items-center">
-                          <span class="fw-semibold">{{ prof.nominativo }}</span>
-                          <CBadge :color="getBadgeColorTerapia(prof.tipoTerapia)" size="sm" v-if="prof.tipoTerapia">
-                            {{ formatTipoTerapia(prof.tipoTerapia) }}
+                          <div>
+                            <div class="fw-medium">{{ getFullNameSpecialista(specialista) }}</div>
+                            <small class="text-muted">{{ specialista.email }}</small>
+                          </div>
+                          <CBadge
+                            v-if="specialista.prestazione?.tipologia"
+                            v-bind="getBadgeProps(specialista.prestazione)"
+                            class="ms-2"
+                          >
+                            {{ formatPrestazione(specialista.prestazione.tipologia) }}
                           </CBadge>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </CCol>
-              <CCol md="6">
-                <div class="mb-3">
-                  <CFormLabel class="fw-semibold">Tipo Terapia</CFormLabel>
-                  <CFormSelect v-model="form.tipoTerapia" :invalid="!!errors.tipoTerapia" required>
-                    <option value="">Seleziona tipo terapia</option>
-                    <option v-for="terapia in TIPI_TERAPIA_OPTIONS" :key="terapia.value" :value="terapia.value">
-                      {{ terapia.label }}
-                    </option>
-                  </CFormSelect>
-                  <CFormFeedback v-if="errors.tipoTerapia" invalid>{{ errors.tipoTerapia }}</CFormFeedback>
-                </div>
-              </CCol>
-            </CRow>
+              </div>
+            </CCol>
+          </CRow>
 
-            <!-- Data e Orari -->
-            <CRow>
-              <CCol md="4">
-                <div class="mb-3">
-                  <CFormLabel class="fw-semibold">Data</CFormLabel>
-                  <CFormInput v-model="form.data" type="date" :invalid="!!errors.data" required/>
+          <!-- Prestazione Selezionata - Riga separata -->
+          <CRow v-if="form.specialistaSelezionato?.prestazione" class="g-3 mt-2">
+            <CCol cols="12">
+              <div class="input-group-with-icon">
+                <CIcon icon="cil-medical-cross" class="input-icon text-primary"/>
+                <div class="input-content">
+                  <div class="prestazione-display">
+                    <div class="d-flex align-items-center">
+                      <span class="me-2">Prestazione:</span>
+                      <CBadge
+                        v-if="form.specialistaSelezionato?.prestazione"
+                        v-bind="getBadgeProps(form.specialistaSelezionato.prestazione)"
+                        size="sm"
+                      >
+                        {{ formatPrestazione(form.specialistaSelezionato.prestazione.tipologia) }}
+                      </CBadge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CCol>
+          </CRow>
+        </div>
+
+        <!-- Sezione Data e Orari -->
+        <div class="form-section mb-4">
+          <h6 class="section-title">Data e Orari</h6>
+          <CRow class="g-3">
+            <CCol md="4">
+              <div class="input-group-with-icon">
+                <div class="input-content">
+                  <CFormLabel class="form-label-clean">Data</CFormLabel>
+                  <div class="d-flex">
+                    <CIcon icon="cil-calendar" class="input-icon"/>
+                    <CFormInput
+                      v-model="form.data"
+                      type="date"
+                      :invalid="!!errors.data"
+                      class="form-control-clean"
+                    />
+                  </div>
                   <CFormFeedback v-if="errors.data" invalid>{{ errors.data }}</CFormFeedback>
                 </div>
-              </CCol>
-              <CCol md="4">
-                <div class="mb-3">
-                  <CFormLabel class="fw-semibold">Ora Inizio</CFormLabel>
-                  <CFormInput v-model="form.oraInizio" type="time" :invalid="!!errors.oraInizio" required/>
+              </div>
+            </CCol>
+            <CCol md="4">
+              <div class="input-group-with-icon">
+                <div class="input-content">
+                  <CFormLabel class="form-label-clean">Ora inizio</CFormLabel>
+                  <div class="d-flex">
+                    <CIcon icon="cil-clock" class="input-icon"/>
+                    <CFormInput
+                      v-model="form.oraInizio"
+                      type="time"
+                      :invalid="!!errors.oraInizio"
+                      class="form-control-clean"
+                    />
+                  </div>
                   <CFormFeedback v-if="errors.oraInizio" invalid>{{ errors.oraInizio }}</CFormFeedback>
                 </div>
-              </CCol>
-              <CCol md="4">
-                <div class="mb-3">
-                  <CFormLabel class="fw-semibold">Ora Fine</CFormLabel>
-                  <CFormInput v-model="form.oraFine" type="time" :invalid="!!errors.oraFine" required/>
+              </div>
+            </CCol>
+            <CCol md="4">
+              <div class="input-group-with-icon">
+                <div class="input-content">
+                  <CFormLabel class="form-label-clean">Ora fine</CFormLabel>
+                  <div class="d-flex">
+                    <CIcon icon="cil-clock" class="input-icon"/>
+                    <CFormInput
+                      v-model="form.oraFine"
+                      type="time"
+                      :invalid="!!errors.oraFine"
+                      class="form-control-clean"
+                    />
+                  </div>
                   <CFormFeedback v-if="errors.oraFine" invalid>{{ errors.oraFine }}</CFormFeedback>
                 </div>
-              </CCol>
-            </CRow>
-          </CCardBody>
-        </CCard>
+              </div>
+            </CCol>
+          </CRow>
+        </div>
 
-        <!-- Informazioni Paziente -->
-        <CCard class="mb-3">
-          <CCardHeader>
-            <h6 class="mb-0">
-              <CIcon icon="cil-user" class="me-2"/>
-              Paziente Associato (opzionale)
-            </h6>
-          </CCardHeader>
-          <CCardBody>
-            <CRow>
-              <CCol md="12">
-                <div class="mb-3">
-                  <CFormLabel class="fw-semibold">Seleziona Paziente</CFormLabel>
-                  <div class="position-relative">
+        <!-- Sezione Dettagli -->
+        <div class="form-section mb-4">
+          <h6 class="section-title">Dettagli</h6>
+          <CRow class="g-3">
+            <CCol md="6">
+              <div class="input-group-with-icon">
+                <div class="input-content">
+                  <CFormLabel class="form-label-clean">Stanza</CFormLabel>
+                  <div class="d-flex">
+                    <CIcon icon="cil-room" class="input-icon"/>
                     <CFormInput
-                      v-model="form.pazienteInput"
-                      :invalid="!!errors.pazienteId"
-                      :disabled="props.loadingPazienti"
-                      placeholder="Digita almeno 2 caratteri per cercare un paziente..."
-                      @input="filtraPazienti"
-                      @focus="onFocusPazienti"
-                      @blur="nascondiPazientiDropdown"
+                      v-model="form.stanza"
+                      :invalid="!!errors.stanza"
+                      placeholder="Es: Sala 1"
+                      class="form-control-clean"
                     />
-                    <CFormFeedback v-if="errors.pazienteId" invalid>{{ errors.pazienteId }}</CFormFeedback>
-
-                    <!-- Dropdown suggerimenti pazienti -->
+                  </div>
+                  <CFormFeedback v-if="errors.stanza" invalid>{{ errors.stanza }}</CFormFeedback>
+                </div>
+              </div>
+            </CCol>
+            <CCol md="6">
+              <div class="input-group-with-icon">
+                <div class="input-content">
+                  <CFormLabel class="form-label-clean">Paziente (opzionale)</CFormLabel>
+                  <div class="position-relative">
+                    <div class="d-flex">
+                      <CIcon icon="cil-people" class="input-icon"/>
+                      <CFormInput
+                        v-model="form.pazienteInput"
+                        placeholder="Cerca un paziente..."
+                        class="form-control-clean"
+                        @input="filtraPazienti"
+                        @focus="onFocusPazienti"
+                        @blur="nascondiPazientiDropdown"
+                      />
+                    </div>
+                    <!-- Dropdown pazienti -->
                     <div
                       v-if="showPazientiDropdown && pazientiFiltrati.length > 0"
-                      class="suggestions-dropdown"
+                      class="suggestions-dropdown-clean"
                     >
                       <div
                         v-for="paziente in pazientiFiltrati"
                         :key="paziente.id"
-                        class="suggestion-item"
+                        class="suggestion-item-clean"
                         @click="selezionaPaziente(paziente)"
                       >
-                        <div class="d-flex justify-content-between align-items-center">
-                          <span class="fw-semibold">{{ paziente.nome }} {{ paziente.cognome }}</span>
-                          <CBadge :color="getBadgeColorTerapia(paziente.tipoTerapia)" size="sm">
-                            {{ formatTipoTerapia(paziente.tipoTerapia) }}
-                          </CBadge>
+                        <div>
+                          <div class="fw-medium">{{ paziente.nome }} {{ paziente.cognome }}</div>
+                          <small class="text-muted">{{ paziente.email }}</small>
                         </div>
-                        <small class="text-muted d-block">{{ paziente.email }}</small>
                       </div>
                     </div>
                   </div>
                 </div>
-              </CCol>
-            </CRow>
+              </div>
+            </CCol>
+          </CRow>
 
-            <!-- Dettagli paziente selezionato -->
-            <div v-if="pazienteSelezionato" class="patient-details mt-3 p-3 bg-light rounded">
-              <h6 class="mb-2">
-                <CIcon icon="cil-info" class="me-2"/>
-                Dettagli Paziente
-              </h6>
-              <CRow>
-                <CCol md="6">
-                  <strong>Nome Completo:</strong> {{ pazienteSelezionato.nome }} {{ pazienteSelezionato.cognome }}
-                </CCol>
-                <CCol md="6">
-                  <strong>Tipo Terapia:</strong>
-                  <CBadge
-                    :color="getBadgeColorTerapia(pazienteSelezionato.tipoTerapia)"
-                    class="ms-2"
-                  >
-                    {{ formatTipoTerapia(pazienteSelezionato.tipoTerapia) }}
-                  </CBadge>
-                </CCol>
-              </CRow>
-              <CRow class="mt-2">
-                <CCol md="6">
-                  <strong>Email:</strong> {{ pazienteSelezionato.email }}
-                </CCol>
-                <CCol md="6" v-if="pazienteSelezionato.telefono">
-                  <strong>Telefono:</strong> {{ pazienteSelezionato.telefono }}
-                </CCol>
-              </CRow>
+          <!-- Paziente Selezionato -->
+          <div v-if="pazienteSelezionato" class="input-group-with-icon mt-3">
+            <CIcon icon="cil-user" class="input-icon text-success"/>
+            <div class="input-content">
+              <div class="paziente-display">
+                <div class="d-flex align-items-center">
+                  <span class="me-2">Paziente:</span>
+                  <strong>{{ pazienteSelezionato.nome }} {{ pazienteSelezionato.cognome }}</strong>
+                  <span class="text-muted ms-2">({{ pazienteSelezionato.email }})</span>
+                </div>
+              </div>
             </div>
-          </CCardBody>
-        </CCard>
+          </div>
+        </div>
 
         <!-- Errore generale -->
-        <CAlert v-if="submitError" color="danger" class="mt-3">
+        <CAlert v-if="submitError" color="danger" class="mb-0">
           <CIcon icon="cil-warning" class="me-2"/>
           {{ submitError }}
         </CAlert>
       </CForm>
     </CModalBody>
 
-    <CModalFooter>
-      <CButton color="secondary" @click="handleClose" :disabled="submitting">
-        <CIcon icon="cil-x" class="me-2"/>
-        Annulla
-      </CButton>
+    <CModalFooter class="border-0 pt-0">
+      <div class="d-flex gap-2 w-100">
+        <CButton
+          color="light"
+          variant="outline"
+          @click="handleClose"
+          :disabled="submitting"
+          class="flex-grow-1"
+        >
+          Annulla
+        </CButton>
 
-      <CButton v-if="isEdit" color="danger" @click="handleDelete" :disabled="submitting" class="me-2">
-        <CSpinner v-if="deleting" size="sm" class="me-2"/>
-        <CIcon v-else icon="cil-trash" class="me-2"/>
-        Elimina
-      </CButton>
+        <CButton
+          v-if="isEdit"
+          color="danger"
+          variant="outline"
+          @click="handleDelete"
+          :disabled="submitting"
+        >
+          <CSpinner v-if="deleting" size="sm" class="me-2"/>
+          <CIcon v-else icon="cil-trash" class="me-2"/>
+          Elimina
+        </CButton>
 
-      <CButton color="primary" @click="handleSubmit" :disabled="submitting">
-        <CSpinner v-if="submitting" size="sm" class="me-2"/>
-        <CIcon v-else :icon="isEdit ? 'cil-save' : 'cil-plus'" class="me-2"/>
-        {{ isEdit ? 'Salva' : 'Crea' }}
-      </CButton>
+        <CButton
+          color="primary"
+          @click="handleSubmit"
+          :disabled="submitting"
+          class="flex-grow-1"
+        >
+          <CSpinner v-if="submitting" size="sm" class="me-2"/>
+          <CIcon v-else :icon="isEdit ? 'cil-save' : 'cil-plus'" class="me-2"/>
+          {{ isEdit ? 'Salva' : 'Crea Appuntamento' }}
+        </CButton>
+      </div>
     </CModalFooter>
   </CModal>
 </template>
@@ -246,10 +295,8 @@ import {useCalendario} from '@/composables/useCalendario'
 const props = defineProps({
   visible: {type: Boolean, default: false},
   evento: {type: Object, default: null},
-  specialisti: {type: Array, default: () => []},
-  professionisti: {type: Array, default: () => []}, // Lista professionisti già caricata
+  specialisti: {type: Array, default: () => []}, // Specialisti dal backend
   pazienti: {type: Array, default: () => []}, // Lista pazienti già caricata
-  loadingProfessionisti: {type: Boolean, default: false},
   loadingPazienti: {type: Boolean, default: false}
 })
 
@@ -264,15 +311,15 @@ const {
   FREQUENZA_EVENTO_OPTIONS,
   EventoMapper,
   EventoValidator,
-  cercaProfessionisti, // Funzione di ricerca che utilizza la cache
+  cercaSpecialisti, // Funzione di ricerca specialisti dal backend
   cercaPazienti // Funzione di ricerca che utilizza la cache
 } = useCalendario()
 
 const isEdit = computed(() => !!props.evento?.id)
 
 // Stato per gestione dropdown suggerimenti
-const professionistiFiltrati = ref([])
-const showProfessionistiDropdown = ref(false)
+const specialistiFiltrati = ref([])
+const showSpecialistiDropdown = ref(false)
 const pazientiFiltrati = ref([])
 const showPazientiDropdown = ref(false)
 
@@ -298,8 +345,9 @@ const form = reactive({
   nomePaziente: '', // Nome manuale (solo se paziente non in lista)
   cognomePaziente: '', // Cognome manuale (solo se paziente non in lista)
 
-  // Gestione professionista - nuovi campi per il dropdown
-  professionistaInput: '', // Input per la ricerca del professionista
+  // Gestione specialista - nuovi campi per il dropdown
+  specialistaInput: '', // Input per la ricerca dello specialista
+  specialistaSelezionato: null, // Oggetto specialista selezionato dal backend
   pazienteInput: '', // Input per la ricerca del paziente
 
   stato: 'confermato',
@@ -317,81 +365,173 @@ const pazienteSelezionato = computed(() => {
   return props.pazienti.find(p => p.id.toString() === form.pazienteId.toString())
 })
 
-// Gestione ricerca e selezione professionisti (min 2 caratteri)
-const filtraProfessionisti = async (event) => {
+// Gestione ricerca e selezione specialisti (min 2 caratteri)
+const filtraSpecialisti = async (event) => {
   // Controllo sicuro dell'input event
   const query = event?.target?.value || ''
-  form.professionistaInput = query
+  form.specialistaInput = query
 
-  console.log('Filtraggio professionisti con query:', query)
-  console.log('Lunghezza query:', query.length)
+  console.log('🔍 [EventModal] Filtraggio specialisti con query:', query)
+  console.log('📏 [EventModal] Lunghezza query:', query.length)
 
   // Mostra la dropdown solo se ci sono almeno 2 caratteri
   if (query.length < 2) {
-    console.log('Query troppo corta (< 2 caratteri), nascondo dropdown professionisti')
-    professionistiFiltrati.value = []
-    showProfessionistiDropdown.value = false
+    console.log('⚠️ [EventModal] Query troppo corta (< 2 caratteri), nascondo dropdown specialisti')
+    specialistiFiltrati.value = []
+    showSpecialistiDropdown.value = false
     return
   }
 
-  // Utilizza la funzione di ricerca che usa la cache
+  // Utilizza la funzione di ricerca che usa la cache dal backend
   try {
-    professionistiFiltrati.value = await cercaProfessionisti(query)
-    showProfessionistiDropdown.value = professionistiFiltrati.value.length > 0
+    specialistiFiltrati.value = await cercaSpecialisti(query)
+    showSpecialistiDropdown.value = specialistiFiltrati.value.length > 0
+    console.log('✅ [EventModal] Trovati', specialistiFiltrati.value.length, 'specialisti')
   } catch (error) {
-    console.error('Errore nella ricerca professionisti:', error)
-    professionistiFiltrati.value = []
+    console.error('❌ [EventModal] Errore nella ricerca specialisti:', error)
+    specialistiFiltrati.value = []
     // Nascondi la dropdown in caso di errore
-    showProfessionistiDropdown.value = false
+    showSpecialistiDropdown.value = false
   }
 }
 
-const selezionaProfessionista = (professionista) => {
-  // Aggiorna i campi del form con i dati del professionista selezionato
-  form.professionistaInput = professionista.nominativo
-  form.professionista = professionista.nominativo
+const selezionaSpecialista = (specialista) => {
+  console.log('👤 [EventModal] Specialista selezionato:', specialista)
+
+  // Aggiorna i campi del form con i dati dello specialista selezionato
+  form.specialistaInput = getFullNameSpecialista(specialista)
+  form.specialistaSelezionato = specialista
+  form.professionista = getFullNameSpecialista(specialista)
+
+  // Auto-compila il tipo terapia se disponibile dalla prestazione
+  if (specialista.prestazione?.tipologia) {
+    form.tipoTerapia = specialista.prestazione.tipologia
+    console.log('🎯 [EventModal] Auto-compilato tipo terapia:', form.tipoTerapia)
+
+    // Auto-compila anche il titolo se non è già presente
+    if (!form.titolo || form.titolo === '') {
+      form.titolo = `Sessione di ${formatPrestazione(specialista.prestazione.tipologia)}`
+      console.log('📝 [EventModal] Auto-compilato titolo:', form.titolo)
+    }
+  }
 
   // Chiudi immediatamente la dropdown e pulisci i suggerimenti
-  showProfessionistiDropdown.value = false
-  professionistiFiltrati.value = []
+  showSpecialistiDropdown.value = false
+  specialistiFiltrati.value = []
 
   // Rimuovi il focus dal campo input per evitare che si riapra subito la dropdown
-  const input = document.querySelector('input[placeholder*="professionista"]')
+  const input = document.querySelector('input[placeholder*="specialista"]')
   if (input) {
     input.blur()
   }
 }
 
-// Gestione focus professionisti - mostra suggerimenti solo dopo 2 caratteri
-const onFocusProfessionisti = async () => {
+// Gestione focus specialisti - mostra suggerimenti solo dopo 2 caratteri
+const onFocusSpecialisti = async () => {
+  console.log('🎯 [EventModal] Focus su campo specialisti')
+
   // Non mostrare la dropdown al focus se non ci sono almeno 2 caratteri
-  const inputValue = form.professionistaInput || ''
+  const inputValue = form.specialistaInput || ''
   if (inputValue.length < 2) {
-    showProfessionistiDropdown.value = false
-    professionistiFiltrati.value = []
+    showSpecialistiDropdown.value = false
+    specialistiFiltrati.value = []
     return
   }
 
-  showProfessionistiDropdown.value = true
+  showSpecialistiDropdown.value = true
 
   try {
     // Utilizza la cache già caricata con controllo sicuro dell'input
-    professionistiFiltrati.value = await cercaProfessionisti(inputValue)
-    console.log('Professionisti filtrati al focus:', professionistiFiltrati.value.length)
+    specialistiFiltrati.value = await cercaSpecialisti(inputValue)
+    console.log('✅ [EventModal] Specialisti filtrati al focus:', specialistiFiltrati.value.length)
   } catch (error) {
-    console.error('Errore nel caricamento professionisti al focus:', error)
-    professionistiFiltrati.value = []
+    console.error('❌ [EventModal] Errore nel caricamento specialisti al focus:', error)
+    specialistiFiltrati.value = []
     // Non mostrare la dropdown se c'è un errore
-    showProfessionistiDropdown.value = false
+    showSpecialistiDropdown.value = false
   }
 }
 
-const nascondiProfessionistiDropdown = () => {
+const nascondiSpecialistiDropdown = () => {
   // Usa un timeout leggermente più lungo per permettere il click sull'elemento
   setTimeout(() => {
-    showProfessionistiDropdown.value = false
-    professionistiFiltrati.value = []
+    showSpecialistiDropdown.value = false
+    specialistiFiltrati.value = []
   }, 200)
+}
+
+// Funzioni di utilità per gli specialisti
+const getFullNameSpecialista = (specialista) => {
+  if (!specialista) return ''
+  const nome = specialista.nome || ''
+  const cognome = specialista.cognome || ''
+  return `${nome} ${cognome}`.trim()
+}
+
+const formatPrestazione = (tipologia) => {
+  const labels = {
+    'LOGOPEDIA': 'Logopedia',
+    'NEUROPSICHIATRIA_INFANTILE': 'Neuropsichiatria',
+    'NEUROPSICOMOTRICITÀ': 'Neuropsicomotricità',
+    'TERAPIA_ABA': 'Terapia ABA',
+    'PSICOLOGA': 'Psicologa',
+    'COLLOQUIO_CONOSCITIVO': 'Colloquio'
+  }
+  return labels[tipologia] || tipologia
+}
+
+// Computed per gestire i colori dei badge in modo pulito
+const getBadgeProps = (prestazione) => {
+  const colorData = getBadgeColorPrestazione(prestazione)
+
+  if (colorData.isHex) {
+    return {
+      color: undefined,
+      style: {
+        backgroundColor: colorData.color,
+        color: 'white',
+        border: 'none'
+      }
+    }
+  } else {
+    return {
+      color: colorData.color,
+      style: undefined
+    }
+  }
+}
+
+const getBadgeColorPrestazione = (prestazione) => {
+  console.log('🎨 [EventModal] getBadgeColorPrestazione chiamata con:', prestazione)
+
+  // Se ricevo l'oggetto prestazione completo, usa il colore dal database
+  if (prestazione && typeof prestazione === 'object' && prestazione.color) {
+    console.log('✅ [EventModal] Colore dal database:', prestazione.color)
+
+    // Se il colore inizia con #, è un hex - usiamo style
+    if (prestazione.color.startsWith('#')) {
+      return { isHex: true, color: prestazione.color }
+    } else {
+      // Se non è hex, è una classe CoreUI
+      return { isHex: false, color: prestazione.color }
+    }
+  }
+
+  // Se ricevo solo la tipologia (backward compatibility), usa la mappatura fallback
+  const tipologia = typeof prestazione === 'string' ? prestazione : prestazione?.tipologia
+
+  const colorsFallback = {
+    'LOGOPEDIA': 'primary',
+    'NEUROPSICHIATRIA_INFANTILE': 'success',
+    'NEUROPSICOMOTRICITÀ': 'info',
+    'TERAPIA_ABA': 'warning',
+    'PSICOLOGA': 'secondary',
+    'COLLOQUIO_CONOSCITIVO': 'dark'
+  }
+
+  const coloreFallback = colorsFallback[tipologia] || 'light'
+  console.log('⚠️ [EventModal] Usando colore fallback per tipologia', tipologia, ':', coloreFallback)
+  return { isHex: false, color: coloreFallback }
 }
 
 // Gestione ricerca e selezione pazienti (utilizzo diretto props - min 2 caratteri)
@@ -533,16 +673,17 @@ const resetForm = () => {
   form.nomePaziente = ''
   form.cognomePaziente = ''
 
-  // Reset campi professionista
-  form.professionistaInput = ''
+  // Reset campi specialista
+  form.specialistaInput = ''
+  form.specialistaSelezionato = null
   form.pazienteInput = ''
 
   form.stato = 'confermato'
   form.note = ''
 
   // Reset stato dropdown
-  professionistiFiltrati.value = []
-  showProfessionistiDropdown.value = false
+  specialistiFiltrati.value = []
+  showSpecialistiDropdown.value = false
   pazientiFiltrati.value = []
   showPazientiDropdown.value = false
 
@@ -573,8 +714,17 @@ const populateForm = (evento) => {
     form.oraFine = dataFine.toTimeString().slice(0, 5)
     form.tipoTerapia = evento.tipoTerapia || ''
 
-    // Popolamento campi input
-    form.professionistaInput = form.professionista
+    // Popolamento campi input e specialista selezionato
+    form.specialistaInput = form.professionista
+
+    // Cerca lo specialista corrispondente nei props per popolare specialistaSelezionato
+    if (evento.specialista?.id) {
+      const specialistaTrovato = props.specialisti.find(s => s.id.toString() === evento.specialista.id.toString())
+      if (specialistaTrovato) {
+        form.specialistaSelezionato = specialistaTrovato
+        console.log('🔄 [EventModal] Specialista trovato e selezionato:', specialistaTrovato)
+      }
+    }
 
     // Gestione paziente - controllo se è un paziente esistente o manuale
     if (evento.paziente?.id && props.pazienti.some(p => p.id.toString() === evento.paziente.id.toString())) {
@@ -611,7 +761,7 @@ const validateForm = () => {
   // Validazione campi backend obbligatori
   if (!form.titolo) newErrors.titolo = 'Titolo obbligatorio'
   if (!form.stanza) newErrors.stanza = 'Stanza obbligatoria'
-  if (!form.professionista) newErrors.professionista = 'Professionista obbligatorio'
+  if (!form.professionista) newErrors.specialista = 'Specialista obbligatorio'
   if (!form.postiDisponibili || form.postiDisponibili < 1) {
     newErrors.postiDisponibili = 'Posti disponibili deve essere almeno 1'
   }
@@ -799,10 +949,11 @@ watch(() => form.specialistaId, (newSpecialistaId) => {
   }
 })
 
-// Auto-popolamento del titolo quando si cambia tipo terapia
-watch(() => form.tipoTerapia, (newTipoTerapia) => {
-  if (newTipoTerapia && !form.titolo) {
-    form.titolo = `Sessione di ${formatTipoTerapia(newTipoTerapia)}`
+// Auto-popolamento del titolo quando si seleziona uno specialista o cambia prestazione
+watch(() => form.specialistaSelezionato?.prestazione?.tipologia, (newTipologia) => {
+  if (newTipologia && (!form.titolo || form.titolo === '')) {
+    form.titolo = `Sessione di ${formatPrestazione(newTipologia)}`
+    console.log('📝 [EventModal] Auto-compilato titolo da prestazione:', form.titolo)
   }
 })
 
@@ -813,10 +964,11 @@ watch(() => form.pazienteInput, (newValue) => {
   }
 })
 
-// Watcher per reset professionista quando si cambia input manualmente
-watch(() => form.professionistaInput, (newValue) => {
+// Watcher per reset specialista quando si cambia input manualmente
+watch(() => form.specialistaInput, (newValue) => {
   if (!newValue) {
     form.professionista = ''
+    form.specialistaSelezionato = null
   } else {
     form.professionista = newValue
   }
@@ -837,153 +989,365 @@ watch(() => props.visible, (newVisible) => {
 </script>
 
 <style scoped>
-/* Stili per la modal migliorata */
-.event-modal :deep(.modal-content) {
-  border-radius: 12px;
-  overflow: hidden;
+/* Design semplificato per la modal */
+.event-modal-simple :deep(.modal-content) {
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
-.event-modal .modal-header {
-  border-bottom: none;
+.event-modal-simple :deep(.modal-header) {
+  padding: 1.5rem 1.5rem 0 1.5rem;
 }
 
-.event-modal .card-header {
-  background-color: #f8f9fa;
-  border-bottom: 2px solid #e9ecef;
-  padding: 0.75rem 1rem;
+.event-modal-simple :deep(.modal-body) {
+  padding: 1rem 1.5rem;
 }
 
-.event-modal .card-header h6 {
-  color: #495057;
+.event-modal-simple :deep(.modal-footer) {
+  padding: 0 1.5rem 1.5rem 1.5rem;
+}
+
+/* Sezioni del form */
+.form-section {
+  position: relative;
+}
+
+.section-title {
+  color: #374151;
   font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #f3f4f6;
 }
 
-.event-modal .form-label {
-  color: #495057;
+/* Labels pulite */
+.form-label-clean {
+  color: #374151;
   font-weight: 500;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
 }
 
-.event-modal .form-control:focus,
-.event-modal .form-select:focus {
-  border-color: #0d6efd;
-  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+/* Input puliti - responsive e flessibili */
+.form-control-clean {
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  background-color: #ffffff;
+  min-height: 40px; /* Altezza minima per allineamento con le icone */
+  flex: 1; /* Occupa tutto lo spazio disponibile */
 }
 
-/* Stili per i dropdown di suggerimenti */
-.suggestions-dropdown {
+.form-control-clean:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background-color: #ffffff;
+}
+
+.form-control-clean:invalid {
+  border-color: #ef4444;
+}
+
+/* Dropdown semplificato */
+.suggestions-dropdown-clean {
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
   background: white;
-  border: 1px solid #ced4da;
+  border: 2px solid #e5e7eb;
   border-top: none;
-  border-radius: 0 0 0.375rem 0.375rem;
+  border-radius: 0 0 8px 8px;
   max-height: 200px;
   overflow-y: auto;
   z-index: 1050;
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
-.suggestion-item {
-  padding: 0.75rem 1rem;
+.suggestion-item-clean {
+  padding: 0.75rem;
   cursor: pointer;
-  border-bottom: 1px solid #f8f9fa;
-  transition: background-color 0.15s ease-in-out;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.15s ease;
 }
 
-.suggestion-item:hover {
-  background-color: #f8f9fa;
+.suggestion-item-clean:hover {
+  background-color: #f8fafc;
 }
 
-.suggestion-item:last-child {
+.suggestion-item-clean:last-child {
   border-bottom: none;
 }
 
-.suggestion-item .fw-semibold {
-  color: #212529;
+/* Input group con icone - allineamento flexbox responsive */
+.input-group-with-icon {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0;
+  align-items: stretch; /* Permette agli elementi di adattarsi in altezza */
 }
 
-.suggestion-item small {
-  font-size: 0.875em;
+/* Layout del contenuto input */
+.input-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
-/* Separazione visiva tra sezioni */
-.event-modal .card + .card {
-  margin-top: 1rem;
+/* Container per input con icona */
+.input-content .d-flex {
+  align-items: center; /* Allinea verticalmente icona e input */
+  gap: 0.75rem;
+  margin-top: auto; /* Spinge verso il basso per allinearsi con altre icone */
 }
 
-/* Evidenziazione campi obbligatori backend */
-.event-modal .card:first-of-type .form-label::after {
-  content: " *";
-  color: #dc3545;
+/* Icone all'interno del contenuto input */
+.input-content .d-flex .input-icon {
+  margin-top: 0 !important;
+  flex-shrink: 0;
+  align-self: center;
 }
 
-/* Stile per campi condizionali */
-.event-modal .form-text {
-  font-size: 0.875em;
-  margin-top: 0.25rem;
+/* Icone standalone (fuori da input-content) */
+.input-group-with-icon > .input-icon {
+  align-self: flex-end; /* Allinea al fondo del container per essere al livello degli input */
+  margin-bottom: 0.75rem; /* Spazio per compensare il padding degli input */
 }
 
-/* Stili per i dettagli del paziente selezionato */
-.patient-details {
-  border: 1px solid #e9ecef;
-  background-color: #f8f9fa !important;
-  transition: all 0.3s ease;
+.input-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background-color: #f3f4f6;
+  color: #6b7280;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
 }
 
-.patient-details h6 {
-  color: #495057;
-  margin-bottom: 0.75rem;
+.input-icon.text-primary {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
 }
 
-.patient-details strong {
-  color: #2c3e50;
+.input-icon.text-success {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #10b981;
 }
 
-/* Stili per il loading state del dropdown pazienti */
-.event-modal .form-select:disabled {
-  background-color: #e9ecef;
-  opacity: 0.6;
+
+
+/* Display per prestazione e paziente */
+.prestazione-display,
+.paziente-display {
+  background-color: #f8fafc;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
 }
 
-/* Stili per il checkbox aggiunta manuale */
-.event-modal .form-check {
-  padding: 0.5rem 0;
-  border-top: 1px solid #e9ecef;
-  margin-top: 1rem;
-  padding-top: 1rem;
+.prestazione-display {
+  border-left: 4px solid #3b82f6;
 }
 
-.event-modal .form-check-label {
-  font-size: 0.9rem;
-  color: #6c757d;
+.paziente-display {
+  border-left: 4px solid #10b981;
+}
+
+/* Icone specifiche per display elements - allineamento centrato */
+.prestazione-display .input-icon,
+.paziente-display .input-icon {
+  margin-top: 0;
+  margin-bottom: 0; /* Reset margin bottom per display elements */
+  align-self: center; /* Centra verticalmente rispetto al contenuto */
+  height: auto;
+  min-height: 40px;
+}
+
+/* Correzione per le sezioni con input diretti dentro input-group-with-icon */
+.input-group-with-icon .d-flex .input-icon {
+  margin-top: 0;
+  margin-bottom: 0; /* Reset margin bottom per icone in d-flex */
+  align-self: center;
+}
+
+/* Allineamento specifico per i campi con dropdown di suggerimenti */
+.input-group-with-icon .position-relative .d-flex .input-icon {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* Specifico per il markup utilizzato nella modale - contenitori d-flex annidati */
+.input-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.input-content .d-flex {
+  align-items: center; /* Allinea verticalmente icona e input */
+  gap: 0.75rem;
+}
+
+.input-content .d-flex .input-icon {
+  margin-top: 0 !important; /* Override importante per icone dentro input-content */
+  flex-shrink: 0;
+}
+
+/* Allineamento per contenitori con position-relative (dropdown) */
+.input-content .position-relative {
+  flex: 1;
+}
+
+.input-content .position-relative .d-flex {
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Bottoni */
+.event-modal-simple .btn {
+  border-radius: 8px;
   font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
 }
 
-/* Evidenziazione paziente selezionato */
-.event-modal .form-select option:checked {
-  background-color: #0d6efd;
-  color: white;
+.event-modal-simple .btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border: none;
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);
 }
 
-/* Responsive per mobile */
+.event-modal-simple .btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 10px -1px rgba(59, 130, 246, 0.3);
+}
+
+.event-modal-simple .btn-outline-light {
+  border: 2px solid #e5e7eb;
+  color: #6b7280;
+}
+
+.event-modal-simple .btn-outline-light:hover {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+.event-modal-simple .btn-outline-danger {
+  border: 2px solid #fecaca;
+  color: #dc2626;
+}
+
+.event-modal-simple .btn-outline-danger:hover {
+  background-color: #fef2f2;
+  border-color: #fca5a5;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
-  .patient-details .col-md-6 {
-    margin-bottom: 0.5rem;
+  .event-modal-simple :deep(.modal-dialog) {
+    margin: 0.5rem;
   }
 
-  .patient-details strong {
-    display: inline-block;
-    min-width: 100px;
+  .event-modal-simple :deep(.modal-header),
+  .event-modal-simple :deep(.modal-body),
+  .event-modal-simple :deep(.modal-footer) {
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 
-  .suggestions-dropdown {
+  .suggestions-dropdown-clean {
     max-height: 150px;
   }
 
-  .suggestion-item {
-    padding: 0.5rem 0.75rem;
+  .suggestion-item-clean {
+    padding: 0.5rem;
+  }
+}
+
+/* Animazioni */
+.event-modal-simple :deep(.modal-content) {
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Badge personalizzati */
+.event-modal-simple .badge {
+  font-weight: 500;
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+/* Alert semplificato */
+.event-modal-simple .alert {
+  border-radius: 8px;
+  border: none;
+  font-size: 0.875rem;
+}
+
+.event-modal-simple .alert-danger {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border-left: 4px solid #dc2626;
+}
+
+/* Responsive per le icone - layout flessibile e pulito */
+@media (max-width: 768px) {
+  .input-group-with-icon {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
+  .input-icon {
+    align-self: flex-start;
+    margin-top: 0;
+    margin-bottom: 0;
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Specifico per mobile: icone nei d-flex rimangono orizzontali */
+  .input-group-with-icon .d-flex {
+    flex-direction: row !important;
+    align-items: center;
+    margin-top: 0;
+  }
+
+  .input-group-with-icon .d-flex .input-icon {
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-right: 0.75rem;
+  }
+
+  /* Reset per icone standalone in mobile */
+  .input-group-with-icon > .input-icon {
+    align-self: flex-start;
+    margin-bottom: 0;
   }
 }
 </style>

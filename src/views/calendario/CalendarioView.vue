@@ -142,9 +142,7 @@
       :visible="showEventModal"
       :evento="eventoSelezionato"
       :specialisti="specialisti"
-      :professionisti="professionisti"
       :pazienti="pazienti"
-      :loading-professionisti="loadingProfessionisti"
       :loading-pazienti="loadingPazienti"
       @close="chiudiModalEvento"
       @created="handleEventoCreato"
@@ -177,11 +175,9 @@ const {
   // Stato
   eventi,
   specialisti,
-  professionisti, // Lista professionisti dal backend
-  professionistiDaEventi, // Lista professionisti estratti dagli eventi (computed)
+  professionistiDaEventi, // Lista specialisti estratti dagli eventi (computed)
   pazienti, // Lista pazienti dal backend
   loading,
-  loadingProfessionisti,
   loadingPazienti,
   error,
 

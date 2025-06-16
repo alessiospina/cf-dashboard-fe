@@ -37,6 +37,8 @@ export default defineConfig(() => {
       proxy: {
         // https://vitejs.dev/config/server-options.html
       },
+      // Configurazione per il supporto delle rotte SPA
+      historyApiFallback: true,
     },
   }
 })

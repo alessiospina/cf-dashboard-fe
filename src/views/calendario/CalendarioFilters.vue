@@ -162,7 +162,7 @@
  */
 
 import { computed } from 'vue'
-import { TIPI_TERAPIA_OPTIONS } from '@/composables/useCalendario'
+import { TIPI_TERAPIA_OPTIONS } from '@/types/backend.types'
 
 // Props
 const props = defineProps({
@@ -232,7 +232,7 @@ const formatDataEstesa = (dateString) => {
 }
 
 const getNomeSpecialista = (specialistaId) => {
-  const specialista = props.specialisti.find(s => s.id === specialistaId)
+  const specialista = props.specialisti.find(s => s.id.toString() === specialistaId.toString())
   return specialista ? `${specialista.nome} ${specialista.cognome}` : ''
 }
 

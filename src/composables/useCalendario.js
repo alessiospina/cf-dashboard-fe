@@ -3,7 +3,7 @@
  *
  * Fornisce:
  * - Gestione eventi dal backend
- * - Gestione specialisti e professionisti
+ * - Gestione specialisti e specialisti
  * - Logica di filtring e validazione
  * - Utilità per la timeline
  * - Mapping tra entità frontend e backend
@@ -16,57 +16,17 @@ import {
   EventoMapper,
   EventoValidator,
   FrequenzaEvento,
-  FREQUENZA_EVENTO_OPTIONS
+  FREQUENZA_EVENTO_OPTIONS,
+  TipoTerapia,
+  TIPI_TERAPIA_OPTIONS,
+  COLORI_TERAPIA
 } from '@/types/backend.types'
 
-// Import dei service per professionisti, pazienti ed eventi
-import {ProfessionistaService} from '@/services/professionistaService'
+// Import dei service per specialisti, pazienti ed eventi
+import {SpecialistaService} from '@/services/specialistaService'
 import {PazienteService} from '@/services/pazienteService'
 import {EventoService} from '@/services/calendarioService'
 
-// Tipi di terapia dal sistema esistente
-export const TIPI_TERAPIA_OPTIONS = [
-  {value: 'LOGOPEDIA', label: 'Logopedia'},
-  {value: 'NEUROPSICHIATRIA_INFANTILE', label: 'Neuropsichiatria Infantile'},
-  {value: 'NEUROPSICOMOTRICITÀ', label: 'Neuropsicomotricità'},
-  {value: 'TERAPIA_ABA', label: 'Terapia ABA'},
-  {value: 'PSICOLOGA', label: 'Psicologa'},
-  {value: 'COLLOQUIO_CONOSCITIVO', label: 'Colloquio Conoscitivo'}
-]
-
-// Colori per i tipi di terapia
-export const COLORI_TERAPIA = {
-  'LOGOPEDIA': '#0d6efd', // primary
-  'NEUROPSICHIATRIA_INFANTILE': '#198754', // success
-  'NEUROPSICOMOTRICITÀ': '#0dcaf0', // info
-  'TERAPIA_ABA': '#ffc107', // warning
-  'PSICOLOGA': '#6c757d', // secondary
-  'COLLOQUIO_CONOSCITIVO': '#212529' // dark
-}
-
-// Dati mock specialisti (mantenuti per compatibilità con il frontend esistente)
-const SPECIALISTI_MOCK = [
-  {id: '1', nome: 'Anna', cognome: 'Rossi', specializzazione: 'LOGOPEDIA'},
-  {id: '2', nome: 'Marco', cognome: 'Bianchi', specializzazione: 'NEUROPSICHIATRIA_INFANTILE'},
-  {id: '3', nome: 'Laura', cognome: 'Verdi', specializzazione: 'NEUROPSICOMOTRICITÀ'},
-  {id: '4', nome: 'Giuseppe', cognome: 'Neri', specializzazione: 'TERAPIA_ABA'},
-  {id: '5', nome: 'Sofia', cognome: 'Gialli', specializzazione: 'PSICOLOGA'},
-  {id: '6', nome: 'Roberto', cognome: 'Blu', specializzazione: 'LOGOPEDIA'},
-  {id: '7', nome: 'Francesca', cognome: 'Viola', specializzazione: 'NEUROPSICOMOTRICITÀ'},
-  {id: '8', nome: 'Alessandro', cognome: 'Rosa', specializzazione: 'TERAPIA_ABA'},
-  {id: '9', nome: 'Elena', cognome: 'Grigi', specializzazione: 'PSICOLOGA'},
-  {id: '10', nome: 'Davide', cognome: 'Marroni', specializzazione: 'COLLOQUIO_CONOSCITIVO'},
-  {id: '11', nome: 'Chiara', cognome: 'Celesti', specializzazione: 'LOGOPEDIA'},
-  {id: '12', nome: 'Matteo', cognome: 'Arancioni', specializzazione: 'NEUROPSICHIATRIA_INFANTILE'},
-  {id: '13', nome: 'Valentina', cognome: 'Indaco', specializzazione: 'NEUROPSICOMOTRICITÀ'},
-  {id: '14', nome: 'Luca', cognome: 'Beige', specializzazione: 'TERAPIA_ABA'},
-  {id: '15', nome: 'Simona', cognome: 'Turchesi', specializzazione: 'PSICOLOGA'},
-  {id: '16', nome: 'Andrea', cognome: 'Corallo', specializzazione: 'LOGOPEDIA'},
-  {id: '17', nome: 'Paola', cognome: 'Magenta', specializzazione: 'NEUROPSICHIATRIA_INFANTILE'},
-  {id: '18', nome: 'Fabio', cognome: 'Ciano', specializzazione: 'NEUROPSICOMOTRICITÀ'},
-  {id: '19', nome: 'Giorgia', cognome: 'Senape', specializzazione: 'TERAPIA_ABA'},
-  {id: '20', nome: 'Nicola', cognome: 'Vinaccia', specializzazione: 'COLLOQUIO_CONOSCITIVO'}
-]
 
 /**
  * Formatta una data nel formato YYYY-MM-DD per le API
@@ -81,11 +41,10 @@ const formatDateForAPI = (data) => {
 export function useCalendario() {
   // Stato reattivo
   const eventi = ref([])
-  const specialisti = ref([])
-  const professionisti = ref([]) // Lista professionisti dal backend
+  const specialisti = ref([]) // Lista specialisti dal backend
   const pazienti = ref([]) // Lista pazienti dal backend
   const loading = ref(false)
-  const loadingProfessionisti = ref(false) // Loading specifico per professionisti
+  const loadingSpecialisti = ref(false) // Loading specifico per specialisti
   const loadingPazienti = ref(false) // Loading specifico per pazienti
   const error = ref('')
 
@@ -94,42 +53,28 @@ export function useCalendario() {
     error.value = ''
   }
 
-  // Funzioni per caricare i dati (mock)
+
+  // Funzione per caricare specialisti dal backend (una sola volta)
   const caricaSpecialisti = async () => {
-    loading.value = true
-    try {
-      // Simula chiamata API
-      await new Promise(resolve => setTimeout(resolve, 500))
-      specialisti.value = SPECIALISTI_MOCK
-    } catch (err) {
-      error.value = 'Errore nel caricamento degli specialisti'
-      console.error(err)
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // Funzione per caricare professionisti dal backend (una sola volta)
-  const caricaProfessionisti = async () => {
     // Se già caricati, non rifare la chiamata
-    if (professionisti.value.length > 0) {
-      console.log('Professionisti già caricati, utilizzo cache')
-      return professionisti.value
+    if (specialisti.value.length > 0) {
+      console.log('✅ [useCalendario] Specialisti già caricati, utilizzo cache')
+      return specialisti.value
     }
 
-    loadingProfessionisti.value = true
+    loadingSpecialisti.value = true
     try {
-      console.log('Caricamento professionisti dal backend...')
-      professionisti.value = await ProfessionistaService.getAllProfessionisti()
-      console.log(`Caricati ${professionisti.value.length} professionisti`)
-      return professionisti.value
+      console.log('🔄 [useCalendario] Caricamento specialisti dal backend...')
+      specialisti.value = await SpecialistaService.getAllSpecialisti()
+      console.log(`✅ [useCalendario] Caricati ${specialisti.value.length} specialisti`)
+      return specialisti.value
     } catch (err) {
-      error.value = 'Errore nel caricamento dei professionisti dal backend'
-      console.error(err)
-      professionisti.value = [] // Array vuoto in caso di errore
+      error.value = 'Errore nel caricamento dei specialisti dal backend'
+      console.error('❌ [useCalendario] Errore caricamento specialisti:', err)
+      specialisti.value = [] // Array vuoto in caso di errore
       return []
     } finally {
-      loadingProfessionisti.value = false
+      loadingSpecialisti.value = false
     }
   }
 
@@ -157,33 +102,18 @@ export function useCalendario() {
     }
   }
 
-  // Funzione per cercare professionisti (utilizzo cache locale)
-  const cercaProfessionisti = async (query = '') => {
+  // Funzione per cercare specialisti (utilizzo cache locale)
+  const cercaSpecialisti = async (query = '') => {
     try {
-      // Assicurati che i professionisti siano caricati
-      if (professionisti.value.length === 0) {
-        await caricaProfessionisti()
+      // Assicurati che gli specialisti siano caricati
+      if (specialisti.value.length === 0) {
+        await caricaSpecialisti()
       }
 
-      // Filtra localmente senza chiamate API
-      if (!query || query.trim() === '') {
-        return professionisti.value
-      }
-
-      const queryLower = query.toLowerCase()
-      return professionisti.value.filter(professionista => {
-        // Controlli di sicurezza per evitare errori con valori undefined/null
-        const nominativo = professionista.nominativo || ''
-        const nome = professionista.nome || ''
-        const cognome = professionista.cognome || ''
-
-        // Filtra solo se i campi sono validi
-        return nominativo.toLowerCase().includes(queryLower) ||
-               nome.toLowerCase().includes(queryLower) ||
-               cognome.toLowerCase().includes(queryLower)
-      })
+      // Usa il filtro del service per mantenere coerenza
+      return SpecialistaService.filterSpecialisti(specialisti.value, query)
     } catch (err) {
-      console.error('Errore nella ricerca professionisti:', err)
+      console.error('❌ [useCalendario] Errore nella ricerca specialisti:', err)
       return []
     }
   }
@@ -215,8 +145,7 @@ export function useCalendario() {
     try {
       await Promise.all([
         caricaEventi(dataIniziale), // Carica eventi per la data specificata
-        caricaSpecialisti(),
-        caricaProfessionisti(),
+        caricaSpecialisti(), // Corretto: non duplicato
         caricaPazienti()
       ])
       console.log('Calendario inizializzato con successo')
@@ -360,21 +289,21 @@ export function useCalendario() {
   }
 
   /**
-   * Estrae i professionisti unici dalla lista degli eventi
-   * Crea oggetti professionista con id, nome, cognome e specializzazione
+   * Estrae i specialisti unici dalla lista degli eventi
+   * Crea oggetti specialista con id, nome, cognome e specializzazione
    * @param {Array} listaEventi - Lista degli eventi dal backend
-   * @returns {Array} Lista di professionisti unici ordinati alfabeticamente
+   * @returns {Array} Lista di specialisti unici ordinati alfabeticamente
    */
-  const estraiProfessionistiDaEventi = (listaEventi) => {
+  const estraiSpecialistiDaEventi = (listaEventi) => {
     try {
       // Controlli di sicurezza più rigorosi
       if (!listaEventi || !Array.isArray(listaEventi) || listaEventi.length === 0) {
-        console.log('Lista eventi vuota o non valida per estrazione professionisti')
+        console.log('Lista eventi vuota o non valida per estrazione specialisti')
         return []
       }
 
       // Crea un Map per evitare duplicati usando il nome completo come chiave
-      const professionistiUnici = new Map()
+      const specialistiUnici = new Map()
 
       listaEventi.forEach((evento, index) => {
         try {
@@ -384,21 +313,21 @@ export function useCalendario() {
             return
           }
 
-          if (!evento.professionista || typeof evento.professionista !== 'string') {
-            console.warn(`Evento ${index} senza professionista valido:`, evento)
+          if (!evento.specialista || typeof evento.specialista !== 'string') {
+            console.warn(`Evento ${index} senza specialista valido:`, evento)
             return
           }
 
-          const nomeCompleto = evento.professionista.trim()
+          const nomeCompleto = evento.specialista.trim()
 
           // Verifica che il nome completo non sia vuoto
           if (!nomeCompleto) {
-            console.warn(`Evento ${index} con professionista vuoto`)
+            console.warn(`Evento ${index} con specialista vuoto`)
             return
           }
 
-          // Se non è già presente, aggiungi il professionista
-          if (!professionistiUnici.has(nomeCompleto)) {
+          // Se non è già presente, aggiungi il specialista
+          if (!specialistiUnici.has(nomeCompleto)) {
             // Separa nome e cognome dalla stringa completa
             const partiNome = nomeCompleto.split(' ')
             const nome = partiNome[0] || ''
@@ -407,7 +336,7 @@ export function useCalendario() {
             // Crea un ID univoco basato sul nome completo
             const id = nomeCompleto.toLowerCase().replace(/\s+/g, '_')
 
-            professionistiUnici.set(nomeCompleto, {
+            specialistiUnici.set(nomeCompleto, {
               id: id,
               nome: nome,
               cognome: cognome,
@@ -421,20 +350,20 @@ export function useCalendario() {
       })
 
       // Converte la Map in Array e ordina alfabeticamente per nome completo
-      const risultato = Array.from(professionistiUnici.values())
+      const risultato = Array.from(specialistiUnici.values())
         .sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto, 'it'))
 
-      console.log(`Estratti ${risultato.length} professionisti unici da ${listaEventi.length} eventi`)
+      console.log(`Estratti ${risultato.length} specialisti unici da ${listaEventi.length} eventi`)
       return risultato
 
     } catch (error) {
-      console.error('Errore generale nell\'estrazione professionisti:', error)
+      console.error('Errore generale nell\'estrazione specialisti:', error)
       return []
     }
   }
 
-  // Computed property per i professionisti derivati dagli eventi
-  const professionistiDaEventi = computed(() => {
+  // Computed property per i specialisti derivati dagli eventi
+  const specialistiDaEventi = computed(() => {
     try {
       // Controllo di sicurezza per evitare errori durante l'inizializzazione
       if (!eventi.value || !Array.isArray(eventi.value)) {
@@ -442,9 +371,9 @@ export function useCalendario() {
         return []
       }
 
-      return estraiProfessionistiDaEventi(eventi.value)
+      return estraiSpecialistiDaEventi(eventi.value)
     } catch (error) {
-      console.error('Errore nel calcolo professionisti da eventi:', error)
+      console.error('Errore nel calcolo specialisti da eventi:', error)
       return []
     }
   })
@@ -488,12 +417,12 @@ export function useCalendario() {
         }
       }
 
-      // Filtro per specialista (ora usa il nome completo del professionista)
+      // Filtro per specialista (ora usa il nome completo del specialista)
       if (filtri.specialista) {
         eventiFiltrati = eventiFiltrati.filter(evento => {
-          if (!evento || !evento.professionista) return false
-          return evento.professionista === filtri.specialista ||
-                 evento.professionista.includes(filtri.specialista)
+          if (!evento || !evento.specialista) return false
+          return evento.specialista === filtri.specialista ||
+                 evento.specialista.includes(filtri.specialista)
         })
       }
 
@@ -641,22 +570,20 @@ export function useCalendario() {
   return {
     // Stato
     eventi,
-    specialisti,
-    professionisti, // Lista professionisti dal backend
-    professionistiDaEventi, // Lista professionisti estratti dagli eventi (computed)
+    specialisti, // Lista specialisti dal backend
+    specialistiDaEventi, // Lista specialisti estratti dagli eventi (computed)
     pazienti, // Lista pazienti dal backend
     loading,
-    loadingProfessionisti, // Loading specifico per professionisti
+    loadingSpecialisti, // Loading specifico per specialisti
     loadingPazienti, // Loading specifico per pazienti
     error,
 
     // Metodi principali
     caricaEventi, // Carica eventi per una data specifica
     caricaEventiIntervallo, // Carica eventi per un intervallo di date
-    caricaSpecialisti,
-    caricaProfessionisti, // Carica professionisti una sola volta
+    caricaSpecialisti, // Carica specialisti una sola volta
     caricaPazienti, // Carica pazienti una sola volta
-    cercaProfessionisti, // Cerca professionisti in cache
+    cercaSpecialisti, // Cerca specialisti in cache
     cercaPazienti, // Cerca pazienti in cache
     inizializzaCalendario, // Inizializza tutto il calendario con data specifica
     creaEvento,
@@ -665,7 +592,7 @@ export function useCalendario() {
 
     // Utilità
     filtraEventi,
-    estraiProfessionistiDaEventi, // Funzione per estrarre professionisti da eventi
+    estraiSpecialistiDaEventi, // Funzione per estrarre specialisti da eventi
     getEventoInOrario,
     isSlotLibero,
     formatTime,
@@ -675,10 +602,9 @@ export function useCalendario() {
     clearError, // Utility per pulire errori
 
     // Costanti
+    TipoTerapia,
     TIPI_TERAPIA_OPTIONS,
     COLORI_TERAPIA,
-
-    // Funzionalità backend
     FrequenzaEvento,
     FREQUENZA_EVENTO_OPTIONS,
     EventoMapper,
