@@ -12,7 +12,6 @@
 import {ref, computed} from 'vue'
 import {
   EventoBackend,
-  SlotBackend,
   EventoMapper,
   EventoValidator,
   FrequenzaEvento,

@@ -306,13 +306,8 @@ const {
   creaEvento,
   aggiornaEvento,
   eliminaEvento,
-  TIPI_TERAPIA_OPTIONS,
   FrequenzaEvento,
-  FREQUENZA_EVENTO_OPTIONS,
-  EventoMapper,
-  EventoValidator,
   cercaSpecialisti, // Funzione di ricerca specialisti dal backend
-  cercaPazienti // Funzione di ricerca che utilizza la cache
 } = useCalendario()
 
 const isEdit = computed(() => !!props.evento?.id)
@@ -327,31 +322,20 @@ const form = reactive({
   // Campi dell'evento (backend)
   titolo: '',
   stanza: '',
-  professionista: '',
-  postiDisponibili: 1,
-  frequenza: FrequenzaEvento.UNICA,
-  dataFineRipetizione: '',
 
   // Campi per l'interfaccia utente
   specialistaId: '',
   data: '',
   oraInizio: '',
   oraFine: '',
-  tipoTerapia: '',
 
   // Gestione paziente - nuovo
   pazienteId: '', // ID del paziente selezionato dalla lista
-  aggiungiPazienteManuale: false, // Flag per aggiunta manuale
-  nomePaziente: '', // Nome manuale (solo se paziente non in lista)
-  cognomePaziente: '', // Cognome manuale (solo se paziente non in lista)
+  pazienteInput: '', // Input per la ricerca del paziente
 
   // Gestione specialista - nuovi campi per il dropdown
   specialistaInput: '', // Input per la ricerca dello specialista
   specialistaSelezionato: null, // Oggetto specialista selezionato dal backend
-  pazienteInput: '', // Input per la ricerca del paziente
-
-  stato: 'confermato',
-  note: ''
 })
 
 const errors = ref({})
@@ -401,7 +385,6 @@ const selezionaSpecialista = (specialista) => {
   // Aggiorna i campi del form con i dati dello specialista selezionato
   form.specialistaInput = getFullNameSpecialista(specialista)
   form.specialistaSelezionato = specialista
-  form.professionista = getFullNameSpecialista(specialista)
 
   // Auto-compila il tipo terapia se disponibile dalla prestazione
   if (specialista.prestazione?.tipologia) {
@@ -761,10 +744,6 @@ const validateForm = () => {
   // Validazione campi backend obbligatori
   if (!form.titolo) newErrors.titolo = 'Titolo obbligatorio'
   if (!form.stanza) newErrors.stanza = 'Stanza obbligatoria'
-  if (!form.professionista) newErrors.specialista = 'Specialista obbligatorio'
-  if (!form.postiDisponibili || form.postiDisponibili < 1) {
-    newErrors.postiDisponibili = 'Posti disponibili deve essere almeno 1'
-  }
 
   // Validazione campi interfaccia
   if (!form.data) newErrors.data = 'Data obbligatoria'
@@ -774,15 +753,6 @@ const validateForm = () => {
   // Validazione logica date/orari
   if (form.oraInizio && form.oraFine && form.oraInizio >= form.oraFine) {
     newErrors.oraFine = 'Ora fine deve essere successiva all\'ora inizio'
-  }
-
-  // Validazione data fine ripetizione
-  if (form.frequenza !== FrequenzaEvento.UNICA && !form.dataFineRipetizione) {
-    newErrors.dataFineRipetizione = 'Data fine ripetizione obbligatoria per eventi ricorrenti'
-  }
-
-  if (form.dataFineRipetizione && form.data && form.dataFineRipetizione <= form.data) {
-    newErrors.dataFineRipetizione = 'Data fine ripetizione deve essere successiva alla data evento'
   }
 
   errors.value = newErrors
@@ -799,48 +769,36 @@ const handleSubmit = async () => {
     const dataInizio = new Date(`${form.data}T${form.oraInizio}:00`)
     const dataFine = new Date(`${form.data}T${form.oraFine}:00`)
 
+    // Debug - log dei dati del form prima dell'invio
+    console.log('🐛 [EventModal] Debug - Form prima dell\'invio:', {
+      pazienteId: form.pazienteId,
+      pazienteSelezionato: pazienteSelezionato.value,
+      specialistaSelezionato: form.specialistaSelezionato,
+      specialistaId: form.specialistaSelezionato?.id
+    })
+
     // Preparazione dati evento con mapping backend
     const eventoData = {
       // Campi backend
       titolo: form.titolo,
       stanza: form.stanza,
-      professionista: form.professionista,
       dataInizio: dataInizio.toISOString(),
       dataFine: dataFine.toISOString(),
-      postiDisponibili: form.postiDisponibili,
-      frequenza: form.frequenza,
-      dataFineRipetizione: form.dataFineRipetizione ?
-        new Date(`${form.dataFineRipetizione}T23:59:59`).toISOString() : null,
 
-      // Gestione paziente - priorità al paziente selezionato dalla lista
-      pazienteId: form.pazienteId || null,
-
-      // Campi per compatibilità frontend
-      specialista: form.specialistaId ? {
-        id: form.specialistaId,
-        ...props.specialisti.find(s => s.id === form.specialistaId)
-      } : {
-        id: `temp-${Date.now()}`,
-        nome: form.professionista.split(' ')[0] || '',
-        cognome: form.professionista.split(' ').slice(1).join(' ') || '',
-        nomeCompleto: form.professionista
-      },
-
-      // Paziente per frontend (se non selezionato dalla lista ma aggiunto manualmente)
-      paziente: form.pazienteId ? pazienteSelezionato.value : (
-        (form.aggiungiPazienteManuale && form.nomePaziente && form.cognomePaziente) ? {
-          id: `temp-${Date.now()}`,
-          nome: form.nomePaziente,
-          cognome: form.cognomePaziente,
-          nomeCompleto: `${form.nomePaziente} ${form.cognomePaziente}`
-        } : null
-      ),
-
-      tipoTerapia: form.tipoTerapia || 'LOGOPEDIA',
-      stato: form.stato,
-      sala: form.stanza, // Mapping per compatibilità
-      note: form.note
+      // Conversione esplicita a number per coerenza con backend
+      pazienteID: form.pazienteId ? Number(form.pazienteId) : null,
+      specialistaID: form.specialistaSelezionato?.id ? Number(form.specialistaSelezionato.id) :
+                     (form.specialistaId ? Number(form.specialistaId) : null),
     }
+
+    // Debug - log dell'oggetto finale inviato al backend
+    console.log('📤 [EventModal] Debug - Dati inviati al backend:', {
+      eventoData,
+      pazienteID: eventoData.pazienteID,
+      specialistaID: eventoData.specialistaID,
+      pazienteIDType: typeof eventoData.pazienteID,
+      specialistaIDType: typeof eventoData.specialistaID
+    })
 
     if (isEdit.value) {
       eventoData.id = props.evento.id

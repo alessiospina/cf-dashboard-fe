@@ -58,31 +58,14 @@ export class EventoBackend {
     this.id = data.id || null
     this.titolo = data.titolo || ''
     this.stanza = data.stanza || ''
-    this.professionista = data.professionista || ''
     this.dataInizio = data.dataInizio || null
     this.dataFine = data.dataFine || null
-    this.postiDisponibili = data.postiDisponibili || 1
-    this.frequenza = data.frequenza || FrequenzaEvento.UNICA
-    this.dataFineRipetizione = data.dataFineRipetizione || null
-    this.eventoNextId = data.eventoNextId || null
     this.createdAt = data.createdAt || null
-    this.slots = data.slots || []
+    this.paziente = data.paziente || null
+    this.specialista = data.specialista || null
   }
 }
 
-/**
- * Interfaccia per l'entità Slot (backend)
- * Corrisponde a slot.entity.ts e slot.dto.ts
- */
-export class SlotBackend {
-  constructor(data = {}) {
-    this.id = data.id || null
-    this.dataInizio = data.dataInizio || null
-    this.dataFine = data.dataFine || null
-    this.evento = data.evento || null
-    this.paziente = data.paziente || null
-  }
-}
 
 /**
  * DTO per la creazione di un evento
@@ -95,22 +78,8 @@ export class CreateEventoDto {
     this.professionista = data.professionista || ''
     this.dataInizio = data.dataInizio || null
     this.dataFine = data.dataFine || null
-    // Campi rimossi: postiDisponibili, frequenza, dataFineRipetizione, eventoNextId
-    // Campo aggiunto per associare direttamente un paziente
-    this.pazienteId = data.pazienteId || null
-  }
-}
-
-/**
- * DTO per la creazione di uno slot
- * Corrisponde a CreateSlotDto
- */
-export class CreateSlotDto {
-  constructor(data = {}) {
-    this.dataInizio = data.dataInizio || ''
-    this.dataFine = data.dataFine || ''
-    this.eventoId = data.eventoId || null
-    this.pazienteId = data.pazienteId || null
+    this.pazienteID = data.pazienteID || null
+    this.specialistaID = data.specialistaID || null
   }
 }
 
@@ -126,15 +95,12 @@ export class EventoMapper {
    */
   static frontendToBackend(eventoFrontend) {
     return new CreateEventoDto({
-      titolo: eventoFrontend.titolo || `EVENTO ${eventoFrontend.specialista?.prestazione?.tipologia?.replace('_', ' ') || ''}`,
-      stanza: eventoFrontend.sala || eventoFrontend.stanza || '',
-      professionista: eventoFrontend.specialista?.nomeCompleto ||
-                     `${eventoFrontend.specialista?.nome || ''} ${eventoFrontend.specialista?.cognome || ''}`.trim() ||
-                     eventoFrontend.professionista || '',
+      titolo: eventoFrontend.titolo.toUpperCase(),
+      stanza: eventoFrontend.stanza.toUpperCase(),
       dataInizio: eventoFrontend.dataInizio,
       dataFine: eventoFrontend.dataFine,
-      // Supporto per l'associazione diretta del paziente
-      pazienteId: eventoFrontend.pazienteId || eventoFrontend.paziente?.id || null
+      pazienteID: eventoFrontend.pazienteID ?? null,
+      specialistaID: eventoFrontend.specialistaID ?? null,
     })
   }
 
@@ -144,48 +110,26 @@ export class EventoMapper {
    * @returns {Object} - Evento nel formato frontend
    */
   static backendToFrontend(eventoBackend) {
-    const nomeCompleto = eventoBackend.professionista || ''
-    const [nome = '', ...cognomeParts] = nomeCompleto.split(' ')
-    const cognome = cognomeParts.join(' ')
-
     return {
       id: eventoBackend.id?.toString(),
       titolo: eventoBackend.titolo,
-      specialista: {
-        id: `specialista-${eventoBackend.id}`,
-        nome: nome,
-        cognome: cognome,
-        nomeCompleto: nomeCompleto,
-        specializzazione: eventoBackend.specialista?.prestazione?.tipologia || 'LOGOPEDIA' // Ottiene il tipo dalla prestazione dello specialista
-      },
-      // Paziente direttamente dalla relazione dell'evento o dai slot
+      stanza: eventoBackend.stanza,
+      specialista: eventoBackend.specialista ? {
+        id: eventoBackend.specialista.id,
+        nome: eventoBackend.specialista.nome,
+        cognome: eventoBackend.specialista.cognome,
+        nomeCompleto: `${eventoBackend.specialista.nome} ${eventoBackend.specialista.cognome}`.trim(),
+      } : null,
+      // Paziente direttamente dalla relazione dell'evento
       paziente: eventoBackend.paziente ? {
         id: eventoBackend.paziente.id?.toString(),
         nome: eventoBackend.paziente.nome,
         cognome: eventoBackend.paziente.cognome,
-        nomeCompleto: `${eventoBackend.paziente.nome} ${eventoBackend.paziente.cognome}`
-      } : (eventoBackend.slots?.[0]?.paziente ? {
-        id: eventoBackend.slots[0].paziente.id?.toString(),
-        nome: eventoBackend.slots[0].paziente.nome,
-        cognome: eventoBackend.slots[0].paziente.cognome,
-        nomeCompleto: `${eventoBackend.slots[0].paziente.nome} ${eventoBackend.slots[0].paziente.cognome}`
-      } : null),
+        nomeCompleto: `${eventoBackend.paziente.nome} ${eventoBackend.paziente.cognome}`.trim()
+      } : null,
       dataInizio: eventoBackend.dataInizio,
       dataFine: eventoBackend.dataFine,
-      // Il tipo terapia ora viene determinato dalla prestazione dello specialista
-      // Non è più un campo diretto del paziente
-      stato: 'confermato', // Default
-      note: '',
-      sala: eventoBackend.stanza,
-      colore: '#0d6efd', // Default
-
-      // Nuovi campi dal backend
-      postiDisponibili: eventoBackend.postiDisponibili,
-      frequenza: eventoBackend.frequenza,
-      dataFineRipetizione: eventoBackend.dataFineRipetizione,
-      eventoNextId: eventoBackend.eventoNextId,
       createdAt: eventoBackend.createdAt,
-      slots: eventoBackend.slots || []
     }
   }
 
@@ -226,10 +170,6 @@ export class EventoValidator {
       errors.stanza = 'Stanza obbligatoria (max 50 caratteri)'
     }
 
-    if (!data.professionista || data.professionista.length > 50) {
-      errors.professionista = 'Professionista obbligatorio (max 50 caratteri)'
-    }
-
     if (!data.dataInizio) {
       errors.dataInizio = 'Data inizio obbligatoria'
     }
@@ -242,9 +182,13 @@ export class EventoValidator {
       errors.dataFine = 'Data fine deve essere successiva a data inizio'
     }
 
-    // pazienteId è opzionale
-    if (data.pazienteId && isNaN(Number(data.pazienteId))) {
-      errors.pazienteId = 'ID paziente deve essere un numero valido'
+    // pazienteID e specialistaID sono opzionali (entrambi number)
+    if (data.pazienteID && isNaN(Number(data.pazienteID))) {
+      errors.pazienteID = 'ID paziente deve essere un numero valido'
+    }
+
+    if (data.specialistaID && isNaN(Number(data.specialistaID))) {
+      errors.specialistaID = 'ID specialista deve essere un numero valido'
     }
 
     return {

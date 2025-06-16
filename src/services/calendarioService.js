@@ -6,7 +6,7 @@
  */
 
 import axios from 'axios'
-import { CreateEventoDto, CreateSlotDto, EventoMapper, EventoValidator } from '@/types/backend.types'
+import { CreateEventoDto, EventoMapper, EventoValidator } from '@/types/backend.types'
 
 // Configurazione base per le chiamate API
 const API_BASE_URL = 'http://localhost:8000/api'
@@ -184,10 +184,16 @@ export class EventoService {
         id: evento.id,
         titolo: evento.titolo,
         stanza: evento.stanza,
-        professionista: evento.professionista,
         dataInizio: evento.dataInizio,
         dataFine: evento.dataFine,
         createdAt: evento.createdAt,
+        specialista: evento.specialista ? {
+          id: evento.specialista.id,
+          nome: evento.specialista.nome,
+          cognome: evento.specialista.cognome,
+          email: evento.specialista.email,
+          createdAt: evento.createdAt,
+        } : null,
         paziente: evento.paziente ? {
           id: evento.paziente.id,
           nome: evento.paziente.nome,
