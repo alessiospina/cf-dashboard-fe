@@ -295,52 +295,33 @@ export function useCalendario() {
    */
   const estraiSpecialistiDaEventi = (listaEventi) => {
     try {
-      // Controlli di sicurezza più rigorosi
       if (!listaEventi || !Array.isArray(listaEventi) || listaEventi.length === 0) {
-        console.log('Lista eventi vuota o non valida per estrazione specialisti')
+        console.log('Lista eventi vuota per estrazione specialisti')
         return []
       }
 
-      // Crea un Map per evitare duplicati usando il nome completo come chiave
       const specialistiUnici = new Map()
 
       listaEventi.forEach((evento, index) => {
         try {
-          // Controlli di sicurezza per ogni evento
-          if (!evento || typeof evento !== 'object') {
-            console.warn(`Evento ${index} non valido:`, evento)
+          // ✅ USA: evento.specialista invece di evento.professionista
+          if (!evento || !evento.specialista) {
+            console.warn(`Evento ${index} senza specialista:`, evento)
             return
           }
 
-          if (!evento.specialista || typeof evento.specialista !== 'string') {
-            console.warn(`Evento ${index} senza specialista valido:`, evento)
-            return
-          }
+          const specialista = evento.specialista
+          const chiave = `${specialista.id}-${specialista.nome}-${specialista.cognome}`
 
-          const nomeCompleto = evento.specialista.trim()
-
-          // Verifica che il nome completo non sia vuoto
-          if (!nomeCompleto) {
-            console.warn(`Evento ${index} con specialista vuoto`)
-            return
-          }
-
-          // Se non è già presente, aggiungi il specialista
-          if (!specialistiUnici.has(nomeCompleto)) {
-            // Separa nome e cognome dalla stringa completa
-            const partiNome = nomeCompleto.split(' ')
-            const nome = partiNome[0] || ''
-            const cognome = partiNome.slice(1).join(' ') || ''
-
-            // Crea un ID univoco basato sul nome completo
-            const id = nomeCompleto.toLowerCase().replace(/\s+/g, '_')
-
-            specialistiUnici.set(nomeCompleto, {
-              id: id,
-              nome: nome,
-              cognome: cognome,
-              nomeCompleto: nomeCompleto,
-              specializzazione: 'GENERALE' // Valore di default se non disponibile
+          if (!specialistiUnici.has(chiave)) {
+            specialistiUnici.set(chiave, {
+              id: specialista.id,
+              nome: specialista.nome,
+              cognome: specialista.cognome,
+              nomeCompleto: specialista.nomeCompleto,
+              email: specialista.email,
+              telefono: specialista.telefono,
+              prestazione: specialista.prestazione
             })
           }
         } catch (eventoError) {
@@ -348,19 +329,17 @@ export function useCalendario() {
         }
       })
 
-      // Converte la Map in Array e ordina alfabeticamente per nome completo
       const risultato = Array.from(specialistiUnici.values())
         .sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto, 'it'))
 
-      console.log(`Estratti ${risultato.length} specialisti unici da ${listaEventi.length} eventi`)
+      console.log(`✅ Estratti ${risultato.length} specialisti unici da ${listaEventi.length} eventi`)
       return risultato
 
     } catch (error) {
-      console.error('Errore generale nell\'estrazione specialisti:', error)
+      console.error('❌ Errore generale nell\'estrazione specialisti:', error)
       return []
     }
   }
-
   // Computed property per i specialisti derivati dagli eventi
   const specialistiDaEventi = computed(() => {
     try {
