@@ -10,7 +10,7 @@
 
 import { ref, computed, onMounted } from 'vue'
 import { usePazientiStore } from '@/stores/modules/pazientiStore'
-import { TIPI_TERAPIA_OPTIONS } from '@/services/pazienteService'
+// TIPI_TERAPIA_OPTIONS rimosso - non più necessario per i pazienti
 
 export function usePazienti() {
   // Accesso allo store Pinia
@@ -124,8 +124,9 @@ export function usePazienti() {
   }
 
   const formatTipoTerapia = (tipo) => {
-    const option = TIPI_TERAPIA_OPTIONS.find(opt => opt.value === tipo)
-    return option ? option.label : tipo
+    // Questa funzione non è più utilizzata nel contesto pazienti
+    // Il tipo terapia è ora determinato dalla prestazione dello specialista
+    return tipo || 'Non specificato'
   }
 
   const calculateAge = (dataNascita) => {
@@ -170,10 +171,8 @@ export function usePazienti() {
       errors.email = 'L\'email non è valida'
     }
 
-    // Correzione: verifica che il tipo terapia non sia vuoto o nullo
-    if (!formData.tipoTerapia || formData.tipoTerapia.trim() === '') {
-      errors.tipoTerapia = 'Il tipo di terapia è obbligatorio'
-    }
+    // Il campo tipoTerapia non è più necessario per il paziente
+    // Il tipo di terapia è ora determinato dalla prestazione dello specialista nell'evento
 
     return {
       isValid: Object.keys(errors).length === 0,
@@ -218,9 +217,9 @@ export function usePazienti() {
     formatDate,
     formatTipoTerapia,
     calculateAge,
-    validatePazienteForm,
+    validatePazienteForm
 
-    // Costanti
-    TIPI_TERAPIA_OPTIONS
+    // TIPI_TERAPIA_OPTIONS rimosso - non più necessario per i pazienti
+    // Il tipo terapia è ora gestito dalle prestazioni degli specialisti
   }
 }

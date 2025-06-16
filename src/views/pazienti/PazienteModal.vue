@@ -197,47 +197,6 @@
           </CCardBody>
         </CCard>
 
-        <!-- Sezione: Terapia -->
-        <CCard class="form-section">
-          <CCardHeader class="bg-body-secondary border-bottom">
-            <h6 class="mb-0 d-flex align-items-center text-body">
-              <CIcon icon="cilHeart" class="me-2" />
-              Informazioni Terapia
-            </h6>
-          </CCardHeader>
-          <CCardBody>
-
-            <!-- Campo Tipo di Terapia -->
-            <div class="modern-input-group mb-0">
-              <div class="input-icon bg-dark text-white">
-                <CIcon icon="cilMedicalCross" />
-              </div>
-              <div class="input-wrapper">
-                <CFormLabel for="tipoTerapia" class="form-label fw-semibold text-body">Tipo di Terapia</CFormLabel>
-                <CFormSelect
-                  id="tipoTerapia"
-                  v-model="form.tipoTerapia"
-                  :invalid="!!errors.tipoTerapia"
-                  required
-                  class="modern-input"
-                >
-                  <option value="">Seleziona un tipo di terapia</option>
-                  <option
-                    v-for="option in TIPI_TERAPIA_OPTIONS"
-                    :key="option.value"
-                    :value="option.value"
-                  >
-                    {{ option.label }}
-                  </option>
-                </CFormSelect>
-                <CFormFeedback v-if="errors.tipoTerapia" invalid>
-                  {{ errors.tipoTerapia }}
-                </CFormFeedback>
-              </div>
-            </div>
-          </CCardBody>
-        </CCard>
-
         <!-- Messaggio di errore generale -->
         <CAlert v-if="submitError" color="danger" class="mt-3">
           <CIcon icon="cilWarning" class="me-2" />
@@ -315,8 +274,8 @@ const emit = defineEmits([
 const {
   validatePazienteForm,
   createPaziente,
-  updatePaziente,
-  TIPI_TERAPIA_OPTIONS
+  updatePaziente
+  // TIPI_TERAPIA_OPTIONS rimosso - non più necessario
 } = usePazienti()
 
 // Computed: determina se siamo in modalità modifica
@@ -330,8 +289,8 @@ const form = reactive({
   indirizzo: '',
   codiceFiscale: '',
   email: '',
-  telefono: '',
-  tipoTerapia: ''
+  telefono: ''
+  // tipoTerapia rimosso - non più necessario per il paziente
 })
 
 // Stato per errori di validazione
@@ -362,7 +321,7 @@ const populateForm = (paziente) => {
     form.codiceFiscale = paziente.codiceFiscale || ''
     form.email = paziente.email || ''
     form.telefono = paziente.telefono || ''
-    form.tipoTerapia = paziente.tipoTerapia || ''
+    // tipoTerapia rimosso - non più associato al paziente
   }
 }
 
@@ -419,8 +378,8 @@ const handleSubmit = async () => {
       indirizzo: form.indirizzo?.trim() || null,
       codiceFiscale: form.codiceFiscale.toUpperCase().trim(),
       email: form.email.trim(),
-      telefono: form.telefono?.trim() || null,
-      tipoTerapia: form.tipoTerapia
+      telefono: form.telefono?.trim() || null
+      // tipoTerapia rimosso - non più necessario per il paziente
     }
 
     if (isEdit.value) {

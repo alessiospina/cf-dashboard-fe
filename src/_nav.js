@@ -34,4 +34,14 @@ export default [
       text: 'NEW',
     },
   },
+  {
+    component: 'CNavItem',
+    name: 'Servizi',
+    to: '/gestione-team',
+    icon: 'cil-people',
+    badge: {
+      color: 'warning',
+      text: 'NEW',
+    },
+  },
 ]

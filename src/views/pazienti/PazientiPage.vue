@@ -147,7 +147,7 @@
             <CInputGroup>
               <CFormInput
                 v-model="searchTerm"
-                placeholder="Cerca per nome, email, telefono, codice fiscale, terapia, data nascita..."
+                placeholder="Cerca per nome, email, telefono, codice fiscale, data nascita..."
                 :disabled="loading"
               />
               <CInputGroupText>
@@ -343,23 +343,6 @@
                   </div>
                 </CTableHeaderCell>
 
-                <!-- Tipo Terapia - Sortable -->
-                <CTableHeaderCell
-                  scope="col"
-                  :class="getSortClass('tipoTerapia')"
-                  @click="handleSort('tipoTerapia')"
-                  style="cursor: pointer; user-select: none;"
-                >
-                  <div class="d-flex align-items-center justify-content-between">
-                    <span>Tipo Terapia</span>
-                    <CIcon
-                      :icon="getSortIcon('tipoTerapia')"
-                      size="sm"
-                      class="sort-icon"
-                    />
-                  </div>
-                </CTableHeaderCell>
-
                 <!-- Azioni - Non sortable -->
                 <CTableHeaderCell scope="col" class="text-center">
                   Azioni
@@ -411,16 +394,6 @@
                     </a>
                   </span>
                   <span v-else class="text-muted">-</span>
-                </CTableDataCell>
-
-                <!-- Tipo Terapia -->
-                <CTableDataCell>
-                  <CBadge
-                    :color="getTerapiaBadgeColor(paziente.tipoTerapia)"
-                    shape="rounded-pill"
-                  >
-                    {{ formatTipoTerapia(paziente.tipoTerapia) }}
-                  </CBadge>
                 </CTableDataCell>
 
                 <!-- Azioni -->
@@ -831,12 +804,6 @@ const sortedAndFilteredPazienti = computed(() => {
           valueB = (b.telefono || '').toLowerCase()
           break
 
-        case 'tipoTerapia':
-          // Ordinamento per etichetta terapia (più leggibile)
-          valueA = formatTipoTerapia(a.tipoTerapia || '').toLowerCase()
-          valueB = formatTipoTerapia(b.tipoTerapia || '').toLowerCase()
-          break
-
         default:
           valueA = ''
           valueB = ''
@@ -964,8 +931,7 @@ const getSortColumnLabel = (column) => {
     'nomeCompleto': 'Nome Completo',
     'dataDiNascita': 'Data di Nascita',
     'email': 'Email',
-    'telefono': 'Telefono',
-    'tipoTerapia': 'Tipo Terapia'
+    'telefono': 'Telefono'
   }
   return labels[column] || column
 }
@@ -1021,18 +987,9 @@ const handlePazienteUpdated = (updatedPaziente) => {
   closeEditModal()
 }
 
-// Utility per il colore dei badge delle terapie
-const getTerapiaBadgeColor = (tipoTerapia) => {
-  const colors = {
-    'LOGOPEDIA': 'primary',
-    'NEUROPSICHIATRIA_INFANTILE': 'success',
-    'NEUROPSICOMOTRICITÀ': 'info',
-    'TERAPIA_ABA': 'warning',
-    'PSICOLOGA': 'secondary',
-    'COLLOQUIO_CONOSCITIVO': 'dark'
-  }
-  return colors[tipoTerapia] || 'light'
-}
+// Utility per il colore dei badge delle terapie - RIMOSSO
+// Questa funzione non è più necessaria poiché il tipo terapia
+// è ora determinato dalla prestazione dello specialista nell'evento
 
 // Funzione per aprire la modale di conferma eliminazione
 const confirmDeletePaziente = (paziente) => {

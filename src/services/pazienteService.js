@@ -104,22 +104,7 @@ export class PazienteService {
   }
 }
 
-// Esportiamo anche le costanti per i tipi di terapia
-export const TIPI_TERAPIA = {
-  LOGOPEDIA: 'LOGOPEDIA',
-  NEUROPSICHIATRIA_INFANTILE: 'NEUROPSICHIATRIA_INFANTILE',
-  NEUROPSICOMOTRICITÀ: 'NEUROPSICOMOTRICITÀ',
-  TERAPIA_ABA: 'TERAPIA_ABA',
-  PSICOLOGA: 'PSICOLOGA',
-  COLLOQUIO_CONOSCITIVO: 'COLLOQUIO_CONOSCITIVO'
-}
-
-// Esportiamo anche un array per i select
-export const TIPI_TERAPIA_OPTIONS = [
-  { value: TIPI_TERAPIA.LOGOPEDIA, label: 'Logopedia' },
-  { value: TIPI_TERAPIA.NEUROPSICHIATRIA_INFANTILE, label: 'Neuropsichiatria Infantile' },
-  { value: TIPI_TERAPIA.NEUROPSICOMOTRICITÀ, label: 'Neuropsicomotricità' },
-  { value: TIPI_TERAPIA.TERAPIA_ABA, label: 'Terapia ABA' },
-  { value: TIPI_TERAPIA.PSICOLOGA, label: 'Psicologa' },
-  { value: TIPI_TERAPIA.COLLOQUIO_CONOSCITIVO, label: 'Colloquio Conoscitivo' }
-]
+// Le costanti per i tipi di terapia sono state rimosse
+// perché il tipo terapia non è più associato direttamente al paziente.
+// Ora il tipo di terapia è determinato dalla prestazione dello specialista
+// quando viene creato un evento/appuntamento.

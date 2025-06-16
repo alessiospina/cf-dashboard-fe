@@ -48,11 +48,14 @@ export const usePazientiStore = defineStore('pazienti', {
     totalPazienti: (state) => state.pazienti.length,
 
     /**
-     * Filtra i pazienti per tipo di terapia
-     * @param {string} tipo - Tipo di terapia da filtrare
+     * Filtra i pazienti per nome e cognome
+     * @param {string} nomeCompleto - Nome e cognome da cercare
      */
-    pazientiPerTerapia: (state) => (tipo) => {
-      return state.pazienti.filter(paziente => paziente.tipoTerapia === tipo)
+    pazientiPerNome: (state) => (nomeCompleto) => {
+      const termine = nomeCompleto.toLowerCase()
+      return state.pazienti.filter(paziente =>
+        `${paziente.nome} ${paziente.cognome}`.toLowerCase().includes(termine)
+      )
     },
 
     /**
@@ -73,7 +76,6 @@ export const usePazientiStore = defineStore('pazienti', {
         const telefono = paziente.telefono?.toLowerCase() || ''
         const codiceFiscale = paziente.codiceFiscale?.toLowerCase() || ''
         const indirizzo = paziente.indirizzo?.toLowerCase() || ''
-        const tipoTerapia = paziente.tipoTerapia?.toLowerCase() || ''
 
         // Data di nascita - ricerca sia formato originale che formattato
         const dataNascita = paziente.dataDiNascita ?
@@ -95,7 +97,6 @@ export const usePazientiStore = defineStore('pazienti', {
         const matchCampiAggiuntivi =
           telefono.includes(term) ||
           indirizzo.includes(term) ||
-          tipoTerapia.includes(term) ||
           dataNascita.includes(term) ||
           dataNascitaISO.includes(term)
 
@@ -103,18 +104,6 @@ export const usePazientiStore = defineStore('pazienti', {
         const matchCombinazioni =
           nomeCompleto.includes(term) ||
           cognomeNome.includes(term)
-
-        // Ricerca per tipo terapia (anche nelle etichette leggibili)
-        const tipoTerapiaLabels = {
-          'logopedia': 'logopedia',
-          'neuropsichiatria_infantile': 'neuropsichiatria infantile',
-          'neuropsicomotricità': 'neuropsicomotricità',
-          'terapia_aba': 'terapia aba',
-          'psicologa': 'psicologa',
-          'colloquio_conoscitivo': 'colloquio conoscitivo'
-        }
-        const labelTerapia = tipoTerapiaLabels[tipoTerapia] || ''
-        const matchTerapiaLabel = labelTerapia.includes(term)
 
         // Ricerca per parole multiple separate (es: "mario 123" deve trovare tutti i termini)
         const parole = term.split(/\s+/).filter(parola => parola.length > 0)
@@ -126,9 +115,7 @@ export const usePazientiStore = defineStore('pazienti', {
               telefono.includes(parola) ||
               codiceFiscale.includes(parola) ||
               indirizzo.includes(parola) ||
-              tipoTerapia.includes(parola) ||
-              dataNascita.includes(parola) ||
-              labelTerapia.includes(parola)
+              dataNascita.includes(parola)
             )
           : false
 

@@ -39,6 +39,15 @@ const routes = [
             /* webpackChunkName: "calendario" */ '@/views/calendario/CalendarioView.vue'
           ),
       },
+      {
+        path: '/gestione-team',
+        name: 'GestioneTeam',
+        // Pagina di gestione team (prestazioni e specialisti) con lazy loading
+        component: () =>
+          import(
+            /* webpackChunkName: "gestione-team" */ '@/views/gestione-team/GestioneTeamPage.vue'
+          ),
+      },
     ],
   },
   {

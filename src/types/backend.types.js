@@ -92,20 +92,17 @@ export class EventoMapper {
   /**
    * Converte un evento dal formato frontend al formato backend
    * @param {Object} eventoFrontend - Evento nel formato frontend attuale
-   * @returns {CreateEventoDto} - Evento nel formato backend
+   * @returns {CreateEventoDto} - Evento nel formato backend allineato a NestJS
    */
   static frontendToBackend(eventoFrontend) {
     return new CreateEventoDto({
-      titolo: eventoFrontend.titolo || `EVENTO ${eventoFrontend.tipoTerapia?.replace('_', ' ') || ''}`,
+      titolo: eventoFrontend.titolo || `EVENTO ${eventoFrontend.specialista?.prestazione?.tipologia?.replace('_', ' ') || ''}`,
       stanza: eventoFrontend.sala || eventoFrontend.stanza || '',
       professionista: eventoFrontend.specialista?.nomeCompleto ||
-                     `${eventoFrontend.specialista?.nome || ''} ${eventoFrontend.specialista?.cognome || ''}`.trim(),
+                     `${eventoFrontend.specialista?.nome || ''} ${eventoFrontend.specialista?.cognome || ''}`.trim() ||
+                     eventoFrontend.professionista || '',
       dataInizio: eventoFrontend.dataInizio,
       dataFine: eventoFrontend.dataFine,
-      postiDisponibili: eventoFrontend.postiDisponibili || 1,
-      frequenza: eventoFrontend.frequenza || FrequenzaEvento.UNICA,
-      dataFineRipetizione: eventoFrontend.dataFineRipetizione || null,
-      eventoNextId: eventoFrontend.eventoNextId || null,
       // Supporto per l'associazione diretta del paziente
       pazienteId: eventoFrontend.pazienteId || eventoFrontend.paziente?.id || null
     })
@@ -129,7 +126,7 @@ export class EventoMapper {
         nome: nome,
         cognome: cognome,
         nomeCompleto: nomeCompleto,
-        specializzazione: eventoBackend.tipoTerapia || 'LOGOPEDIA' // Default fallback
+        specializzazione: eventoBackend.specialista?.prestazione?.tipologia || 'LOGOPEDIA' // Ottiene il tipo dalla prestazione dello specialista
       },
       // Paziente direttamente dalla relazione dell'evento o dai slot
       paziente: eventoBackend.paziente ? {
@@ -145,7 +142,8 @@ export class EventoMapper {
       } : null),
       dataInizio: eventoBackend.dataInizio,
       dataFine: eventoBackend.dataFine,
-      tipoTerapia: 'LOGOPEDIA', // Da determinare in base alla logica di business
+      // Il tipo terapia ora viene determinato dalla prestazione dello specialista
+      // Non è più un campo diretto del paziente
       stato: 'confermato', // Default
       note: '',
       sala: eventoBackend.stanza,
@@ -183,12 +181,13 @@ export class EventoMapper {
 }
 
 /**
- * Utility per validare i dati secondo le regole backend
+ * Utility per validare i dati secondo le regole backend NestJS
  */
 export class EventoValidator {
   static validateCreateEvento(data) {
     const errors = {}
 
+    // Validazioni allineate ai DTO del backend NestJS
     if (!data.titolo || data.titolo.length > 50) {
       errors.titolo = 'Titolo obbligatorio (max 50 caratteri)'
     }
@@ -213,12 +212,9 @@ export class EventoValidator {
       errors.dataFine = 'Data fine deve essere successiva a data inizio'
     }
 
-    if (!data.postiDisponibili || data.postiDisponibili < 1) {
-      errors.postiDisponibili = 'Posti disponibili deve essere almeno 1'
-    }
-
-    if (!Object.values(FrequenzaEvento).includes(data.frequenza)) {
-      errors.frequenza = 'Frequenza non valida'
+    // pazienteId è opzionale
+    if (data.pazienteId && isNaN(Number(data.pazienteId))) {
+      errors.pazienteId = 'ID paziente deve essere un numero valido'
     }
 
     return {
