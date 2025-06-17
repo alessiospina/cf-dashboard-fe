@@ -36,7 +36,7 @@ export default [
   },
   {
     component: 'CNavItem',
-    name: 'Servizi',
+    name: 'Team',
     to: '/gestione-team',
     icon: 'cil-people',
     badge: {
