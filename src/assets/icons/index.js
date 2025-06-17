@@ -97,7 +97,8 @@ import {
   // Icone per l'ordinamento
   cilSwapVertical,
   // Icone per le azioni
-  cilTrash
+  cilTrash,
+  cilRoom
 } from '@coreui/icons'
 
 export const iconsSet = Object.assign(
@@ -174,7 +175,8 @@ export const iconsSet = Object.assign(
     // Icone per l'ordinamento
     cilSwapVertical,
     // Icone per le azioni
-    cilTrash
+    cilTrash,
+    cilRoom
   },
   {
     cifUs,

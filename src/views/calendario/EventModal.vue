@@ -750,6 +750,9 @@ const validateForm = () => {
   if (!form.oraInizio) newErrors.oraInizio = 'Ora inizio obbligatoria'
   if (!form.oraFine) newErrors.oraFine = 'Ora fine obbligatoria'
 
+  // ✅ IMPORTANTE: Specialista NON è più obbligatorio per eventi non assegnati
+  // if (!form.specialistaSelezionato) newErrors.specialista = 'Specialista obbligatorio'
+
   // Validazione logica date/orari
   if (form.oraInizio && form.oraFine && form.oraInizio >= form.oraFine) {
     newErrors.oraFine = 'Ora fine deve essere successiva all\'ora inizio'

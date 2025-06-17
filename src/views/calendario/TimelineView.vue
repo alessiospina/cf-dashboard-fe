@@ -48,18 +48,58 @@
             v-for="professionista in professionisti"
             :key="`sidebar-${professionista.id}`"
             class="specialista-row"
+            :class="{
+              'specialista-row--slot-speciale': professionista.isSlotSpeciale
+            }"
           >
             <div class="specialista-info">
-              <div class="specialista-nome">
+              <!-- Nome del professionista/slot -->
+              <div
+                class="specialista-nome"
+                :class="{
+                  'specialista-nome--slot-speciale': professionista.isSlotSpeciale
+                }"
+              >
                 {{ professionista.nome }} {{ professionista.cognome }}
-              </div>
-              <div class="specialista-specializzazione">
+
+                <!-- Badge con conteggio eventi per slot speciale -->
                 <CBadge
-                  :color="getBadgeColorTerapia(professionista.specializzazione)"
+                  v-if="professionista.isSlotSpeciale && professionista.countEventi"
+                  color="secondary"
+                  shape="rounded-pill"
+                  size="sm"
+                  class="ms-2"
+                >
+                  {{ professionista.countEventi }} eventi
+                </CBadge>
+              </div>
+
+              <!-- Specializzazione (solo per specialisti normali) -->
+              <div
+                v-if="!professionista.isSlotSpeciale"
+                class="specialista-specializzazione"
+              >
+                <CBadge
+                  :color="getBadgeColorTerapia(professionista.prestazione?.tipologia)"
                   shape="rounded-pill"
                   size="sm"
                 >
-                  {{ formatTipoTerapia(professionista.specializzazione) }}
+                  {{ formatTipoTerapia(professionista.prestazione?.tipologia) }}
+                </CBadge>
+              </div>
+
+              <!-- Informazioni per slot speciale -->
+              <div
+                v-else
+                class="specialista-specializzazione"
+              >
+                <CBadge
+                  color="secondary"
+                  shape="rounded-pill"
+                  size="sm"
+                >
+                  <CIcon icon="cilWarning" class="me-1" />
+                  Da Assegnare
                 </CBadge>
               </div>
             </div>
@@ -78,6 +118,9 @@
               v-for="professionista in professionisti"
               :key="`content-${professionista.id}`"
               class="appuntamento-row"
+              :class="{
+                'appuntamento-row--slot-speciale': professionista.isSlotSpeciale
+              }"
             >
               <div class="time-slots-container">
                 <!-- Slot orari -->
@@ -86,7 +129,8 @@
                   :key="`${professionista.id}-${slot.ora}`"
                   class="time-slot"
                   :class="{
-                    'ora-corrente-slot': isOraCorrente(slot.ora)
+                    'ora-corrente-slot': isOraCorrente(slot.ora),
+                    'time-slot--slot-speciale': professionista.isSlotSpeciale
                   }"
                   @click="creaEventoInSlot(professionista, slot.ora)"
                 >
@@ -105,6 +149,9 @@
                     :evento="evento"
                     :style="getEventoStyle(evento)"
                     class="evento-timeline"
+                    :class="{
+                      'evento-timeline--non-assegnato': professionista.isSlotSpeciale
+                    }"
                     @click="$emit('eventoClick', evento)"
                   />
                 </div>
@@ -186,7 +233,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useCalendario } from '@/composables/useCalendario'
 import EventCard from './EventCard.vue'
 
-// Import componenti CoreUI mancanti
+// Import componenti CoreUI
 import {
   CSpinner,
   CBadge,
@@ -195,6 +242,8 @@ import {
   CRow,
   CCol
 } from '@coreui/vue'
+
+// CIcon è registrato globalmente in main.js
 
 const props = defineProps({
   eventi: { type: Array, default: () => [] },
@@ -324,23 +373,51 @@ const getPosizioneOraCorrente = () => {
   return `${posizione}px`
 }
 
-// Filtra gli eventi per professionista
+// Filtra gli eventi per professionista (incluso slot eventi non assegnati)
 const getEventiProfessionista = (professionista) => {
   // Controlli di sicurezza per evitare errori con dati null/undefined
-  if (!professionista || !professionista.nomeCompleto || !props.eventi) {
+  if (!professionista || !props.eventi) {
     return []
   }
 
-  // I professionisti ora arrivano dalla computed property che estrae i dati dagli eventi
-  // Il backend restituisce il campo "professionista" come stringa (nome completo)
-  // Confronta direttamente con il nomeCompleto del professionista estratto dagli eventi
-  return props.eventi.filter(evento => {
+  // CASO SPECIALE: Slot "Eventi Non Assegnati"
+  if (professionista.isSlotSpeciale && professionista.id === 'non-assegnati') {
+    console.log('🔍 [getEventiProfessionista] Filtrando eventi per slot "Eventi Non Assegnati"')
+
+    // Restituisce tutti gli eventi che NON hanno uno specialista
+    const eventiNonAssegnati = props.eventi.filter(evento => {
+      // Controlli di sicurezza per l'evento
+      if (!evento) {
+        return false
+      }
+
+      // Se l'evento non ha specialista, appartiene allo slot "Non Assegnati"
+      const haSpecialista = evento.specialista && evento.specialista.id
+      return !haSpecialista
+    })
+
+    console.log(`📋 [getEventiProfessionista] Trovati ${eventiNonAssegnati.length} eventi non assegnati`)
+    return eventiNonAssegnati
+  }
+
+  // CASO NORMALE: Specialisti con eventi assegnati
+  if (!professionista.nomeCompleto) {
+    return []
+  }
+
+  // Filtra eventi per specialista normale
+  const eventiSpecialista = props.eventi.filter(evento => {
     // Controlli di sicurezza per l'evento
-    if (!evento || !evento.professionista) {
+    if (!evento || !evento.specialista) {
       return false
     }
-    return evento.professionista === professionista.nomeCompleto
+
+    // Confronta il nomeCompleto del professionista con quello dello specialista dell'evento
+    return evento.specialista.nomeCompleto === professionista.nomeCompleto
   })
+
+  console.log(`👨‍⚕️ [getEventiProfessionista] Trovati ${eventiSpecialista.length} eventi per ${professionista.nomeCompleto}`)
+  return eventiSpecialista
 }
 
 // Calcola lo stile di posizionamento per un evento
@@ -397,16 +474,19 @@ const getEventoStyle = (evento) => {
   }
 }
 
-// Crea un nuovo evento in uno slot
+// Crea un nuovo evento in uno slot (incluso slot speciale)
 const creaEventoInSlot = (professionista, oraSlot) => {
   // Controlli di sicurezza
-  if (!professionista || !professionista.nomeCompleto || !oraSlot) {
+  if (!professionista || !oraSlot) {
     console.warn('Dati non validi per la creazione evento:', { professionista, oraSlot })
     return
   }
 
-  console.log('🖱️ Click su slot:', { professionista: professionista.nomeCompleto, oraSlot })
-  console.log('✅ Creazione evento in corso...')
+  console.log('🖱️ Click su slot:', {
+    professionista: professionista.nomeCompleto,
+    oraSlot,
+    isSlotSpeciale: professionista.isSlotSpeciale
+  })
 
   try {
     const [ora, minuti] = oraSlot.split(':').map(Number)
@@ -422,12 +502,32 @@ const creaEventoInSlot = (professionista, oraSlot) => {
     const dataFine = new Date(dataInizio)
     dataFine.setHours(dataInizio.getHours() + 1) // Durata default 1 ora
 
-    emit('creaEvento', {
-      professionista: professionista, // Passa l'oggetto professionista completo
-      professionistaNome: professionista.nomeCompleto, // Nome completo per backend
-      dataInizio: dataInizio.toISOString(),
-      dataFine: dataFine.toISOString()
-    })
+    // Differenzia tra slot normale e slot speciale
+    if (professionista.isSlotSpeciale && professionista.id === 'non-assegnati') {
+      console.log('📝 Creazione evento per slot "Eventi Non Assegnati"')
+
+      // Per eventi nello slot speciale, non assegniamo uno specialista
+      emit('creaEvento', {
+        professionista: null, // Nessuno specialista assegnato
+        professionistaNome: 'Eventi Non Assegnati',
+        specialistaId: null, // Evento non assegnato
+        dataInizio: dataInizio.toISOString(),
+        dataFine: dataFine.toISOString(),
+        isEventoNonAssegnato: true // Flag per identificare l'evento
+      })
+    } else {
+      console.log('👨‍⚕️ Creazione evento per specialista normale')
+
+      // Per specialisti normali, comportamento standard
+      emit('creaEvento', {
+        professionista: professionista, // Passa l'oggetto professionista completo
+        professionistaNome: professionista.nomeCompleto, // Nome completo per backend
+        specialistaId: professionista.id, // ID dello specialista
+        dataInizio: dataInizio.toISOString(),
+        dataFine: dataFine.toISOString(),
+        isEventoNonAssegnato: false
+      })
+    }
   } catch (error) {
     console.error('Errore nella creazione evento:', error)
   }
@@ -779,5 +879,77 @@ onUnmounted(() => {
     min-width: 60px;
     font-size: 0.8rem;
   }
+}
+
+/* Stili per lo slot speciale "Eventi Non Assegnati" */
+.specialista-row--slot-speciale {
+  background-color: #f8f9fa;
+  border-left: 4px solid #6c757d;
+  position: relative;
+}
+
+.specialista-row--slot-speciale::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    rgba(108, 117, 125, 0.1) 2px,
+    rgba(108, 117, 125, 0.1) 4px
+  );
+  pointer-events: none;
+}
+
+.specialista-nome--slot-speciale {
+  color: #6c757d;
+  font-weight: 600;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+}
+
+.specialista-nome--slot-speciale::before {
+  content: '⚠️';
+  margin-right: 0.5rem;
+  font-style: normal;
+}
+
+/* Stili per gli eventi nel slot speciale */
+.evento-timeline--non-assegnato {
+  border: 2px dashed #6c757d !important;
+  background-color: #f8f9fa !important;
+  color: #6c757d !important;
+  opacity: 0.8;
+}
+
+.evento-timeline--non-assegnato:hover {
+  opacity: 1;
+  border-style: solid !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3) !important;
+}
+
+/* Stili per i time slot del slot speciale */
+.time-slot--slot-speciale {
+  background-color: rgba(108, 117, 125, 0.05);
+  border-left: 1px dashed #dee2e6;
+  border-right: 1px dashed #dee2e6;
+}
+
+.time-slot--slot-speciale:hover {
+  background-color: rgba(108, 117, 125, 0.15) !important;
+  border-style: solid !important;
+  cursor: pointer !important;
+}
+
+/* Evidenziazione del contenuto appuntamenti per slot speciale */
+.appuntamento-row--slot-speciale {
+  background-color: rgba(108, 117, 125, 0.02);
+  border-bottom: 1px dashed #dee2e6;
 }
 </style>

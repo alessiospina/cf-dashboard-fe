@@ -191,8 +191,11 @@ export class EventoService {
           id: evento.specialista.id,
           nome: evento.specialista.nome,
           cognome: evento.specialista.cognome,
+          nomeCompleto: `${evento.specialista.nome} ${evento.specialista.cognome}`,
           email: evento.specialista.email,
-          createdAt: evento.createdAt,
+          telefono: evento.specialista.telefono,
+          prestazione: evento.specialista.prestazione,
+          createdAt: evento.specialista.createdAt,
         } : null,
         paziente: evento.paziente ? {
           id: evento.paziente.id,

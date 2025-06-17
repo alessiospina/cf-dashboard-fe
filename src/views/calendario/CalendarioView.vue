@@ -98,7 +98,7 @@
         <TimelineView
           v-else-if="vistaAttiva === 'timeline'"
           :eventi="eventiFiltrati"
-          :professionisti="professionistiDaEventi"
+          :professionisti="specialistiDaEventi"
           :data-selezionata="dataSelezionata"
           :loading="loading"
           @evento-click="apriModalModificaEvento"
@@ -109,7 +109,7 @@
         <ListaView
           v-else-if="vistaAttiva === 'lista'"
           :eventi="eventiFiltrati"
-          :professionisti="professionistiDaEventi"
+          :professionisti="specialistiDaEventi"
           :loading="loading"
           @evento-click="apriModalModificaEvento"
         />
@@ -175,7 +175,7 @@ const {
   // Stato
   eventi,
   specialisti,
-  professionistiDaEventi, // Lista specialisti estratti dagli eventi (computed)
+  specialistiDaEventi, // Lista specialisti estratti dagli eventi (computed)
   pazienti, // Lista pazienti dal backend
   loading,
   loadingPazienti,

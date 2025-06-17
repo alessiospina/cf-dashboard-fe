@@ -288,25 +288,30 @@ export function useCalendario() {
   }
 
   /**
-   * Estrae i specialisti unici dalla lista degli eventi
+   * Estrae i specialisti unici dalla lista degli eventi + slot per eventi non assegnati
    * Crea oggetti specialista con id, nome, cognome e specializzazione
+   * Aggiunge uno slot speciale per eventi senza specialista
    * @param {Array} listaEventi - Lista degli eventi dal backend
-   * @returns {Array} Lista di specialisti unici ordinati alfabeticamente
+   * @returns {Array} Lista di specialisti unici + slot eventi non assegnati ordinati alfabeticamente
    */
   const estraiSpecialistiDaEventi = (listaEventi) => {
     try {
       if (!listaEventi || !Array.isArray(listaEventi) || listaEventi.length === 0) {
-        console.log('Lista eventi vuota per estrazione specialisti')
+        console.log('📋 [estraiSpecialistiDaEventi] Lista eventi vuota per estrazione specialisti')
         return []
       }
 
+      console.log(`📋 [estraiSpecialistiDaEventi] Analizzando ${listaEventi.length} eventi per estrarre specialisti...`)
+
       const specialistiUnici = new Map()
+      let eventiSenzaSpecialista = 0
 
       listaEventi.forEach((evento, index) => {
         try {
-          // ✅ USA: evento.specialista invece di evento.professionista
+          // Contiamo gli eventi senza specialista
           if (!evento || !evento.specialista) {
-            console.warn(`Evento ${index} senza specialista:`, evento)
+            eventiSenzaSpecialista++
+            console.log(`⚠️ [estraiSpecialistiDaEventi] Evento ${index} senza specialista - sarà messo in slot separato:`, evento?.titolo || 'Senza titolo')
             return
           }
 
@@ -314,7 +319,7 @@ export function useCalendario() {
           const chiave = `${specialista.id}-${specialista.nome}-${specialista.cognome}`
 
           if (!specialistiUnici.has(chiave)) {
-            specialistiUnici.set(chiave, {
+            const specialistaEstratto = {
               id: specialista.id,
               nome: specialista.nome,
               cognome: specialista.cognome,
@@ -322,21 +327,48 @@ export function useCalendario() {
               email: specialista.email,
               telefono: specialista.telefono,
               prestazione: specialista.prestazione
-            })
+            }
+
+            specialistiUnici.set(chiave, specialistaEstratto)
+            console.log(`➕ [estraiSpecialistiDaEventi] Aggiunto specialista: ${specialista.nomeCompleto}`)
           }
         } catch (eventoError) {
-          console.error(`Errore nell'elaborazione evento ${index}:`, eventoError)
+          console.error(`❌ [estraiSpecialistiDaEventi] Errore nell'elaborazione evento ${index}:`, eventoError)
         }
       })
 
+      // Creiamo la lista dei risultati partendo dagli specialisti reali
       const risultato = Array.from(specialistiUnici.values())
         .sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto, 'it'))
 
-      console.log(`✅ Estratti ${risultato.length} specialisti unici da ${listaEventi.length} eventi`)
+      // Se ci sono eventi senza specialista, aggiungiamo uno slot speciale
+      if (eventiSenzaSpecialista > 0) {
+        const slotNonAssegnati = {
+          id: 'non-assegnati', // ID speciale per identificarlo
+          nome: 'Eventi',
+          cognome: 'Non Assegnati',
+          nomeCompleto: 'Eventi Non Assegnati',
+          email: null,
+          telefono: null,
+          prestazione: {
+            id: null,
+            tipologia: 'NON_ASSEGNATO',
+            color: '#6c757d' // Grigio per eventi non assegnati
+          },
+          isSlotSpeciale: true, // Flag per identificare questo slot
+          countEventi: eventiSenzaSpecialista
+        }
+
+        // Aggiungiamo lo slot speciale alla fine della lista
+        risultato.push(slotNonAssegnati)
+        console.log(`📌 [estraiSpecialistiDaEventi] Aggiunto slot per ${eventiSenzaSpecialista} eventi non assegnati`)
+      }
+
+      console.log(`✅ [estraiSpecialistiDaEventi] Estratti ${risultato.length} slot (specialisti + non assegnati) da ${listaEventi.length} eventi:`, risultato.map(s => s.nomeCompleto))
       return risultato
 
     } catch (error) {
-      console.error('❌ Errore generale nell\'estrazione specialisti:', error)
+      console.error('❌ [estraiSpecialistiDaEventi] Errore generale nell\'estrazione specialisti:', error)
       return []
     }
   }
@@ -345,13 +377,16 @@ export function useCalendario() {
     try {
       // Controllo di sicurezza per evitare errori durante l'inizializzazione
       if (!eventi.value || !Array.isArray(eventi.value)) {
-        console.warn('Array eventi non valido o non inizializzato')
+        console.warn('⚠️ [specialistiDaEventi] Array eventi non valido o non inizializzato')
         return []
       }
 
-      return estraiSpecialistiDaEventi(eventi.value)
+      console.log(`🔄 [specialistiDaEventi] Ricalcolo specialisti da ${eventi.value.length} eventi...`)
+      const risultato = estraiSpecialistiDaEventi(eventi.value)
+      console.log(`✅ [specialistiDaEventi] Computed restituisce ${risultato.length} specialisti`)
+      return risultato
     } catch (error) {
-      console.error('Errore nel calcolo specialisti da eventi:', error)
+      console.error('❌ [specialistiDaEventi] Errore nel calcolo specialisti da eventi:', error)
       return []
     }
   })
