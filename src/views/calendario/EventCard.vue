@@ -6,8 +6,8 @@
       { 'event-card--small': isSmall }
     ]"
     :style="{
-      backgroundColor: evento.colore || '#f8f9fa',
-      borderLeftColor: evento.colore || '#dee2e6'
+      backgroundColor: getEventBackgroundColor(),
+      borderLeftColor: getEventBorderColor()
     }"
     @click="$emit('click', evento)"
   >
@@ -64,6 +64,53 @@ const props = defineProps({
 
 const emit = defineEmits(['click'])
 const { formatTime, formatDuration } = useCalendario()
+
+// Funzione per ottenere il colore di sfondo dell'evento
+const getEventBackgroundColor = () => {
+  // Se l'evento ha un colore dal backend (dalla prestazione), lo utilizziamo
+  if (props.evento?.colore) {
+    // Rendiamo il colore più trasparente per lo sfondo
+    return addOpacityToColor(props.evento.colore, 0.15)
+  }
+
+  // Se l'evento ha uno specialista con prestazione, utilizziamo il colore della prestazione
+  if (props.evento?.specialista?.prestazione?.color) {
+    return addOpacityToColor(props.evento.specialista.prestazione.color, 0.15)
+  }
+
+  // Colore di default per eventi senza prestazione
+  return '#f8f9fa'
+}
+
+// Funzione per ottenere il colore del bordo sinistro dell'evento
+const getEventBorderColor = () => {
+  // Se l'evento ha un colore dal backend (dalla prestazione), lo utilizziamo
+  if (props.evento?.colore) {
+    return props.evento.colore
+  }
+
+  // Se l'evento ha uno specialista con prestazione, utilizziamo il colore della prestazione
+  if (props.evento?.specialista?.prestazione?.color) {
+    return props.evento.specialista.prestazione.color
+  }
+
+  // Colore di default per eventi senza prestazione
+  return '#6c757d'
+}
+
+// Funzione helper per aggiungere opacità a un colore esadecimale
+const addOpacityToColor = (hexColor, opacity) => {
+  // Rimuovi il # se presente
+  const hex = hexColor.replace('#', '')
+
+  // Converte hex in RGB
+  const r = parseInt(hex.substring(0, 2), 16)
+  const g = parseInt(hex.substring(2, 4), 16)
+  const b = parseInt(hex.substring(4, 6), 16)
+
+  // Restituisce in formato rgba
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`
+}
 
 const isSmall = computed(() => {
   // Controlli di sicurezza per evitare errori con dati null/undefined

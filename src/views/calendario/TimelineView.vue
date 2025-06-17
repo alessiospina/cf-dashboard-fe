@@ -80,9 +80,10 @@
                 class="specialista-specializzazione"
               >
                 <CBadge
-                  :color="getBadgeColorTerapia(professionista.prestazione?.tipologia)"
+                  :style="getBadgeStyleTerapia(professionista.prestazione)"
                   shape="rounded-pill"
                   size="sm"
+                  class="badge-prestazione"
                 >
                   {{ formatTipoTerapia(professionista.prestazione?.tipologia) }}
                 </CBadge>
@@ -186,26 +187,39 @@
       </p>
     </div>
 
-    <!-- Legenda -->
+    <!-- Legenda dinamica basata sui professionisti -->
     <div class="timeline-legenda mt-3">
       <CCard>
         <CCardBody class="py-2">
           <CRow class="align-items-center">
             <CCol md="auto">
-              <strong>Legenda:</strong>
+              <strong>Legenda Prestazioni:</strong>
             </CCol>
             <CCol>
               <div class="d-flex flex-wrap gap-3">
+                <!-- Mostra legenda per i professionisti attivi (esclusi slot speciali) -->
                 <div
-                  v-for="(colore, tipo) in COLORI_TERAPIA"
-                  :key="tipo"
+                  v-for="professionista in professionistiPerLegenda"
+                  :key="`legenda-${professionista.id}`"
                   class="legenda-item"
                 >
                   <div
                     class="legenda-colore"
-                    :style="{ backgroundColor: colore }"
+                    :style="{ backgroundColor: professionista.prestazione?.color || '#6c757d' }"
                   ></div>
-                  <span class="legenda-testo">{{ formatTipoTerapia(tipo) }}</span>
+                  <span class="legenda-testo">{{ formatTipoTerapia(professionista.prestazione?.tipologia) }}</span>
+                </div>
+
+                <!-- Legenda per eventi non assegnati se presenti -->
+                <div
+                  v-if="hasEventiNonAssegnati"
+                  class="legenda-item"
+                >
+                  <div
+                    class="legenda-colore"
+                    :style="{ backgroundColor: '#6c757d' }"
+                  ></div>
+                  <span class="legenda-testo">Eventi Non Assegnati</span>
                 </div>
               </div>
             </CCol>
@@ -293,6 +307,37 @@ const slotsOrari = computed(() => {
 const mostraIndicatoreOra = computed(() => {
   const oggi = new Date().toISOString().split('T')[0]
   return props.dataSelezionata === oggi
+})
+
+// Computed per i professionisti da mostrare nella legenda (esclusi slot speciali e duplicati)
+const professionistiPerLegenda = computed(() => {
+  if (!props.professionisti || !Array.isArray(props.professionisti)) {
+    return []
+  }
+
+  // Filtra solo professionisti reali (non slot speciali) e rimuovi duplicati per prestazione
+  const prestazioniViste = new Set()
+
+  return props.professionisti.filter(professionista => {
+    // Escludi slot speciali
+    if (professionista.isSlotSpeciale) return false
+
+    // Escludi se non ha prestazione
+    if (!professionista.prestazione?.tipologia) return false
+
+    // Controlla se abbiamo già visto questa prestazione
+    const chiavePrestazione = professionista.prestazione.tipologia
+    if (prestazioniViste.has(chiavePrestazione)) return false
+
+    // Aggiungi alla lista delle prestazioni viste
+    prestazioniViste.add(chiavePrestazione)
+    return true
+  })
+})
+
+// Computed per verificare se ci sono eventi non assegnati
+const hasEventiNonAssegnati = computed(() => {
+  return props.professionisti.some(p => p.isSlotSpeciale && p.id === 'non-assegnati')
 })
 
 // Sincronizzazione scroll orizzontale (header orari <-> contenuto)
@@ -546,7 +591,7 @@ const formatTipoTerapia = (tipoTerapia) => {
   return labels[tipoTerapia] || tipoTerapia
 }
 
-// Ottiene il colore del badge per tipo terapia
+// Ottiene il colore del badge per tipo terapia (manteniamo per fallback)
 const getBadgeColorTerapia = (tipoTerapia) => {
   const colors = {
     'LOGOPEDIA': 'primary',
@@ -557,6 +602,38 @@ const getBadgeColorTerapia = (tipoTerapia) => {
     'COLLOQUIO_CONOSCITIVO': 'dark'
   }
   return colors[tipoTerapia] || 'light'
+}
+
+// Nuovo metodo per ottenere lo stile dinamico del badge prestazione
+const getBadgeStyleTerapia = (prestazione) => {
+  // Se la prestazione ha un colore definito, lo utilizziamo
+  if (prestazione?.color) {
+    return {
+      backgroundColor: prestazione.color,
+      color: getContrastColor(prestazione.color), // Calcoliamo il colore del testo per contrasto
+      border: `1px solid ${prestazione.color}`
+    }
+  }
+
+  // Fallback ai colori statici se non disponibile il colore dinamico
+  return {}
+}
+
+// Funzione helper per calcolare il colore del testo in base al contrasto dello sfondo
+const getContrastColor = (hexColor) => {
+  // Rimuovi il # se presente
+  const hex = hexColor.replace('#', '')
+
+  // Converte hex in RGB
+  const r = parseInt(hex.substring(0, 2), 16)
+  const g = parseInt(hex.substring(2, 4), 16)
+  const b = parseInt(hex.substring(4, 6), 16)
+
+  // Calcola la luminanza (formula standard per accessibilità)
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+
+  // Restituisce bianco per sfondi scuri, nero per sfondi chiari
+  return luminance > 0.5 ? '#000000' : '#ffffff'
 }
 
 // Lifecycle hooks
@@ -833,6 +910,18 @@ onUnmounted(() => {
 .legenda-testo {
   font-size: 0.875rem;
   color: #6c757d;
+}
+
+/* Stili per i badge delle prestazioni con colori dinamici */
+.badge-prestazione {
+  font-weight: 600 !important;
+  text-shadow: none !important;
+  transition: all 0.2s ease;
+}
+
+.badge-prestazione:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* Personalizzazione scrollbar */

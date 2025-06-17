@@ -119,6 +119,8 @@ export class EventoMapper {
         nome: eventoBackend.specialista.nome,
         cognome: eventoBackend.specialista.cognome,
         nomeCompleto: `${eventoBackend.specialista.nome} ${eventoBackend.specialista.cognome}`.trim(),
+        // Includiamo la prestazione con il colore per la colorazione dinamica
+        prestazione: eventoBackend.specialista.prestazione
       } : null,
       // Paziente direttamente dalla relazione dell'evento
       paziente: eventoBackend.paziente ? {
@@ -130,6 +132,8 @@ export class EventoMapper {
       dataInizio: eventoBackend.dataInizio,
       dataFine: eventoBackend.dataFine,
       createdAt: eventoBackend.createdAt,
+      // Aggiungiamo il colore direttamente dall'evento per facilità d'uso
+      colore: eventoBackend.specialista?.prestazione?.color || '#6c757d' // Grigio di default per eventi senza prestazione
     }
   }
 
