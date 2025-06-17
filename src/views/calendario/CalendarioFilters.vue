@@ -121,33 +121,6 @@
             </option>
           </CFormSelect>
         </CCol>
-
-        <!-- Azioni -->
-        <CCol md="2">
-          <div class="d-grid gap-2">
-            <CButton
-              color="primary"
-              @click="$emit('aggiorna')"
-              :disabled="loading"
-              size="sm"
-            >
-              <CSpinner v-if="loading" size="sm" class="me-2" />
-              <CIcon v-else icon="cil-reload" class="me-2" />
-              {{ loading ? 'Caricamento...' : 'Aggiorna' }}
-            </CButton>
-
-            <CButton
-              variant="outline"
-              color="secondary"
-              @click="resetFiltri"
-              :disabled="loading"
-              size="sm"
-            >
-              <CIcon icon="cil-x" class="me-2" />
-              Reset
-            </CButton>
-          </div>
-        </CCol>
       </CRow>
 
       <!-- Informazioni data selezionata e scorciatoie -->
@@ -164,14 +137,6 @@
                 - Terapia: <strong>{{ getLabelTerapia(tipoTerapiaSelezionato) }}</strong>
               </span>
             </span>
-          </div>
-        </CCol>
-        <CCol md="4">
-          <div class="d-flex align-items-center justify-content-end text-muted">
-            <small>
-              <CIcon icon="cil-keyboard" class="me-1" />
-              <kbd>←→</kbd> giorni | <kbd>H</kbd> oggi
-            </small>
           </div>
         </CCol>
       </CRow>
