@@ -29,14 +29,23 @@
               <!-- Informazioni principali -->
               <CCol md="6">
                 <div class="evento-info">
-                  <h6 class="evento-titolo">{{ evento.titolo || 'Evento senza titolo' }}</h6>
+                  <div class="d-flex align-items-center mb-2">
+                    <h6 class="evento-titolo mb-0 me-2">{{ evento.titolo || 'Evento senza titolo' }}</h6>
+                    <CBadge
+                      v-if="getTipoTerapia(evento)"
+                      :color="getBadgeColorTerapia(getTipoTerapia(evento))"
+                      size="sm"
+                    >
+                      {{ formatTipoTerapia(getTipoTerapia(evento)) }}
+                    </CBadge>
+                  </div>
                   <div class="evento-paziente">
                     <CIcon icon="cil-user" class="me-1" />
-                    {{ evento.paziente?.nomeCompleto || 'Paziente non specificato' }}
+                    {{ getNomePaziente(evento) || 'Paziente non specificato' }}
                   </div>
                   <div class="evento-professionista">
                     <CIcon icon="cil-medical-cross" class="me-1" />
-                    {{ evento.professionista || 'Professionista non specificato' }}
+                    {{ getNomeSpecialista(evento) || 'Professionista non specificato' }}
                   </div>
                 </div>
               </CCol>
@@ -53,9 +62,9 @@
 
               <!-- Sala -->
               <CCol md="2">
-                <div v-if="evento.sala" class="evento-sala">
+                <div v-if="evento.stanza" class="evento-sala">
                   <CIcon icon="cil-location-pin" class="me-1" />
-                  {{ evento.sala }}
+                  {{ evento.stanza }}
                 </div>
                 <div v-else class="evento-sala text-muted">
                   <small>Sala non specificata</small>
@@ -90,6 +99,87 @@ const props = defineProps({
 
 const emit = defineEmits(['eventoClick'])
 const { formatTime, formatDuration } = useCalendario()
+
+// Funzioni helper per mappare correttamente i dati degli eventi
+const getNomePaziente = (evento) => {
+  try {
+    if (!evento || !evento.paziente) return null
+
+    // Se esiste nomeCompleto, usalo
+    if (evento.paziente.nomeCompleto) {
+      return evento.paziente.nomeCompleto
+    }
+
+    // Altrimenti costruisci il nome completo
+    const nome = evento.paziente.nome || ''
+    const cognome = evento.paziente.cognome || ''
+    const nomeCompleto = `${nome} ${cognome}`.trim()
+
+    return nomeCompleto || null
+  } catch (error) {
+    console.warn('Errore nel recupero nome paziente:', error)
+    return null
+  }
+}
+
+const getNomeSpecialista = (evento) => {
+  try {
+    if (!evento || !evento.specialista) return null
+
+    // Se esiste nomeCompleto, usalo
+    if (evento.specialista.nomeCompleto) {
+      return evento.specialista.nomeCompleto
+    }
+
+    // Altrimenti costruisci il nome completo
+    const nome = evento.specialista.nome || ''
+    const cognome = evento.specialista.cognome || ''
+    const nomeCompleto = `${nome} ${cognome}`.trim()
+
+    return nomeCompleto || null
+  } catch (error) {
+    console.warn('Errore nel recupero nome specialista:', error)
+    return null
+  }
+}
+
+const getTipoTerapia = (evento) => {
+  try {
+    // Il tipo terapia si trova nella prestazione dello specialista
+    return evento?.specialista?.prestazione?.tipologia || null
+  } catch (error) {
+    console.warn('Errore nel recupero tipo terapia:', error)
+    return null
+  }
+}
+
+const formatTipoTerapia = (tipologia) => {
+  if (!tipologia) return ''
+
+  const labels = {
+    'LOGOPEDIA': 'Logopedia',
+    'NEUROPSICHIATRIA_INFANTILE': 'Neuropsichiatria',
+    'NEUROPSICOMOTRICITÀ': 'Neuropsicomotricità',
+    'TERAPIA_ABA': 'Terapia ABA',
+    'PSICOLOGA': 'Psicologa',
+    'COLLOQUIO_CONOSCITIVO': 'Colloquio'
+  }
+  return labels[tipologia] || tipologia
+}
+
+const getBadgeColorTerapia = (tipologia) => {
+  if (!tipologia) return 'secondary'
+
+  const colors = {
+    'LOGOPEDIA': 'primary',
+    'NEUROPSICHIATRIA_INFANTILE': 'success',
+    'NEUROPSICOMOTRICITÀ': 'info',
+    'TERAPIA_ABA': 'warning',
+    'PSICOLOGA': 'secondary',
+    'COLLOQUIO_CONOSCITIVO': 'dark'
+  }
+  return colors[tipologia] || 'light'
+}
 
 const eventiRaggruppati = computed(() => {
   try {
