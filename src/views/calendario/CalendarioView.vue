@@ -98,7 +98,7 @@
         <TimelineView
           v-else-if="vistaAttiva === 'timeline'"
           :eventi="eventiFiltrati"
-          :professionisti="specialistiDaEventi"
+          :professionisti="specialistiFiltrati"
           :data-selezionata="dataSelezionata"
           :loading="loading"
           @evento-click="apriModalModificaEvento"
@@ -109,7 +109,7 @@
         <ListaView
           v-else-if="vistaAttiva === 'lista'"
           :eventi="eventiFiltrati"
-          :professionisti="specialistiDaEventi"
+          :professionisti="specialistiFiltrati"
           :loading="loading"
           @evento-click="apriModalModificaEvento"
         />
@@ -123,7 +123,12 @@
           </p>
           <p class="text-muted mb-4">
             <small>
-              Quando ci saranno eventi, i professionisti verranno automaticamente mostrati nella timeline e nella lista.
+              <span v-if="specialistaSelezionato || tipoTerapiaSelezionato">
+                Prova a modificare i filtri per vedere più eventi.
+              </span>
+              <span v-else>
+                Quando ci saranno eventi, i professionisti verranno automaticamente mostrati nella timeline e nella lista.
+              </span>
             </small>
           </p>
           <CButton
@@ -191,6 +196,7 @@ const {
 
   // Utilità
   filtraEventi,
+  estraiSpecialistiDaEventi, // Aggiungiamo questa funzione
   clearError
 } = useCalendario()
 
@@ -206,11 +212,31 @@ const eventoSelezionato = ref(null)
 
 // Computed per eventi filtrati
 const eventiFiltrati = computed(() => {
-  return filtraEventi(eventi.value, {
+  const filtri = {
     data: dataSelezionata.value,
     specialista: specialistaSelezionato.value,
     tipoTerapia: tipoTerapiaSelezionato.value
-  })
+  }
+
+  console.log(`🎯 [CalendarioView] Applicazione filtri:`, filtri)
+  console.log(`📋 [CalendarioView] Eventi da filtrare: ${eventi.value?.length || 0}`)
+
+  const risultato = filtraEventi(eventi.value, filtri)
+
+  console.log(`✅ [CalendarioView] Eventi filtrati: ${risultato?.length || 0}`)
+
+  return risultato
+})
+
+// Computed per specialisti filtrati (basato sugli eventi filtrati)
+const specialistiFiltrati = computed(() => {
+  console.log(`👨‍⚕️ [CalendarioView] Generazione specialisti da ${eventiFiltrati.value?.length || 0} eventi filtrati`)
+
+  const risultato = estraiSpecialistiDaEventi(eventiFiltrati.value)
+
+  console.log(`✅ [CalendarioView] Specialisti filtrati: ${risultato?.length || 0}`)
+
+  return risultato
 })
 
 // Metodi vista

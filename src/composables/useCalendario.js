@@ -405,6 +405,7 @@ export function useCalendario() {
         return [...listaEventi]
       }
 
+      console.log(`🔄 [filtraEventi] Inizio filtraggio di ${listaEventi.length} eventi con filtri:`, filtri)
       let eventiFiltrati = [...listaEventi]
 
       // Filtro per data
@@ -417,36 +418,56 @@ export function useCalendario() {
 
               try {
                 const dataEvento = new Date(evento.dataInizio)
-                return !isNaN(dataEvento.getTime()) &&
+                const match = !isNaN(dataEvento.getTime()) &&
                        dataEvento.toDateString() === dataFiltro.toDateString()
+                return match
               } catch (dateError) {
                 console.warn('Errore nella data evento:', evento, dateError)
                 return false
               }
             })
+
+            console.log(`📊 [filtraEventi] Filtro data applicato: ${eventiFiltrati.length} eventi rimasti`)
           }
         } catch (dateError) {
           console.warn('Errore nel filtro data:', dateError)
         }
       }
 
-      // Filtro per specialista (ora usa il nome completo del specialista)
+      // Filtro per specialista - confronta con l'ID dello specialista
       if (filtri.specialista) {
         eventiFiltrati = eventiFiltrati.filter(evento => {
           if (!evento || !evento.specialista) return false
-          return evento.specialista === filtri.specialista ||
-                 evento.specialista.includes(filtri.specialista)
+
+          // Converti entrambi i valori in stringa per confronto sicuro
+          const specialistaIdEvento = evento.specialista.id?.toString()
+          const specialistaIdFiltro = filtri.specialista?.toString()
+
+          console.log(`🔍 [filtraEventi] Confronto specialista: evento.specialista.id="${specialistaIdEvento}" vs filtro="${specialistaIdFiltro}"`)
+
+          return specialistaIdEvento === specialistaIdFiltro
         })
+
+        console.log(`📊 [filtraEventi] Filtro specialista applicato: ${eventiFiltrati.length} eventi rimasti`)
       }
 
       // Filtro per tipo terapia
       if (filtri.tipoTerapia) {
         eventiFiltrati = eventiFiltrati.filter(evento => {
           if (!evento) return false
-          return evento.tipoTerapia === filtri.tipoTerapia
+
+          // Il tipo terapia si trova nella prestazione dello specialista
+          const tipoTerapiaEvento = evento.specialista?.prestazione?.tipologia
+
+          console.log(`🔍 [filtraEventi] Confronto tipo terapia: evento="${tipoTerapiaEvento}" vs filtro="${filtri.tipoTerapia}"`)
+
+          return tipoTerapiaEvento === filtri.tipoTerapia
         })
+
+        console.log(`📊 [filtraEventi] Filtro tipo terapia applicato: ${eventiFiltrati.length} eventi rimasti`)
       }
 
+      console.log(`✅ [filtraEventi] Filtraggio completato: ${eventiFiltrati.length} eventi finali`)
       return eventiFiltrati
 
     } catch (error) {
