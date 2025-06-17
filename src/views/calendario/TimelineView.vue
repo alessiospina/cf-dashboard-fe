@@ -248,7 +248,7 @@
  * - Gestione responsive
  */
 
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useCalendario } from '@/composables/useCalendario'
 import EventCard from './EventCard.vue'
 
@@ -665,9 +665,117 @@ const hasDuplicateNames = (professionista) => {
   return conteggio > 1
 }
 
+// Funzione per calcolare la posizione di scroll dell'ora corrente
+const calcolaPosizioneScrollOraCorrente = () => {
+  // Solo se stiamo visualizzando la data odierna
+  if (!mostraIndicatoreOra.value) {
+    return 0
+  }
+
+  const ora = oraCorrente.value.getHours()
+  const minuti = oraCorrente.value.getMinutes()
+
+  // Calcola i minuti totali dall'inizio della giornata (ORARIO_INIZIO)
+  const orePassate = ora - ORARIO_INIZIO
+  const minutiTotali = (orePassate * 60) + minuti
+
+  // Calcola il numero di slot passati
+  const slotsPassati = minutiTotali / INTERVALLO_MINUTI
+
+  // Calcola la posizione in pixel
+  const posizioneOra = slotsPassati * LARGHEZZA_SLOT
+
+  // Centra la vista sull'ora corrente considerando la larghezza visibile
+  // Sottrai metà della larghezza del container per centrare
+  const offsetCentrato = posizioneOra - (contenutoRef.value?.clientWidth || 800) / 2
+
+  // Assicurati che lo scroll non vada sotto 0
+  return Math.max(0, offsetCentrato)
+}
+
+// Funzione per eseguire lo scroll automatico all'ora corrente
+const scrollToOraCorrente = () => {
+  // Solo se è presente il riferimento al contenuto
+  if (!contenutoRef.value) {
+    console.warn('📅 [TimelineView] Riferimento contenutoRef non disponibile per lo scroll')
+    return
+  }
+
+  // Solo se stiamo visualizzando la data odierna
+  if (!mostraIndicatoreOra.value) {
+    console.log('📅 [TimelineView] Non è la data odierna, skip scroll automatico')
+    return
+  }
+
+  const posizioneScroll = calcolaPosizioneScrollOraCorrente()
+
+  console.log(`📅 [TimelineView] Scroll automatico all'ora corrente: ${getOraCorrente()}`)
+  console.log(`📍 [TimelineView] Posizione scroll calcolata: ${posizioneScroll}px`)
+
+  // Esegue lo scroll orizzontale fluido
+  contenutoRef.value.scrollTo({
+    left: posizioneScroll,
+    behavior: 'smooth'
+  })
+
+  // Sincronizza anche l'header degli orari
+  if (headerOrariRef.value) {
+    headerOrariRef.value.scrollTo({
+      left: posizioneScroll,
+      behavior: 'smooth'
+    })
+  }
+}
+
 // Lifecycle hooks
 onMounted(() => {
+  // Avvia l'intervallo per aggiornare l'ora corrente ogni minuto
   intervalloOra.value = setInterval(aggiornaOraCorrente, 60000)
+
+  // Attende un breve momento per assicurarsi che i ref siano pronti
+  // poi esegue lo scroll automatico all'ora corrente
+  setTimeout(() => {
+    scrollToOraCorrente()
+  }, 100)
+})
+
+// Watcher per la data selezionata - riposiziona lo scroll se è la data odierna
+watch(() => props.dataSelezionata, async (nuovaData) => {
+  console.log(`📅 [TimelineView] Data cambiata a: ${nuovaData}`)
+
+  // Attende che il DOM si aggiorni dopo il cambio di data
+  await nextTick()
+
+  // Se la nuova data è oggi, riposiziona lo scroll sull'ora corrente
+  const oggi = new Date().toISOString().split('T')[0]
+  if (nuovaData === oggi) {
+    console.log('📅 [TimelineView] Data odierna selezionata, riposiziono scroll sull\'ora corrente')
+    setTimeout(() => {
+      scrollToOraCorrente()
+    }, 150) // Leggero delay per permettere al rendering di completarsi
+  } else {
+    console.log('📅 [TimelineView] Data diversa da oggi, scroll rimane all\'inizio')
+    // Per date diverse da oggi, posiziona all'inizio della giornata lavorativa (es. 8:00)
+    setTimeout(() => {
+      const orarioInizioLavoro = 8 // 8:00 AM
+      const slotsInizioLavoro = ((orarioInizioLavoro - ORARIO_INIZIO) * 60) / INTERVALLO_MINUTI
+      const posizioneInizioLavoro = slotsInizioLavoro * LARGHEZZA_SLOT
+
+      if (contenutoRef.value) {
+        contenutoRef.value.scrollTo({
+          left: posizioneInizioLavoro,
+          behavior: 'smooth'
+        })
+      }
+
+      if (headerOrariRef.value) {
+        headerOrariRef.value.scrollTo({
+          left: posizioneInizioLavoro,
+          behavior: 'smooth'
+        })
+      }
+    }, 150)
+  }
 })
 
 onUnmounted(() => {

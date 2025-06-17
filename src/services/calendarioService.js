@@ -93,6 +93,11 @@ export class EventoService {
    */
   static async updateEvento(eventoData) {
     try {
+      // Validazione che l'ID sia presente per l'update
+      if (!eventoData.id) {
+        throw new Error('ID evento richiesto per l\'aggiornamento')
+      }
+
       // Validazione dati
       const backendData = EventoMapper.frontendToBackend(eventoData)
       const validation = EventoValidator.validateCreateEvento(backendData)
@@ -101,13 +106,35 @@ export class EventoService {
         throw new Error(`Dati non validi: ${Object.values(validation.errors).join(', ')}`)
       }
 
-      const response = await apiClient.patch('/evento', {
-        id: eventoData.id,
-        ...backendData
-      })
+      // Usa PUT con l'ID nell'URL come si aspetta il backend
+      const response = await apiClient.put(`/evento/${eventoData.id}`, backendData)
       return EventoMapper.backendToFrontend(response.data.data)
     } catch (error) {
       console.error('Errore nell\'aggiornamento evento:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Aggiorna parzialmente un evento esistente (PATCH)
+   * @param {Object} eventoData - Dati parziali dell'evento da aggiornare (deve includere id)
+   * @returns {Promise<Object>} Evento aggiornato
+   */
+  static async patchEvento(eventoData) {
+    try {
+      // Validazione che l'ID sia presente per l'update
+      if (!eventoData.id) {
+        throw new Error('ID evento richiesto per l\'aggiornamento parziale')
+      }
+
+      // Per PATCH non mappiamo tutti i dati, solo quelli forniti
+      const { id, ...datiParziali } = eventoData
+
+      // Usa PATCH se il backend lo supportasse in futuro
+      const response = await apiClient.patch(`/evento/${id}`, datiParziali)
+      return EventoMapper.backendToFrontend(response.data.data)
+    } catch (error) {
+      console.error('Errore nell\'aggiornamento parziale evento:', error)
       throw error
     }
   }
