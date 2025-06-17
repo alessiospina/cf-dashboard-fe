@@ -12,7 +12,7 @@
       <div class="timeline-header-container">
         <!-- Header professionisti fisso -->
         <div class="header-professionisti">
-          <div class="professionisti-title">Professionista</div>
+          <div class="professionisti-title">Specialisti</div>
         </div>
 
         <!-- Header orari scrollabile -->
@@ -580,6 +580,9 @@ const creaEventoInSlot = (professionista, oraSlot) => {
 
 // Formatta il tipo di terapia per la visualizzazione
 const formatTipoTerapia = (tipoTerapia) => {
+  // Se non c'è il tipo di terapia, restituiamo un valore generico
+  if (!tipoTerapia) return 'Prestazione Generica'
+
   const labels = {
     'LOGOPEDIA': 'Logopedia',
     'NEUROPSICHIATRIA_INFANTILE': 'Neuropsichiatria',
@@ -588,7 +591,9 @@ const formatTipoTerapia = (tipoTerapia) => {
     'PSICOLOGA': 'Psicologa',
     'COLLOQUIO_CONOSCITIVO': 'Colloquio'
   }
-  return labels[tipoTerapia] || tipoTerapia
+
+  // Se il tipo non è nelle label, restituisci il valore formattato
+  return labels[tipoTerapia] || tipoTerapia.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())
 }
 
 // Ottiene il colore del badge per tipo terapia (manteniamo per fallback)

@@ -13,10 +13,10 @@
   >
     <!-- Contenuto evento -->
     <div class="event-content">
-      <!-- Header con tipo terapia e stato -->
+      <!-- Header con stanza e stato -->
       <div class="event-header">
-        <div class="event-tipo" :title="evento.titolo">
-          {{ getTipoTerapiaShort(evento.tipoTerapia) }}
+        <div class="event-tipo" :title="`Stanza: ${evento.stanza || 'Non specificata'}`">
+          {{ evento.stanza || '---' }}
         </div>
         <div class="event-stato">
           <CIcon
@@ -34,10 +34,6 @@
         </div>
         <div class="event-orario">
           {{ formatOrario(evento.dataInizio) }} - {{ formatOrario(evento.dataFine) }}
-        </div>
-        <div v-if="evento.sala" class="event-sala">
-          <CIcon icon="cil-location-pin" size="sm" class="me-1" />
-          {{ evento.sala }}
         </div>
       </div>
 
@@ -172,20 +168,6 @@ const formatDurata = (dataInizio, dataFine) => {
   }
 }
 
-const getTipoTerapiaShort = (tipoTerapia) => {
-  if (!tipoTerapia) return 'N/A'
-
-  const shortcuts = {
-    'LOGOPEDIA': 'LOG',
-    'NEUROPSICHIATRIA_INFANTILE': 'NPI',
-    'NEUROPSICOMOTRICITÀ': 'TNPEE',
-    'TERAPIA_ABA': 'ABA',
-    'PSICOLOGA': 'PSY',
-    'COLLOQUIO_CONOSCITIVO': 'COLL'
-  }
-  return shortcuts[tipoTerapia] || tipoTerapia.slice(0, 3)
-}
-
 const getStatoIcon = (stato) => {
   if (!stato) return 'cil-options'
 
@@ -254,10 +236,8 @@ const getStatoClass = (stato) => {
 .event-tipo {
   font-weight: 700;
   font-size: 0.75rem;
-  text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  color: #2c3e50;
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -281,14 +261,6 @@ const getStatoClass = (stato) => {
 
 .event-orario { font-size: 0.75rem; color: #6c757d; font-weight: 500; line-height: 1.1; }
 .event-card--small .event-orario { font-size: 0.7rem; }
-
-.event-sala {
-  font-size: 0.7rem;
-  color: #8a8a8a;
-  display: flex;
-  align-items: center;
-  margin-top: auto;
-}
 
 .event-durata {
   font-size: 0.7rem;
