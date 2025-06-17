@@ -27,13 +27,18 @@
               </CCol>
 
               <!-- Informazioni principali -->
-              <CCol md="6">
+              <CCol md="5">
                 <div class="evento-info">
                   <div class="d-flex align-items-center mb-2">
                     <h6 class="evento-titolo mb-0 me-2">{{ evento.titolo || 'Evento senza titolo' }}</h6>
                     <CBadge
                       v-if="getTipoTerapia(evento)"
-                      :color="getBadgeColorTerapia(getTipoTerapia(evento))"
+                      :color="getBadgeColorTerapia(evento)"
+                      :style="{
+                        backgroundColor: evento?.specialista?.prestazione?.color || undefined,
+                        color: getContrastColor(evento?.specialista?.prestazione?.color || '#6c757d'),
+                        border: 'none'
+                      }"
                       size="sm"
                     >
                       {{ formatTipoTerapia(getTipoTerapia(evento)) }}
@@ -48,16 +53,6 @@
                     {{ getNomeSpecialista(evento) || 'Professionista non specificato' }}
                   </div>
                 </div>
-              </CCol>
-
-              <!-- Stato e azioni -->
-              <CCol md="2">
-                <CBadge
-                  :color="getStatoBadgeColor(evento.stato)"
-                  shape="rounded-pill"
-                >
-                  {{ formatStato(evento.stato) }}
-                </CBadge>
               </CCol>
 
               <!-- Sala -->
@@ -167,18 +162,30 @@ const formatTipoTerapia = (tipologia) => {
   return labels[tipologia] || tipologia
 }
 
-const getBadgeColorTerapia = (tipologia) => {
-  if (!tipologia) return 'secondary'
+const getBadgeColorTerapia = (evento) => {
+  try {
+    // Usa il colore dalla prestazione nel database se disponibile
+    if (evento?.specialista?.prestazione?.color) {
+      return evento.specialista.prestazione.color
+    }
 
-  const colors = {
-    'LOGOPEDIA': 'primary',
-    'NEUROPSICHIATRIA_INFANTILE': 'success',
-    'NEUROPSICOMOTRICITÀ': 'info',
-    'TERAPIA_ABA': 'warning',
-    'PSICOLOGA': 'secondary',
-    'COLLOQUIO_CONOSCITIVO': 'dark'
+    // Fallback ai colori predefiniti solo se non c'è colore nel DB
+    if (!evento || !evento.specialista?.prestazione?.tipologia) return 'secondary'
+
+    const tipologia = evento.specialista.prestazione.tipologia
+    const colors = {
+      'LOGOPEDIA': 'primary',
+      'NEUROPSICHIATRIA_INFANTILE': 'success',
+      'NEUROPSICOMOTRICITÀ': 'info',
+      'TERAPIA_ABA': 'warning',
+      'PSICOLOGA': 'secondary',
+      'COLLOQUIO_CONOSCITIVO': 'dark'
+    }
+    return colors[tipologia] || 'light'
+  } catch (error) {
+    console.warn('Errore nel recupero colore terapia:', error)
+    return 'secondary'
   }
-  return colors[tipologia] || 'light'
 }
 
 const eventiRaggruppati = computed(() => {
@@ -223,6 +230,29 @@ const getStatoBadgeColor = (stato) => {
     'cancellato': 'danger'
   }
   return colors[stato] || 'secondary'
+}
+
+const getContrastColor = (hexColor) => {
+  if (!hexColor) return '#000000'
+
+  try {
+    // Rimuovi il # se presente
+    const hex = hexColor.replace('#', '')
+
+    // Converte hex in RGB
+    const r = parseInt(hex.substring(0, 2), 16)
+    const g = parseInt(hex.substring(2, 4), 16)
+    const b = parseInt(hex.substring(4, 6), 16)
+
+    // Calcola la luminanza
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+
+    // Restituisce bianco per colori scuri, nero per colori chiari
+    return luminance > 0.5 ? '#000000' : '#ffffff'
+  } catch (error) {
+    console.warn('Errore nel calcolo contrasto colore:', error)
+    return '#000000'
+  }
 }
 
 const formatStato = (stato) => {
