@@ -94,9 +94,9 @@
           <span class="text-muted">Caricamento eventi...</span>
         </div>
 
-        <!-- Vista Timeline -->
+        <!-- Vista Timeline - SOLO se ci sono eventi -->
         <TimelineView
-          v-else-if="vistaAttiva === 'timeline'"
+          v-if="!loading && vistaAttiva === 'timeline' && eventiFiltrati.length > 0"
           :eventi="eventiFiltrati"
           :professionisti="specialistiFiltrati"
           :data-selezionata="dataSelezionata"
@@ -105,16 +105,16 @@
           @crea-evento="apriModalNuovoEventoInSlot"
         />
 
-        <!-- Vista Lista -->
+        <!-- Vista Lista - SOLO se ci sono eventi -->
         <ListaView
-          v-else-if="vistaAttiva === 'lista'"
+          v-if="!loading && vistaAttiva === 'lista' && eventiFiltrati.length > 0"
           :eventi="eventiFiltrati"
           :professionisti="specialistiFiltrati"
           :loading="loading"
           @evento-click="apriModalModificaEvento"
         />
 
-        <!-- Messaggio quando non ci sono eventi -->
+        <!-- UNICO messaggio quando non ci sono eventi -->
         <div v-if="!loading && eventiFiltrati.length === 0" class="text-center p-5">
           <CIcon icon="cil-calendar" size="3xl" class="text-muted mb-3" />
           <h5 class="text-muted">Nessun evento trovato</h5>
