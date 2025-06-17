@@ -53,7 +53,7 @@
             }"
           >
             <div class="specialista-info">
-              <!-- Nome del professionista/slot -->
+              <!-- Nome del professionista/slot con ID se necessario -->
               <div
                 class="specialista-nome"
                 :class="{
@@ -61,6 +61,11 @@
                 }"
               >
                 {{ professionista.nome }} {{ professionista.cognome }}
+
+                <!-- Mostra ID solo se ci sono altri specialisti con stesso nome -->
+                <small v-if="hasDuplicateNames(professionista)" class="text-muted ms-1">
+                  (ID: {{ professionista.id }})
+                </small>
 
                 <!-- Badge con conteggio eventi per slot speciale -->
                 <CBadge
@@ -446,22 +451,28 @@ const getEventiProfessionista = (professionista) => {
   }
 
   // CASO NORMALE: Specialisti con eventi assegnati
-  if (!professionista.nomeCompleto) {
+  if (!professionista.id) {
+    console.warn('⚠️ [getEventiProfessionista] Professionista senza ID:', professionista)
     return []
   }
 
-  // Filtra eventi per specialista normale
+  // Filtra eventi per ID specialista (non più per nome completo)
   const eventiSpecialista = props.eventi.filter(evento => {
     // Controlli di sicurezza per l'evento
     if (!evento || !evento.specialista) {
       return false
     }
 
-    // Confronta il nomeCompleto del professionista con quello dello specialista dell'evento
-    return evento.specialista.nomeCompleto === professionista.nomeCompleto
+    // Confronta gli ID (convertiti in stringa per sicurezza)
+    const idEventoSpecialista = evento.specialista.id?.toString()
+    const idProfessionista = professionista.id?.toString()
+
+    console.log(`🔍 [getEventiProfessionista] Confronto ID: evento.specialista.id="${idEventoSpecialista}" vs professionista.id="${idProfessionista}"`)
+
+    return idEventoSpecialista === idProfessionista
   })
 
-  console.log(`👨‍⚕️ [getEventiProfessionista] Trovati ${eventiSpecialista.length} eventi per ${professionista.nomeCompleto}`)
+  console.log(`👨‍⚕️ [getEventiProfessionista] Trovati ${eventiSpecialista.length} eventi per specialista ID ${professionista.id} (${professionista.nomeCompleto})`)
   return eventiSpecialista
 }
 
@@ -639,6 +650,19 @@ const getContrastColor = (hexColor) => {
 
   // Restituisce bianco per sfondi scuri, nero per sfondi chiari
   return luminance > 0.5 ? '#000000' : '#ffffff'
+}
+
+// Verifica se ci sono specialisti con nomi duplicati
+const hasDuplicateNames = (professionista) => {
+  if (professionista.isSlotSpeciale) return false
+
+  const nomeCompleto = `${professionista.nome} ${professionista.cognome}`.trim()
+  const conteggio = props.professionisti.filter(p =>
+    !p.isSlotSpeciale &&
+    `${p.nome} ${p.cognome}`.trim() === nomeCompleto
+  ).length
+
+  return conteggio > 1
 }
 
 // Lifecycle hooks

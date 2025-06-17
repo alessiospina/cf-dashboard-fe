@@ -316,7 +316,7 @@ export function useCalendario() {
           }
 
           const specialista = evento.specialista
-          const chiave = `${specialista.id}-${specialista.nome}-${specialista.cognome}`
+          const chiave = specialista.id.toString() // Usa solo l'ID che è univoco
 
           if (!specialistiUnici.has(chiave)) {
             const specialistaEstratto = {
@@ -330,7 +330,7 @@ export function useCalendario() {
             }
 
             specialistiUnici.set(chiave, specialistaEstratto)
-            console.log(`➕ [estraiSpecialistiDaEventi] Aggiunto specialista: ${specialista.nomeCompleto}`)
+            console.log(`➕ [estraiSpecialistiDaEventi] Aggiunto specialista ID ${specialista.id}: ${specialista.nomeCompleto}`)
           }
         } catch (eventoError) {
           console.error(`❌ [estraiSpecialistiDaEventi] Errore nell'elaborazione evento ${index}:`, eventoError)
@@ -434,18 +434,29 @@ export function useCalendario() {
         }
       }
 
-      // Filtro per specialista - confronta con l'ID dello specialista
+      // Filtro per specialista - gestisce sia ID che nomi completi
       if (filtri.specialista) {
         eventiFiltrati = eventiFiltrati.filter(evento => {
           if (!evento || !evento.specialista) return false
 
-          // Converti entrambi i valori in stringa per confronto sicuro
+          const filtroValore = filtri.specialista.toString()
+
+          // Se il filtro inizia con "nome:", filtra per nome completo
+          if (filtroValore.startsWith('nome:')) {
+            const nomeRicercato = filtroValore.substring(5) // Rimuove "nome:"
+            const nomeEventoSpecialista = `${evento.specialista.nome} ${evento.specialista.cognome}`.trim()
+
+            console.log(`🔍 [filtraEventi] Filtro per nome: "${nomeRicercato}" vs evento "${nomeEventoSpecialista}"`)
+
+            return nomeEventoSpecialista === nomeRicercato
+          }
+
+          // Altrimenti filtra per ID (comportamento normale)
           const specialistaIdEvento = evento.specialista.id?.toString()
-          const specialistaIdFiltro = filtri.specialista?.toString()
 
-          console.log(`🔍 [filtraEventi] Confronto specialista: evento.specialista.id="${specialistaIdEvento}" vs filtro="${specialistaIdFiltro}"`)
+          console.log(`🔍 [filtraEventi] Filtro per ID: evento.specialista.id="${specialistaIdEvento}" vs filtro="${filtroValore}"`)
 
-          return specialistaIdEvento === specialistaIdFiltro
+          return specialistaIdEvento === filtroValore
         })
 
         console.log(`📊 [filtraEventi] Filtro specialista applicato: ${eventiFiltrati.length} eventi rimasti`)

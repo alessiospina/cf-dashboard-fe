@@ -71,13 +71,35 @@
             :disabled="loading"
           >
             <option value="">Tutti gli specialisti</option>
-            <option
-              v-for="specialista in specialisti"
-              :key="specialista.id"
-              :value="specialista.id"
-            >
-              {{ specialista.nome }} {{ specialista.cognome }}
-            </option>
+
+            <!-- Opzioni raggruppate per gestire omonimi -->
+            <template v-for="gruppo in specialistiRaggruppati" :key="gruppo.chiave">
+              <!-- Se c'è un solo specialista con questo nome, mostra normalmente -->
+              <option
+                v-if="gruppo.specialisti.length === 1"
+                :value="gruppo.specialisti[0].id"
+              >
+                {{ gruppo.nomeCompleto }}
+              </option>
+
+              <!-- Se ci sono omonimi, mostra opzione di gruppo + singole -->
+              <template v-else>
+                <!-- Opzione per selezionare tutti gli omonimi -->
+                <option :value="`nome:${gruppo.nomeCompleto}`">
+                  {{ gruppo.nomeCompleto }} (Tutti - {{ gruppo.specialisti.length }})
+                </option>
+
+                <!-- Opzioni singole per ogni specialista -->
+                <option
+                  v-for="specialista in gruppo.specialisti"
+                  :key="specialista.id"
+                  :value="specialista.id"
+                  style="padding-left: 20px;"
+                >
+                  &nbsp;&nbsp;{{ gruppo.nomeCompleto }} ({{ formatPrestazione(specialista.prestazione?.tipologia) }})
+                </option>
+              </template>
+            </template>
           </CFormSelect>
         </CCol>
 
@@ -223,7 +245,45 @@ const resetFiltri = () => {
   emit('update:tipoTerapiaSelezionato', '')
 }
 
-// Utilità per formattazione
+// Computed per raggruppare specialisti per nome
+const specialistiRaggruppati = computed(() => {
+  const gruppi = new Map()
+
+  props.specialisti.forEach(specialista => {
+    const nomeCompleto = `${specialista.nome} ${specialista.cognome}`.trim()
+
+    if (!gruppi.has(nomeCompleto)) {
+      gruppi.set(nomeCompleto, {
+        chiave: nomeCompleto,
+        nomeCompleto: nomeCompleto,
+        specialisti: []
+      })
+    }
+
+    gruppi.get(nomeCompleto).specialisti.push(specialista)
+  })
+
+  // Ordina per nome completo
+  return Array.from(gruppi.values()).sort((a, b) =>
+    a.nomeCompleto.localeCompare(b.nomeCompleto, 'it')
+  )
+})
+
+// Formatta la prestazione per la visualizzazione
+const formatPrestazione = (tipologia) => {
+  if (!tipologia) return 'N/A'
+
+  const labels = {
+    'LOGOPEDIA': 'Logopedia',
+    'NEUROPSICHIATRIA_INFANTILE': 'Neuropsichiatria',
+    'NEUROPSICOMOTRICITÀ': 'Neuropsicomotricità',
+    'TERAPIA_ABA': 'Terapia ABA',
+    'PSICOLOGA': 'Psicologia',
+    'COLLOQUIO_CONOSCITIVO': 'Colloquio'
+  }
+
+  return labels[tipologia] || tipologia.replace(/_/g, ' ')
+}
 const formatDataEstesa = (dateString) => {
   const data = new Date(dateString)
   return data.toLocaleDateString('it-IT', {
@@ -234,8 +294,16 @@ const formatDataEstesa = (dateString) => {
   })
 }
 
-const getNomeSpecialista = (specialistaId) => {
-  const specialista = props.specialisti.find(s => s.id.toString() === specialistaId.toString())
+const getNomeSpecialista = (filtroValore) => {
+  if (!filtroValore) return ''
+
+  // Se è un filtro per nome, estrai il nome
+  if (filtroValore.toString().startsWith('nome:')) {
+    return filtroValore.substring(5) // Rimuove "nome:"
+  }
+
+  // Altrimenti cerca per ID
+  const specialista = props.specialisti.find(s => s.id.toString() === filtroValore.toString())
   return specialista ? `${specialista.nome} ${specialista.cognome}` : ''
 }
 
