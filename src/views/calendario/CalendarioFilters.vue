@@ -14,56 +14,52 @@
         <!-- Controlli data -->
         <CCol md="4">
           <CFormLabel class="fw-semibold">Data</CFormLabel>
-          <CInputGroup>
-            <CButton
-              variant="outline"
-              color="secondary"
-              @click="cambiaGiorno(-1)"
-              :disabled="loading"
-              title="Giorno precedente"
-            >
-              <CIcon icon="cil-chevron-left" />
-            </CButton>
-            <CFormInput
-              :model-value="dataSelezionata"
-              @update:model-value="$emit('update:dataSelezionata', $event)"
-              type="date"
-              :disabled="loading"
-            />
-            <CButton
-              variant="outline"
-              color="secondary"
-              @click="cambiaGiorno(1)"
-              :disabled="loading"
-              title="Giorno successivo"
-            >
-              <CIcon icon="cil-chevron-right" />
-            </CButton>
-          </CInputGroup>
+          <CRow class="g-2">
+            <!-- Input Group con navigazione -->
+            <CCol>
+              <CInputGroup>
+                <!-- Navigazione con icone come nella pagina pazienti -->
+                <CButton
+                  variant="outline"
+                  color="secondary"
+                  @click="cambiaGiorno(-1)"
+                  :disabled="loading"
+                  title="Giorno precedente"
+                >
+                  <font-awesome-icon icon="angle-left" />
+                </CButton>
+                <CFormInput
+                  :model-value="dataSelezionata"
+                  @update:model-value="$emit('update:dataSelezionata', $event)"
+                  type="date"
+                  :disabled="loading"
+                />
+                <CButton
+                  variant="outline"
+                  color="secondary"
+                  @click="cambiaGiorno(1)"
+                  :disabled="loading"
+                  title="Giorno successivo"
+                >
+                  <font-awesome-icon icon="angle-right" />
+                </CButton>
+              </CInputGroup>
+            </CCol>
 
-          <!-- Scorciatoie data -->
-          <div class="mt-2">
-            <CButtonGroup size="sm">
+            <!-- Bottone oggi allineato -->
+            <CCol md="auto">
               <CButton
                 variant="outline"
                 color="primary"
                 @click="impostaOggi"
                 :disabled="loading"
+                class="h-100"
               >
                 <CIcon v-if="loading" class="spinner-border spinner-border-sm me-2" />
                 Oggi
               </CButton>
-              <CButton
-                variant="outline"
-                color="primary"
-                @click="impostaDomani"
-                :disabled="loading"
-              >
-                <CIcon v-if="loading" class="spinner-border spinner-border-sm me-2" />
-                Domani
-              </CButton>
-            </CButtonGroup>
-          </div>
+            </CCol>
+          </CRow>
         </CCol>
 
         <!-- Filtro Specialista -->
@@ -132,9 +128,9 @@
         </CCol>
       </CRow>
 
-      <!-- Informazioni data selezionata -->
+      <!-- Informazioni data selezionata e scorciatoie -->
       <CRow class="mt-3">
-        <CCol>
+        <CCol md="8">
           <div class="d-flex align-items-center text-muted">
             <CIcon icon="cil-info" class="me-2" />
             <span>
@@ -148,6 +144,14 @@
             </span>
           </div>
         </CCol>
+        <CCol md="4">
+          <div class="d-flex align-items-center justify-content-end text-muted">
+            <small>
+              <CIcon icon="cil-keyboard" class="me-1" />
+              <kbd>←→</kbd> giorni | <kbd>H</kbd> oggi
+            </small>
+          </div>
+        </CCol>
       </CRow>
     </CCardBody>
   </CCard>
@@ -159,9 +163,14 @@
  *
  * Gestisce tutti i filtri e controlli di navigazione
  * per la visualizzazione del calendario
+ *
+ * Scorciatoie da tastiera:
+ * - Freccia sinistra: giorno precedente
+ * - Freccia destra: giorno successivo
+ * - H (Home): vai a oggi
  */
 
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { TIPI_TERAPIA_OPTIONS } from '@/types/backend.types'
 
 // Props
@@ -208,12 +217,6 @@ const impostaOggi = () => {
   emit('update:dataSelezionata', oggi)
 }
 
-const impostaDomani = () => {
-  const domani = new Date()
-  domani.setDate(domani.getDate() + 1)
-  emit('update:dataSelezionata', domani.toISOString().split('T')[0])
-}
-
 const resetFiltri = () => {
   emit('update:dataSelezionata', new Date().toISOString().split('T')[0])
   emit('update:specialistaSelezionato', '')
@@ -240,6 +243,43 @@ const getLabelTerapia = (tipoTerapia) => {
   const terapia = TIPI_TERAPIA_OPTIONS.find(t => t.value === tipoTerapia)
   return terapia ? terapia.label : ''
 }
+
+// Gestione scorciatoie da tastiera
+const handleKeyDown = (event) => {
+  // Evita di interferire se l'utente sta digitando in un input
+  if (event.target.tagName === 'INPUT' || event.target.tagName === 'SELECT') {
+    return
+  }
+
+  switch (event.key) {
+    case 'ArrowLeft':
+      event.preventDefault()
+      cambiaGiorno(-1) // Freccia sinistra = giorno precedente
+      break
+
+    case 'ArrowRight':
+      event.preventDefault()
+      cambiaGiorno(1) // Freccia destra = giorno successivo
+      break
+
+    case 'h':
+    case 'H':
+      if (!event.ctrlKey && !event.metaKey && !event.altKey) {
+        event.preventDefault()
+        impostaOggi() // H = vai a oggi
+      }
+      break
+  }
+}
+
+// Lifecycle hooks per le scorciatoie
+onMounted(() => {
+  document.addEventListener('keydown', handleKeyDown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeyDown)
+})
 </script>
 
 <style scoped>
@@ -272,6 +312,37 @@ const getLabelTerapia = (tipoTerapia) => {
   font-size: 0.875rem;
 }
 
+/* Stili per i tasti kbd */
+kbd {
+  padding: 0.2rem 0.4rem;
+  font-size: 0.7rem;
+  color: #495057;
+  background-color: #f8f9fa;
+  border-radius: 0.25rem;
+  border: 1px solid #dee2e6;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+/* Icone FontAwesome consistency */
+.fas,
+.fa,
+.fab {
+  width: 1em;
+  text-align: center;
+  display: inline-block;
+}
+
+/* Hover effects per bottoni di navigazione */
+.input-group .btn {
+  transition: all 0.2s ease-in-out;
+}
+
+.input-group .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .filtri-calendario .card-body {
@@ -299,5 +370,23 @@ const getLabelTerapia = (tipoTerapia) => {
 [data-coreui-theme="dark"] .input-group .btn:hover {
   background-color: #434c5e;
   border-color: #5e81ac;
+}
+
+/* Tema dark per kbd */
+[data-coreui-theme="dark"] kbd {
+  color: #eceff4;
+  background-color: #3b4252;
+  border-color: #4c566a;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.25);
+}
+
+/* Miglioramenti hover tema dark */
+[data-coreui-theme="dark"] .input-group .btn {
+  transition: all 0.2s ease-in-out;
+}
+
+[data-coreui-theme="dark"] .input-group .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 </style>
