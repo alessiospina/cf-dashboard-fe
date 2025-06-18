@@ -63,14 +63,9 @@ const { formatTime, formatDuration } = useCalendario()
 
 // Funzione per ottenere il colore di sfondo dell'evento
 const getEventBackgroundColor = () => {
-  // Se l'evento ha un colore dal backend (dalla prestazione), lo utilizziamo
-  if (props.evento?.colore) {
-    // Rendiamo il colore più trasparente per lo sfondo
-    return addOpacityToColor(props.evento.colore, 0.15)
-  }
-
-  // Se l'evento ha uno specialista con prestazione, utilizziamo il colore della prestazione
+  // L'evento ha uno specialista con prestazione che contiene il colore
   if (props.evento?.specialista?.prestazione?.color) {
+    // Rendiamo il colore più trasparente per lo sfondo
     return addOpacityToColor(props.evento.specialista.prestazione.color, 0.15)
   }
 
@@ -80,12 +75,7 @@ const getEventBackgroundColor = () => {
 
 // Funzione per ottenere il colore del bordo sinistro dell'evento
 const getEventBorderColor = () => {
-  // Se l'evento ha un colore dal backend (dalla prestazione), lo utilizziamo
-  if (props.evento?.colore) {
-    return props.evento.colore
-  }
-
-  // Se l'evento ha uno specialista con prestazione, utilizziamo il colore della prestazione
+  // L'evento ha uno specialista con prestazione che contiene il colore
   if (props.evento?.specialista?.prestazione?.color) {
     return props.evento.specialista.prestazione.color
   }
@@ -228,31 +218,26 @@ const getStatoClass = (stato) => {
   font-size: 0.8rem;
 }
 
-/* Stati evento con colori CoreUI */
+/* Stati evento - rimossi i colori hardcoded per usare quelli dinamici */
 .event-card--confermato {
-  border-left-color: var(--cui-success);
+  /* Il colore viene impostato dinamicamente dal JavaScript */
 }
 
 .event-card--in_attesa {
-  border-left-color: var(--cui-warning);
-  background: var(--cui-warning-bg-subtle);
+  /* Background viene impostato dinamicamente se necessario */
 }
 
 .event-card--completato {
-  border-left-color: var(--cui-info);
   opacity: 0.8;
 }
 
 .event-card--cancellato {
-  border-left-color: var(--cui-danger);
-  background: var(--cui-danger-bg-subtle);
   opacity: 0.7;
   text-decoration: line-through;
 }
 
 .event-card--default {
-  border-left-color: var(--cui-secondary);
-  background: var(--cui-secondary-bg-subtle);
+  /* Il colore viene impostato dinamicamente dal JavaScript */
 }
 
 .event-content {
