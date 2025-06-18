@@ -863,8 +863,8 @@ onUnmounted(() => {
   min-width: 80px;
   padding: 0.5rem;
   text-align: center;
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 1rem; /* Aumentato da 0.875rem a 1rem per maggiore leggibilità */
+  font-weight: 600; /* Aumentato da 500 a 600 per maggior contrasto */
   border-right: 1px solid var(--cui-border-color);
   display: flex;
   align-items: center;
@@ -872,6 +872,7 @@ onUnmounted(() => {
   transition: background-color 0.2s;
   height: 60px;
   color: var(--cui-body-color);
+  background-color: var(--cui-body-bg); /* Aggiunto sfondo per maggiore contrasto */
 }
 
 .slot-orario.ora-corrente {

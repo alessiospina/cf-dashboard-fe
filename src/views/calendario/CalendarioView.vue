@@ -20,28 +20,6 @@
           Gestisci gli appuntamenti e le terapie del centro medico
         </p>
       </CCol>
-      <CCol md="auto">
-        <CButtonGroup>
-          <CButton
-            :color="vistaAttiva === 'timeline' ? 'primary' : undefined"
-            :variant="vistaAttiva === 'timeline' ? undefined : 'outline'"
-            @click="cambiaVista('timeline')"
-            size="sm"
-          >
-            <CIcon icon="cil-grid" class="me-2" />
-            Timeline
-          </CButton>
-          <CButton
-            :color="vistaAttiva === 'lista' ? 'primary' : undefined"
-            :variant="vistaAttiva === 'lista' ? undefined : 'outline'"
-            @click="cambiaVista('lista')"
-            size="sm"
-          >
-            <CIcon icon="cil-list" class="me-2" />
-            Lista
-          </CButton>
-        </CButtonGroup>
-      </CCol>
     </CRow>
 
     <!-- Filtri e Controlli -->
@@ -49,6 +27,7 @@
       v-model:data-selezionata="dataSelezionata"
       v-model:specialista-selezionato="specialistaSelezionato"
       v-model:tipo-terapia-selezionato="tipoTerapiaSelezionato"
+      v-model:vista-attiva="vistaAttiva"
       :specialisti="specialisti"
       :loading="loading"
       @aggiorna="aggiornaEventi"
@@ -231,11 +210,6 @@ const specialistiFiltrati = computed(() => {
 
   return risultato
 })
-
-// Metodi vista
-const cambiaVista = (nuovaVista) => {
-  vistaAttiva.value = nuovaVista
-}
 
 // Metodi modal
 const apriModalNuovoEvento = () => {
