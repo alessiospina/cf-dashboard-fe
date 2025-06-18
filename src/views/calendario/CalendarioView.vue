@@ -41,14 +41,6 @@
             Lista
           </CButton>
         </CButtonGroup>
-        <CButton
-          color="success"
-          @click="apriModalNuovoEvento"
-          class="ms-2"
-        >
-          <CIcon icon="cil-plus" class="me-2" />
-          Nuovo Appuntamento
-        </CButton>
       </CCol>
     </CRow>
 
@@ -60,6 +52,7 @@
       :specialisti="specialisti"
       :loading="loading"
       @aggiorna="aggiornaEventi"
+      @nuovo-evento="apriModalNuovoEvento"
     />
 
     <!-- Contenuto principale -->

@@ -3,7 +3,7 @@
     <CCardBody>
       <CRow class="align-items-end">
         <!-- Controlli data -->
-        <CCol md="4">
+        <CCol md="3">
           <CFormLabel class="fw-semibold">Data</CFormLabel>
           <CRow class="g-2">
             <CCol>
@@ -100,6 +100,19 @@
             </option>
           </CFormSelect>
         </CCol>
+
+        <!-- Bottone Nuovo Appuntamento -->
+        <CCol md="3" class="d-flex align-items-end justify-content-end">
+          <CButton
+            color="primary"
+            @click="$emit('nuovo-evento')"
+            :disabled="loading"
+            class=""
+          >
+            <CIcon icon="cil-plus" class="me-2" />
+            Crea
+          </CButton>
+        </CCol>
       </CRow>
 
       <CRow class="mt-3">
@@ -140,7 +153,8 @@ const emit = defineEmits([
   'update:dataSelezionata',
   'update:specialistaSelezionato',
   'update:tipoTerapiaSelezionato',
-  'aggiorna'
+  'aggiorna',
+  'nuovo-evento'
 ])
 
 const prestazioni = ref([])
