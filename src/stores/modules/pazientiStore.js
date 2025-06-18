@@ -129,7 +129,6 @@ export const usePazientiStore = defineStore('pazienti', {
         return matchCampiBase ||
                matchCampiAggiuntivi ||
                matchCombinazioni ||
-               matchTerapiaLabel ||
                matchParoleMultiple ||
                matchData
       })
