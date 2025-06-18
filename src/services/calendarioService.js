@@ -6,7 +6,7 @@
  */
 
 import axios from 'axios'
-import { CreateEventoDto, EventoMapper, EventoValidator } from '@/types/backend.types'
+import {CreateEventoDto, EventoMapper, EventoValidator} from '@/types/backend.types'
 
 // Configurazione base per le chiamate API
 const API_BASE_URL = 'http://localhost:8000/api'
@@ -128,7 +128,7 @@ export class EventoService {
       }
 
       // Per PATCH non mappiamo tutti i dati, solo quelli forniti
-      const { id, ...datiParziali } = eventoData
+      const {id, ...datiParziali} = eventoData
 
       // Usa PATCH se il backend lo supportasse in futuro
       const response = await apiClient.patch(`/evento/${id}`, datiParziali)
@@ -161,7 +161,7 @@ export class EventoService {
   static async getEventiPerData(data) {
     try {
       const response = await apiClient.get('/evento', {
-        params: { data }
+        params: {data}
       })
       return response.data.data?.map(evento => EventoMapper.backendToFrontend(evento)) || []
     } catch (error) {
@@ -213,6 +213,8 @@ export class EventoService {
         stanza: evento.stanza,
         dataInizio: evento.dataInizio,
         dataFine: evento.dataFine,
+        // Il prezzo arriva già in formato decimale dal backend (es: "20.80")
+        prezzo: evento.prezzo ? parseFloat(evento.prezzo) : null,
         createdAt: evento.createdAt,
         specialista: evento.specialista ? {
           id: evento.specialista.id,
@@ -237,5 +239,6 @@ export class EventoService {
     }
   }
 }
+
 // Esportiamo anche le utility
-export { EventoMapper, EventoValidator } from '@/types/backend.types'
+export {EventoMapper, EventoValidator} from '@/types/backend.types'

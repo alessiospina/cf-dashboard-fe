@@ -170,7 +170,7 @@
         <div class="form-section mb-4">
           <h6 class="section-title">Dettagli</h6>
           <CRow class="g-3">
-            <CCol md="6">
+            <CCol md="4">
               <div class="input-group-with-icon">
                 <div class="input-content">
                   <CFormLabel class="form-label-clean">Stanza</CFormLabel>
@@ -187,7 +187,28 @@
                 </div>
               </div>
             </CCol>
-            <CCol md="6">
+            <CCol md="4">
+              <div class="input-group-with-icon">
+                <div class="input-content">
+                  <CFormLabel class="form-label-clean">Prezzo (€)</CFormLabel>
+                  <div class="d-flex">
+                    <CIcon icon="cil-euro" class="input-icon"/>
+                    <CFormInput
+                      v-model="form.prezzo"
+                      type="text"
+                      pattern="^\\d+(\\.\\d{0,2})?$"
+                      :invalid="!!errors.prezzo"
+                      placeholder="Es: 50.00"
+                      class="form-control-clean"
+                      @input="normalizePrezzoInput"
+                      @blur="formattaPrezzo"
+                    />
+                  </div>
+                  <CFormFeedback v-if="errors.prezzo" invalid>{{ errors.prezzo }}</CFormFeedback>
+                </div>
+              </div>
+            </CCol>
+            <CCol md="4">
               <div class="input-group-with-icon">
                 <div class="input-content">
                   <CFormLabel class="form-label-clean">Paziente (opzionale)</CFormLabel>
@@ -322,6 +343,7 @@ const form = reactive({
   // Campi dell'evento (backend)
   titolo: '',
   stanza: '',
+  prezzo: '', // Campo prezzo aggiunto
 
   // Campi per l'interfaccia utente
   specialistaId: '',
@@ -377,6 +399,11 @@ const filtraSpecialisti = async (event) => {
     // Nascondi la dropdown in caso di errore
     showSpecialistiDropdown.value = false
   }
+}
+
+const normalizePrezzoInput = (event) => {
+  if (!event?.target?.value) return
+  form.prezzo = event.target.value.replace(',', '.')
 }
 
 const selezionaSpecialista = (specialista) => {
@@ -493,10 +520,10 @@ const getBadgeColorPrestazione = (prestazione) => {
 
     // Se il colore inizia con #, è un hex - usiamo style
     if (prestazione.color.startsWith('#')) {
-      return { isHex: true, color: prestazione.color }
+      return {isHex: true, color: prestazione.color}
     } else {
       // Se non è hex, è una classe CoreUI
-      return { isHex: false, color: prestazione.color }
+      return {isHex: false, color: prestazione.color}
     }
   }
 
@@ -514,7 +541,7 @@ const getBadgeColorPrestazione = (prestazione) => {
 
   const coloreFallback = colorsFallback[tipologia] || 'light'
   console.log('⚠️ [EventModal] Usando colore fallback per tipologia', tipologia, ':', coloreFallback)
-  return { isHex: false, color: coloreFallback }
+  return {isHex: false, color: coloreFallback}
 }
 
 // Gestione ricerca e selezione pazienti (utilizzo diretto props - min 2 caratteri)
@@ -574,7 +601,7 @@ const filtropazientiLocale = (listaPazienti, query = '') => {
 
     // Filtra solo se i campi sono validi
     return nomeCompleto.toLowerCase().includes(queryLower) ||
-           email.toLowerCase().includes(queryLower)
+      email.toLowerCase().includes(queryLower)
   })
 }
 
@@ -635,10 +662,20 @@ const nascondiPazientiDropdown = () => {
   }, 200)
 }
 
+// Funzione per formattare il prezzo a 2 decimali con punto decimale
+const formattaPrezzo = () => {
+  if (!form.prezzo) return
+  const prezzo = parseFloat(form.prezzo)
+  if (!isNaN(prezzo) && prezzo >= 0) {
+    form.prezzo = prezzo.toFixed(2)
+  }
+}
+
 const resetForm = () => {
   // Reset ai valori di default
   form.titolo = ''
   form.stanza = ''
+  form.prezzo = '' // Reset campo prezzo
   form.professionista = ''
   form.postiDisponibili = 1
   form.frequenza = FrequenzaEvento.UNICA
@@ -682,6 +719,8 @@ const populateForm = (evento) => {
     // Campi backend
     form.titolo = evento.titolo || `TERAPIA ${evento.tipoTerapia?.replace('_', ' ') || ''}`
     form.stanza = evento.sala || evento.stanza || ''
+    // Formattazione del prezzo se presente (già in formato euro dal backend)
+    form.prezzo = evento.prezzo ? parseFloat(evento.prezzo).toFixed(2) : ''
     form.professionista = evento.specialista?.nomeCompleto ||
       `${evento.specialista?.nome || ''} ${evento.specialista?.cognome || ''}`.trim() ||
       evento.professionista || ''
@@ -745,6 +784,16 @@ const validateForm = () => {
   if (!form.titolo) newErrors.titolo = 'Titolo obbligatorio'
   if (!form.stanza) newErrors.stanza = 'Stanza obbligatoria'
 
+  // Validazione campo prezzo (opzionale, ma se presente deve essere valido)
+  if (form.prezzo !== '' && form.prezzo !== null && form.prezzo !== undefined) {
+    // Gestione sia virgola che punto come separatore decimale
+    const prezzoString = form.prezzo.toString().replace(',', '.')
+    const prezzoNum = parseFloat(prezzoString)
+    if (isNaN(prezzoNum) || prezzoNum < 0) {
+      newErrors.prezzo = 'Il prezzo deve essere un numero positivo'
+    }
+  }
+
   // Validazione campi interfaccia
   if (!form.data) newErrors.data = 'Data obbligatoria'
   if (!form.oraInizio) newErrors.oraInizio = 'Ora inizio obbligatoria'
@@ -785,13 +834,15 @@ const handleSubmit = async () => {
       // Campi backend
       titolo: form.titolo,
       stanza: form.stanza,
+      // Il prezzo rimane in formato decimale come inserito dall'utente
+      prezzo: form.prezzo ? parseFloat(form.prezzo) : null,
       dataInizio: dataInizio.toISOString(),
       dataFine: dataFine.toISOString(),
 
       // Conversione esplicita a number per coerenza con backend
       pazienteID: form.pazienteId ? Number(form.pazienteId) : null,
       specialistaID: form.specialistaSelezionato?.id ? Number(form.specialistaSelezionato.id) :
-                     (form.specialistaId ? Number(form.specialistaId) : null),
+        (form.specialistaId ? Number(form.specialistaId) : null),
     }
 
     // Debug - log dell'oggetto finale inviato al backend
@@ -799,8 +850,10 @@ const handleSubmit = async () => {
       eventoData,
       pazienteID: eventoData.pazienteID,
       specialistaID: eventoData.specialistaID,
+      prezzo: eventoData.prezzo, // Aggiunto debug per prezzo
       pazienteIDType: typeof eventoData.pazienteID,
-      specialistaIDType: typeof eventoData.specialistaID
+      specialistaIDType: typeof eventoData.specialistaID,
+      prezzoType: typeof eventoData.prezzo
     })
 
     if (isEdit.value) {
@@ -1107,7 +1160,6 @@ watch(() => props.visible, (newVisible) => {
   background-color: rgba(var(--cui-success-rgb), 0.1);
   color: var(--cui-success);
 }
-
 
 
 /* Display per prestazione e paziente */

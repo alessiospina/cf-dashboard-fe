@@ -15,12 +15,12 @@ export const TipoTerapia = {
 
 // Opzioni per la select dei tipi di terapia
 export const TIPI_TERAPIA_OPTIONS = [
-  { value: TipoTerapia.LOGOPEDIA, label: 'Logopedia' },
-  { value: TipoTerapia.NEUROPSICHIATRIA_INFANTILE, label: 'Neuropsichiatria Infantile' },
-  { value: TipoTerapia.NEUROPSICOMOTRICITÀ, label: 'Neuropsicomotricità' },
-  { value: TipoTerapia.TERAPIA_ABA, label: 'Terapia ABA' },
-  { value: TipoTerapia.PSICOLOGA, label: 'Psicologa' },
-  { value: TipoTerapia.COLLOQUIO_CONOSCITIVO, label: 'Colloquio Conoscitivo' }
+  {value: TipoTerapia.LOGOPEDIA, label: 'Logopedia'},
+  {value: TipoTerapia.NEUROPSICHIATRIA_INFANTILE, label: 'Neuropsichiatria Infantile'},
+  {value: TipoTerapia.NEUROPSICOMOTRICITÀ, label: 'Neuropsicomotricità'},
+  {value: TipoTerapia.TERAPIA_ABA, label: 'Terapia ABA'},
+  {value: TipoTerapia.PSICOLOGA, label: 'Psicologa'},
+  {value: TipoTerapia.COLLOQUIO_CONOSCITIVO, label: 'Colloquio Conoscitivo'}
 ]
 
 // Colori associati ai tipi di terapia per la UI
@@ -43,10 +43,10 @@ export const FrequenzaEvento = {
 
 // Opzioni per la select della frequenza
 export const FREQUENZA_EVENTO_OPTIONS = [
-  { value: FrequenzaEvento.UNICA, label: 'Evento Unico' },
-  { value: FrequenzaEvento.GIORNALIERA, label: 'Ripetizione Giornaliera' },
-  { value: FrequenzaEvento.SETTIMANALE, label: 'Ripetizione Settimanale' },
-  { value: FrequenzaEvento.MENSILE, label: 'Ripetizione Mensile' }
+  {value: FrequenzaEvento.UNICA, label: 'Evento Unico'},
+  {value: FrequenzaEvento.GIORNALIERA, label: 'Ripetizione Giornaliera'},
+  {value: FrequenzaEvento.SETTIMANALE, label: 'Ripetizione Settimanale'},
+  {value: FrequenzaEvento.MENSILE, label: 'Ripetizione Mensile'}
 ]
 
 /**
@@ -60,6 +60,7 @@ export class EventoBackend {
     this.stanza = data.stanza || ''
     this.dataInizio = data.dataInizio || null
     this.dataFine = data.dataFine || null
+    this.prezzo = data.prezzo || null // Campo prezzo aggiunto
     this.createdAt = data.createdAt || null
     this.paziente = data.paziente || null
     this.specialista = data.specialista || null
@@ -78,6 +79,7 @@ export class CreateEventoDto {
     this.professionista = data.professionista || ''
     this.dataInizio = data.dataInizio || null
     this.dataFine = data.dataFine || null
+    this.prezzo = data.prezzo || null // Campo prezzo aggiunto
     this.pazienteID = data.pazienteID || null
     this.specialistaID = data.specialistaID || null
   }
@@ -99,6 +101,8 @@ export class EventoMapper {
       stanza: eventoFrontend.stanza.toUpperCase(),
       dataInizio: eventoFrontend.dataInizio,
       dataFine: eventoFrontend.dataFine,
+      // Il prezzo rimane in formato decimale come ricevuto (es: 25.50)
+      prezzo: eventoFrontend.prezzo ?? null,
       pazienteID: eventoFrontend.pazienteID ?? null,
       specialistaID: eventoFrontend.specialistaID ?? null,
     })
@@ -114,6 +118,8 @@ export class EventoMapper {
       id: eventoBackend.id?.toString(),
       titolo: eventoBackend.titolo,
       stanza: eventoBackend.stanza,
+      // Il prezzo arriva già in formato decimale dal backend (es: "20.80")
+      prezzo: eventoBackend.prezzo !== null ? eventoBackend.prezzo : null,
       specialista: eventoBackend.specialista ? {
         id: eventoBackend.specialista.id,
         nome: eventoBackend.specialista.nome,
@@ -184,6 +190,16 @@ export class EventoValidator {
 
     if (data.dataInizio && data.dataFine && new Date(data.dataInizio) >= new Date(data.dataFine)) {
       errors.dataFine = 'Data fine deve essere successiva a data inizio'
+    }
+
+    // Validazione campo prezzo (opzionale, ma se presente deve essere un numero positivo)
+    if (data.prezzo !== null && data.prezzo !== undefined && data.prezzo !== '') {
+      // Gestione sia virgola che punto come separatore decimale
+      const prezzoString = data.prezzo?.toString().replace(',', '.') ?? ''
+      const prezzoNum = parseFloat(prezzoString)
+      if (isNaN(prezzoNum) || prezzoNum < 0) {
+        errors.prezzo = 'Il prezzo deve essere un numero positivo'
+      }
     }
 
     // pazienteID e specialistaID sono opzionali (entrambi number)
