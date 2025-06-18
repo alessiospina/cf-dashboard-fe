@@ -194,10 +194,15 @@ const getStatoClass = (stato) => {
 </script>
 
 <style scoped>
+/**
+ * Stili EventCard con supporto completo per dark mode
+ * Utilizza le variabili CSS di CoreUI per compatibilità totale
+ */
+
 .event-card {
   position: relative;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: var(--cui-body-bg);
+  border: 1px solid var(--cui-border-color);
   border-left: 4px solid;
   border-radius: 6px;
   cursor: pointer;
@@ -210,78 +215,191 @@ const getStatoClass = (stato) => {
 }
 
 .event-card:hover {
-  background: rgba(255, 255, 255, 1);
+  background: var(--cui-tertiary-bg);
   transform: scale(1.02);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--cui-box-shadow);
   z-index: 30;
 }
 
 .event-card--small {
-  height: 76px; /* Mantiene la stessa altezza anche per eventi piccoli */
+  height: 76px;
   min-height: 76px;
   max-height: 76px;
   font-size: 0.8rem;
 }
-.event-card--confermato { border-left-color: #198754; }
-.event-card--in_attesa { border-left-color: #ffc107; background: rgba(255, 193, 7, 0.1); }
-.event-card--completato { border-left-color: #0d6efd; opacity: 0.8; }
-.event-card--cancellato { border-left-color: #dc3545; background: rgba(220, 53, 69, 0.1); opacity: 0.7; text-decoration: line-through; }
-.event-card--default { border-left-color: #6c757d; background: rgba(108, 117, 125, 0.1); }
 
-.event-content { padding: 0.5rem; flex: 1; display: flex; flex-direction: column; gap: 0.25rem; }
-.event-card--small .event-content { padding: 0.375rem; gap: 0.125rem; }
+/* Stati evento con colori CoreUI */
+.event-card--confermato {
+  border-left-color: var(--cui-success);
+}
 
-.event-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; }
+.event-card--in_attesa {
+  border-left-color: var(--cui-warning);
+  background: var(--cui-warning-bg-subtle);
+}
+
+.event-card--completato {
+  border-left-color: var(--cui-info);
+  opacity: 0.8;
+}
+
+.event-card--cancellato {
+  border-left-color: var(--cui-danger);
+  background: var(--cui-danger-bg-subtle);
+  opacity: 0.7;
+  text-decoration: line-through;
+}
+
+.event-card--default {
+  border-left-color: var(--cui-secondary);
+  background: var(--cui-secondary-bg-subtle);
+}
+
+.event-content {
+  padding: 0.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.event-card--small .event-content {
+  padding: 0.375rem;
+  gap: 0.125rem;
+}
+
+.event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
 
 .event-tipo {
   font-weight: 700;
   font-size: 0.75rem;
   letter-spacing: 0.5px;
-  color: #2c3e50;
+  color: var(--cui-body-color);
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.event-stato { opacity: 0.9; }
-.event-body { flex: 1; display: flex; flex-direction: column; gap: 0.125rem; }
+.event-stato {
+  opacity: 0.9;
+}
+
+.event-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
 
 .event-paziente {
   font-weight: 600;
   font-size: 0.85rem;
-  color: #2c3e50;
+  color: var(--cui-body-color);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.2;
 }
 
-.event-card--small .event-paziente { font-size: 0.75rem; }
+.event-card--small .event-paziente {
+  font-size: 0.75rem;
+}
 
-.event-orario { font-size: 0.75rem; color: #6c757d; font-weight: 500; line-height: 1.1; }
-.event-card--small .event-orario { font-size: 0.7rem; }
+.event-orario {
+  font-size: 0.75rem;
+  color: var(--cui-body-color-muted);
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+.event-card--small .event-orario {
+  font-size: 0.7rem;
+}
 
 .event-durata {
   font-size: 0.7rem;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.2);
+  color: var(--cui-body-bg);
+  background: var(--cui-body-color-muted);
   padding: 0.125rem 0.25rem;
   border-radius: 3px;
   text-align: center;
   margin-top: auto;
   font-weight: 600;
+  opacity: 0.8;
 }
 
-.event-indicator { position: absolute; top: 0; right: 0; width: 4px; height: 100%; opacity: 0.8; }
-.event-indicator--confermato { background: linear-gradient(to bottom, #198754, #20c997); }
-.event-indicator--in_attesa { background: linear-gradient(to bottom, #ffc107, #ffcd39); }
-.event-indicator--completato { background: linear-gradient(to bottom, #0d6efd, #4dabf7); }
-.event-indicator--cancellato { background: linear-gradient(to bottom, #dc3545, #e74c3c); }
+.event-indicator {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  opacity: 0.8;
+}
 
-.event-card { animation: slideIn 0.3s ease-out; }
+/* Indicatori stato con gradienti che si adattano al tema */
+.event-indicator--confermato {
+  background: linear-gradient(to bottom, var(--cui-success), var(--cui-success-text-emphasis));
+}
+
+.event-indicator--in_attesa {
+  background: linear-gradient(to bottom, var(--cui-warning), var(--cui-warning-text-emphasis));
+}
+
+.event-indicator--completato {
+  background: linear-gradient(to bottom, var(--cui-info), var(--cui-info-text-emphasis));
+}
+
+.event-indicator--cancellato {
+  background: linear-gradient(to bottom, var(--cui-danger), var(--cui-danger-text-emphasis));
+}
+
+/* Animazione di entrata */
+.event-card {
+  animation: slideIn 0.3s ease-out;
+}
+
 @keyframes slideIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/**
+ * Miglioramenti specifici per dark mode
+ */
+[data-coreui-theme="dark"] .event-card {
+  /* Migliora il contrasto in dark mode */
+  .event-durata {
+    background: var(--cui-body-color);
+    color: var(--cui-body-bg);
+    opacity: 0.9;
+  }
+
+  /* Migliora l'hover in dark mode */
+  &:hover {
+    box-shadow: 0 4px 16px rgba(255, 255, 255, 0.1);
+  }
+
+  /* Assicura che i colori siano sempre leggibili */
+  .event-tipo,
+  .event-paziente {
+    color: var(--cui-body-color);
+  }
+
+  .event-orario {
+    color: var(--cui-body-color-muted);
+  }
 }
 </style>

@@ -1,7 +1,7 @@
 <template>
   <CModal :visible="visible" @close="handleClose" size="lg" class="event-modal-simple">
     <CModalHeader class="border-0 pb-0">
-      <CModalTitle class="h5 fw-bold text-dark">
+      <CModalTitle class="h5 fw-bold">
         <CIcon :icon="isEdit ? 'cil-pencil' : 'cil-plus'" class="me-2 text-primary"/>
         {{ isEdit ? 'Modifica Appuntamento' : 'Nuovo Appuntamento' }}
       </CModalTitle>
@@ -975,19 +975,19 @@ watch(() => props.visible, (newVisible) => {
 }
 
 .section-title {
-  color: #374151;
+  color: var(--cui-body-color);
   font-weight: 600;
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.75rem;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid #f3f4f6;
+  border-bottom: 2px solid var(--cui-border-color);
 }
 
 /* Labels pulite */
 .form-label-clean {
-  color: #374151;
+  color: var(--cui-body-color);
   font-weight: 500;
   font-size: 0.875rem;
   margin-bottom: 0.5rem;
@@ -995,24 +995,26 @@ watch(() => props.visible, (newVisible) => {
 
 /* Input puliti - responsive e flessibili */
 .form-control-clean {
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--cui-border-color);
   border-radius: 8px;
   padding: 0.75rem;
   font-size: 0.875rem;
   transition: all 0.2s ease;
-  background-color: #ffffff;
+  background-color: var(--cui-body-bg);
+  color: var(--cui-body-color);
   min-height: 40px; /* Altezza minima per allineamento con le icone */
   flex: 1; /* Occupa tutto lo spazio disponibile */
 }
 
 .form-control-clean:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  background-color: #ffffff;
+  border-color: var(--cui-primary);
+  box-shadow: 0 0 0 3px rgba(var(--cui-primary-rgb), 0.1);
+  background-color: var(--cui-body-bg);
+  color: var(--cui-body-color);
 }
 
 .form-control-clean:invalid {
-  border-color: #ef4444;
+  border-color: var(--cui-danger);
 }
 
 /* Dropdown semplificato */
@@ -1021,8 +1023,8 @@ watch(() => props.visible, (newVisible) => {
   top: 100%;
   left: 0;
   right: 0;
-  background: white;
-  border: 2px solid #e5e7eb;
+  background: var(--cui-body-bg);
+  border: 2px solid var(--cui-border-color);
   border-top: none;
   border-radius: 0 0 8px 8px;
   max-height: 200px;
@@ -1034,12 +1036,13 @@ watch(() => props.visible, (newVisible) => {
 .suggestion-item-clean {
   padding: 0.75rem;
   cursor: pointer;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--cui-border-color);
   transition: background-color 0.15s ease;
+  color: var(--cui-body-color);
 }
 
 .suggestion-item-clean:hover {
-  background-color: #f8fafc;
+  background-color: var(--cui-gray-100);
 }
 
 .suggestion-item-clean:last-child {
@@ -1089,20 +1092,20 @@ watch(() => props.visible, (newVisible) => {
   width: 40px;
   height: 40px;
   border-radius: 8px;
-  background-color: #f3f4f6;
-  color: #6b7280;
+  background-color: var(--cui-gray-100);
+  color: var(--cui-text-muted);
   flex-shrink: 0;
   transition: all 0.2s ease;
 }
 
 .input-icon.text-primary {
-  background-color: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
+  background-color: rgba(var(--cui-primary-rgb), 0.1);
+  color: var(--cui-primary);
 }
 
 .input-icon.text-success {
-  background-color: rgba(16, 185, 129, 0.1);
-  color: #10b981;
+  background-color: rgba(var(--cui-success-rgb), 0.1);
+  color: var(--cui-success);
 }
 
 
@@ -1110,20 +1113,21 @@ watch(() => props.visible, (newVisible) => {
 /* Display per prestazione e paziente */
 .prestazione-display,
 .paziente-display {
-  background-color: #f8fafc;
-  border: 2px solid #e5e7eb;
+  background-color: var(--cui-gray-50);
+  border: 2px solid var(--cui-border-color);
   border-radius: 8px;
   padding: 0.75rem;
   font-size: 0.875rem;
   margin-top: 0.5rem;
+  color: var(--cui-body-color);
 }
 
 .prestazione-display {
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid var(--cui-primary);
 }
 
 .paziente-display {
-  border-left: 4px solid #10b981;
+  border-left: 4px solid var(--cui-success);
 }
 
 /* Icone specifiche per display elements - allineamento centrato */
@@ -1197,24 +1201,24 @@ watch(() => props.visible, (newVisible) => {
 }
 
 .event-modal-simple .btn-outline-light {
-  border: 2px solid #e5e7eb;
-  color: #6b7280;
+  border: 2px solid var(--cui-border-color);
+  color: var(--cui-text-muted);
 }
 
 .event-modal-simple .btn-outline-light:hover {
-  background-color: #f3f4f6;
-  border-color: #d1d5db;
-  color: #374151;
+  background-color: var(--cui-gray-100);
+  border-color: var(--cui-border-color);
+  color: var(--cui-body-color);
 }
 
 .event-modal-simple .btn-outline-danger {
-  border: 2px solid #fecaca;
-  color: #dc2626;
+  border: 2px solid rgba(var(--cui-danger-rgb), 0.3);
+  color: var(--cui-danger);
 }
 
 .event-modal-simple .btn-outline-danger:hover {
-  background-color: #fef2f2;
-  border-color: #fca5a5;
+  background-color: rgba(var(--cui-danger-rgb), 0.1);
+  border-color: rgba(var(--cui-danger-rgb), 0.5);
 }
 
 /* Responsive */
@@ -1271,9 +1275,9 @@ watch(() => props.visible, (newVisible) => {
 }
 
 .event-modal-simple .alert-danger {
-  background-color: #fef2f2;
-  color: #dc2626;
-  border-left: 4px solid #dc2626;
+  background-color: rgba(var(--cui-danger-rgb), 0.1);
+  color: var(--cui-danger);
+  border-left: 4px solid var(--cui-danger);
 }
 
 /* Responsive per le icone - layout flessibile e pulito */

@@ -785,7 +785,8 @@ onUnmounted(() => {
 
 <style scoped>
 /**
- * Stili per Timeline con sincronizzazione perfetta
+ * Stili per Timeline con sincronizzazione perfetta e compatibilità dark mode
+ * Utilizza le variabili CSS di CoreUI per adattarsi automaticamente ai temi
  */
 
 .timeline-view {
@@ -801,24 +802,24 @@ onUnmounted(() => {
   height: 400px;
 }
 
-/* Container principale */
+/* Container principale con variabili CoreUI */
 .timeline-container {
   display: flex;
   flex-direction: column;
   height: 70vh;
   min-height: 600px;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--cui-border-color);
   border-radius: 8px;
   overflow: hidden;
-  background: #fff;
+  background: var(--cui-body-bg);
 }
 
 /* HEADER CONTAINER - Layout flexbox per allineamento perfetto */
 .timeline-header-container {
   display: flex;
   height: 60px;
-  background: #f8f9fa;
-  border-bottom: 2px solid #dee2e6;
+  background: var(--cui-tertiary-bg);
+  border-bottom: 2px solid var(--cui-border-color);
   position: sticky;
   top: 0;
   z-index: 30;
@@ -827,8 +828,8 @@ onUnmounted(() => {
 .header-professionisti {
   width: 280px;
   min-width: 280px;
-  background: #e9ecef;
-  border-right: 2px solid #dee2e6;
+  background: var(--cui-secondary-bg);
+  border-right: 2px solid var(--cui-border-color);
   display: flex;
   align-items: center;
   padding: 1rem;
@@ -837,7 +838,7 @@ onUnmounted(() => {
 .professionisti-title {
   font-weight: 600;
   font-size: 1rem;
-  color: #2c3e50;
+  color: var(--cui-body-color);
   margin: 0;
 }
 
@@ -864,17 +865,18 @@ onUnmounted(() => {
   text-align: center;
   font-size: 0.875rem;
   font-weight: 500;
-  border-right: 1px solid #dee2e6;
+  border-right: 1px solid var(--cui-border-color);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background-color 0.2s;
   height: 60px;
+  color: var(--cui-body-color);
 }
 
 .slot-orario.ora-corrente {
-  background-color: #ffc107;
-  color: #000;
+  background-color: var(--cui-warning);
+  color: var(--cui-warning-text-emphasis);
   font-weight: 600;
 }
 
@@ -889,15 +891,15 @@ onUnmounted(() => {
 .sidebar-professionisti {
   width: 280px;
   min-width: 280px;
-  background: #f8f9fa;
-  border-right: 2px solid #dee2e6;
+  background: var(--cui-tertiary-bg);
+  border-right: 2px solid var(--cui-border-color);
   overflow-y: auto;
   overflow-x: hidden;
 }
 
 .specialista-row {
   height: 80px;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid var(--cui-border-color);
   display: flex;
   align-items: center;
 }
@@ -911,7 +913,7 @@ onUnmounted(() => {
   font-weight: 600;
   font-size: 0.95rem;
   margin-bottom: 0.25rem;
-  color: #2c3e50;
+  color: var(--cui-body-color);
 }
 
 .specialista-specializzazione {
@@ -922,6 +924,7 @@ onUnmounted(() => {
 .contenuto-appuntamenti {
   flex: 1;
   overflow: auto;
+  background: var(--cui-body-bg);
 }
 
 .griglia-appuntamenti {
@@ -931,7 +934,7 @@ onUnmounted(() => {
 
 .appuntamento-row {
   height: 80px;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid var(--cui-border-color);
   position: relative;
 }
 
@@ -943,7 +946,7 @@ onUnmounted(() => {
 
 .time-slot {
   min-width: 80px;
-  border-right: 1px solid #f0f0f0;
+  border-right: 1px solid var(--cui-border-color-translucent);
   cursor: pointer !important;
   transition: background-color 0.2s ease;
   position: relative;
@@ -952,18 +955,19 @@ onUnmounted(() => {
 }
 
 .time-slot:hover {
-  background-color: rgba(0, 123, 255, 0.1) !important;
-  border-color: rgba(0, 123, 255, 0.2);
+  background-color: var(--cui-primary-bg-subtle) !important;
+  border-color: var(--cui-primary-border-subtle);
   cursor: pointer !important;
 }
 
 .time-slot.ora-corrente-slot {
-  background-color: rgba(255, 193, 7, 0.2);
+  background-color: var(--cui-warning-bg-subtle);
   cursor: pointer !important;
 }
 
 .time-slot.ora-corrente-slot:hover {
-  background-color: rgba(255, 193, 7, 0.3) !important;
+  background-color: var(--cui-warning-bg-subtle) !important;
+  opacity: 0.8;
   cursor: pointer !important;
 }
 
@@ -973,7 +977,7 @@ onUnmounted(() => {
   right: 0;
   bottom: 0;
   width: 2px;
-  background-color: #ffc107;
+  background-color: var(--cui-warning);
 }
 
 /* Layer degli eventi sovrapposto */
@@ -989,7 +993,7 @@ onUnmounted(() => {
 
 .evento-timeline {
   border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--cui-box-shadow-sm);
   transition: transform 0.2s, box-shadow 0.2s;
   pointer-events: auto;
   z-index: 15;
@@ -997,7 +1001,7 @@ onUnmounted(() => {
 
 .evento-timeline:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--cui-box-shadow);
   z-index: 20 !important;
 }
 
@@ -1013,7 +1017,7 @@ onUnmounted(() => {
 .linea-ora {
   width: 2px;
   height: 100%;
-  background-color: #dc3545;
+  background-color: var(--cui-danger);
 }
 
 .ora-label {
@@ -1021,8 +1025,8 @@ onUnmounted(() => {
   top: -30px;
   left: 50%;
   transform: translateX(-50%);
-  background-color: #dc3545;
-  color: white;
+  background-color: var(--cui-danger);
+  color: var(--cui-danger-text-emphasis);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.75rem;
@@ -1041,12 +1045,12 @@ onUnmounted(() => {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--cui-border-color);
 }
 
 .legenda-testo {
   font-size: 0.875rem;
-  color: #6c757d;
+  color: var(--cui-body-color-muted);
 }
 
 /* Stili per i badge delle prestazioni con colori dinamici */
@@ -1058,10 +1062,10 @@ onUnmounted(() => {
 
 .badge-prestazione:hover {
   transform: scale(1.05);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--cui-box-shadow-sm);
 }
 
-/* Personalizzazione scrollbar */
+/* Personalizzazione scrollbar con supporto dark mode */
 .header-orari-scrollabile::-webkit-scrollbar,
 .sidebar-professionisti::-webkit-scrollbar,
 .contenuto-appuntamenti::-webkit-scrollbar {
@@ -1072,21 +1076,23 @@ onUnmounted(() => {
 .header-orari-scrollabile::-webkit-scrollbar-track,
 .sidebar-professionisti::-webkit-scrollbar-track,
 .contenuto-appuntamenti::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--cui-tertiary-bg);
   border-radius: 4px;
 }
 
 .header-orari-scrollabile::-webkit-scrollbar-thumb,
 .sidebar-professionisti::-webkit-scrollbar-thumb,
 .contenuto-appuntamenti::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: var(--cui-body-color-muted);
   border-radius: 4px;
+  opacity: 0.5;
 }
 
 .header-orari-scrollabile::-webkit-scrollbar-thumb:hover,
 .sidebar-professionisti::-webkit-scrollbar-thumb:hover,
 .contenuto-appuntamenti::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: var(--cui-body-color);
+  opacity: 0.8;
 }
 
 /* Stili responsive */
@@ -1107,10 +1113,10 @@ onUnmounted(() => {
   }
 }
 
-/* Stili per lo slot speciale "Eventi Non Assegnati" */
+/* Stili per lo slot speciale "Eventi Non Assegnati" con supporto dark mode */
 .specialista-row--slot-speciale {
-  background-color: #f8f9fa;
-  border-left: 4px solid #6c757d;
+  background-color: var(--cui-secondary-bg);
+  border-left: 4px solid var(--cui-secondary);
   position: relative;
 }
 
@@ -1125,14 +1131,14 @@ onUnmounted(() => {
     45deg,
     transparent,
     transparent 2px,
-    rgba(108, 117, 125, 0.1) 2px,
-    rgba(108, 117, 125, 0.1) 4px
+    var(--cui-border-color-translucent) 2px,
+    var(--cui-border-color-translucent) 4px
   );
   pointer-events: none;
 }
 
 .specialista-nome--slot-speciale {
-  color: #6c757d;
+  color: var(--cui-body-color-muted);
   font-weight: 600;
   font-style: italic;
   display: flex;
@@ -1147,9 +1153,9 @@ onUnmounted(() => {
 
 /* Stili per gli eventi nel slot speciale */
 .evento-timeline--non-assegnato {
-  border: 2px dashed #6c757d !important;
-  background-color: #f8f9fa !important;
-  color: #6c757d !important;
+  border: 2px dashed var(--cui-secondary) !important;
+  background-color: var(--cui-secondary-bg) !important;
+  color: var(--cui-secondary-text-emphasis) !important;
   opacity: 0.8;
 }
 
@@ -1157,25 +1163,56 @@ onUnmounted(() => {
   opacity: 1;
   border-style: solid !important;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3) !important;
+  box-shadow: var(--cui-box-shadow) !important;
 }
 
 /* Stili per i time slot del slot speciale */
 .time-slot--slot-speciale {
-  background-color: rgba(108, 117, 125, 0.05);
-  border-left: 1px dashed #dee2e6;
-  border-right: 1px dashed #dee2e6;
+  background-color: var(--cui-secondary-bg-subtle);
+  border-left: 1px dashed var(--cui-border-color);
+  border-right: 1px dashed var(--cui-border-color);
 }
 
 .time-slot--slot-speciale:hover {
-  background-color: rgba(108, 117, 125, 0.15) !important;
+  background-color: var(--cui-secondary-bg-subtle) !important;
+  opacity: 0.8;
   border-style: solid !important;
   cursor: pointer !important;
 }
 
 /* Evidenziazione del contenuto appuntamenti per slot speciale */
 .appuntamento-row--slot-speciale {
-  background-color: rgba(108, 117, 125, 0.02);
-  border-bottom: 1px dashed #dee2e6;
+  background-color: var(--cui-secondary-bg-subtle);
+  border-bottom: 1px dashed var(--cui-border-color);
+}
+
+/**
+ * Supporto specifico per dark mode
+ * Aggiunge regole specifiche quando il tema scuro è attivo
+ */
+[data-coreui-theme="dark"] .timeline-view {
+  /* Migliora la leggibilità degli elementi in dark mode */
+  .slot-orario.ora-corrente {
+    color: var(--cui-dark);
+  }
+
+  .ora-label {
+    color: var(--cui-white);
+  }
+
+  /* Aggiusta l'opacità degli overlay per una migliore visibilità */
+  .time-slot:hover {
+    background-color: var(--cui-primary-bg-subtle) !important;
+    opacity: 0.9;
+  }
+
+  .time-slot.ora-corrente-slot:hover {
+    opacity: 0.7;
+  }
+
+  /* Migliora i badge in dark mode */
+  .badge-prestazione:hover {
+    box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
+  }
 }
 </style>

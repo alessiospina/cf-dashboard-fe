@@ -276,9 +276,9 @@ const formatStato = (stato) => {
 .evento-card { border-left: 4px solid #0d6efd; }
 .evento-orario { text-align: center; }
 .ora-inizio { font-weight: 600; font-size: 1.1rem; }
-.ora-fine { color: #6c757d; font-size: 0.9rem; }
-.durata { font-size: 0.8rem; color: #8a8a8a; margin-top: 0.25rem; }
-.evento-titolo { color: #2c3e50; margin-bottom: 0.5rem; }
-.evento-paziente, .evento-professionista { font-size: 0.9rem; color: #6c757d; margin-bottom: 0.25rem; }
-.evento-sala { font-size: 0.9rem; color: #8a8a8a; }
+.ora-fine { color: var(--cui-text-muted); font-size: 0.9rem; }
+.durata { font-size: 0.8rem; color: var(--cui-text-muted); margin-top: 0.25rem; }
+.evento-titolo { color: var(--cui-body-color); margin-bottom: 0.5rem; }
+.evento-paziente, .evento-professionista { font-size: 0.9rem; color: var(--cui-text-muted); margin-bottom: 0.25rem; }
+.evento-sala { font-size: 0.9rem; color: var(--cui-text-muted); }
 </style>
