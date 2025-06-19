@@ -34,7 +34,10 @@ export function useAttivita() {
   const filteredAttivita = computed(() => {
     let result = [...attivita.value]
 
-    // Applicazione filtri
+    // Prima di tutto, escludiamo sempre gli eventi che non hanno né paziente né specialista
+    result = result.filter(attivita => attivita.paziente || attivita.specialista)
+
+    // Applicazione filtri specifici
     if (filtri.prestazioneId || filtri.specialistaId || filtri.dataInizio || filtri.dataFine) {
       result = AttivitaService.filtraAttivita(result, filtri)
     }

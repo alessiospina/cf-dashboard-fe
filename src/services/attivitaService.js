@@ -44,7 +44,7 @@ export class AttivitaService {
       const annoCorrente = new Date().getFullYear()
       const dataInizio = `${annoCorrente}-01-01`
       const dataFine = `${annoCorrente}-12-31`
-      
+
       return await this.getAttivitaBetween(dataInizio, dataFine)
     } catch (error) {
       console.error('Errore nel recupero attività anno corrente:', error)
@@ -112,7 +112,7 @@ export class AttivitaService {
     return {
       // ID dell'evento
       id: attivitaBackend.id,
-      
+
       // Informazioni del paziente
       paziente: attivitaBackend.paziente ? {
         id: attivitaBackend.paziente.id,
@@ -124,7 +124,7 @@ export class AttivitaService {
         email: attivitaBackend.paziente.email,
         telefono: attivitaBackend.paziente.telefono
       } : null,
-      
+
       // Informazioni dell'evento
       evento: {
         id: attivitaBackend.id,
@@ -133,10 +133,10 @@ export class AttivitaService {
         dataInizio: attivitaBackend.dataInizio,
         dataFine: attivitaBackend.dataFine,
         // Estrae solo la data (senza orario) da dataInizio
-        dataEvento: attivitaBackend.dataInizio ? 
+        dataEvento: attivitaBackend.dataInizio ?
           new Date(attivitaBackend.dataInizio).toISOString().split('T')[0] : null
       },
-      
+
       // Informazioni dello specialista e prestazione
       specialista: attivitaBackend.specialista ? {
         id: attivitaBackend.specialista.id,
@@ -147,14 +147,14 @@ export class AttivitaService {
         telefono: attivitaBackend.specialista.telefono,
         prestazione: attivitaBackend.specialista.prestazione
       } : null,
-      
+
       // Informazioni della prestazione (estratte dallo specialista)
       prestazione: attivitaBackend.specialista?.prestazione ? {
         id: attivitaBackend.specialista.prestazione.id,
         tipologia: attivitaBackend.specialista.prestazione.tipologia,
         color: attivitaBackend.specialista.prestazione.color
       } : null,
-      
+
       // Metadati
       createdAt: attivitaBackend.createdAt
     }
@@ -166,38 +166,43 @@ export class AttivitaService {
    * @param {Object} filtri - Oggetto con i filtri da applicare
    * @param {number|null} filtri.prestazioneId - ID prestazione per filtrare
    * @param {number|null} filtri.specialistaId - ID specialista per filtrare
-   * @param {string|null} filtri.dataInizio - Data inizio per filtrare
-   * @param {string|null} filtri.dataFine - Data fine per filtrare
+   * @param {string|null} filtri.dataInizio - Data inizio per filtrare (YYYY-MM-DD)
+   * @param {string|null} filtri.dataFine - Data fine per filtrare (YYYY-MM-DD)
    * @returns {Array} - Attività filtrate
    */
   static filtraAttivita(attivita, filtri) {
     return attivita.filter(attivita => {
+      // Esclude eventi che non hanno né paziente né specialista
+      if (!attivita.paziente && !attivita.specialista) {
+        return false
+      }
+
       // Filtro per prestazione
-      if (filtri.prestazioneId && 
+      if (filtri.prestazioneId &&
           attivita.prestazione?.id !== parseInt(filtri.prestazioneId)) {
         return false
       }
-      
+
       // Filtro per specialista
-      if (filtri.specialistaId && 
+      if (filtri.specialistaId &&
           attivita.specialista?.id !== parseInt(filtri.specialistaId)) {
         return false
       }
-      
-      // Filtro per data
+
+      // Filtro per range di date
       if (filtri.dataInizio || filtri.dataFine) {
         const dataAttivita = attivita.evento.dataEvento
         if (!dataAttivita) return false
-        
+
         if (filtri.dataInizio && dataAttivita < filtri.dataInizio) {
           return false
         }
-        
+
         if (filtri.dataFine && dataAttivita > filtri.dataFine) {
           return false
         }
       }
-      
+
       return true
     })
   }

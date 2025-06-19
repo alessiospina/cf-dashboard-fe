@@ -4,7 +4,7 @@
     <CRow class="mb-4">
       <CCol>
         <h2 class="page-title">
-          <CIcon icon="cil-task" class="me-2" />
+          <CIcon icon="cil-task" class="me-2"/>
           Attività Centro
         </h2>
         <p class="text-muted">
@@ -61,7 +61,7 @@
         <CRow class="align-items-center">
           <CCol>
             <h5 class="mb-0">
-              <CIcon icon="cil-filter" class="me-2" />
+              <CIcon icon="cil-filter" class="me-2"/>
               Filtri
             </h5>
           </CCol>
@@ -73,7 +73,7 @@
               @click="resetFiltri"
               :disabled="loading"
             >
-              <CIcon icon="cil-refresh" class="me-1" />
+              <CIcon icon="cil-refresh" class="me-1"/>
               Reset Filtri
             </CButton>
           </CCol>
@@ -167,7 +167,7 @@
                 :disabled="loading"
               />
               <CInputGroupText>
-                <CIcon icon="cil-magnifying-glass" />
+                <CIcon icon="cil-magnifying-glass"/>
               </CInputGroupText>
             </CInputGroup>
           </CCol>
@@ -177,7 +177,7 @@
       <CCardBody>
         <!-- Stato di caricamento -->
         <div v-if="loading" class="text-center py-4">
-          <CSpinner color="primary" />
+          <CSpinner color="primary"/>
           <p class="mt-2 text-muted">Caricamento attività...</p>
         </div>
 
@@ -323,11 +323,6 @@
                     />
                   </div>
                 </CTableHeaderCell>
-
-                <!-- Evento Info -->
-                <CTableHeaderCell scope="col">
-                  Evento
-                </CTableHeaderCell>
               </CTableRow>
             </CTableHead>
             <CTableBody>
@@ -339,9 +334,6 @@
                 <!-- Data -->
                 <CTableDataCell>
                   <strong>{{ formatDate(attivita.evento.dataEvento) }}</strong>
-                  <small class="text-muted d-block">
-                    {{ formatDateTime(attivita.evento.dataInizio) }}
-                  </small>
                 </CTableDataCell>
 
                 <!-- Paziente -->
@@ -385,17 +377,6 @@
                   </div>
                   <span v-else class="text-muted">-</span>
                 </CTableDataCell>
-
-                <!-- Evento Info -->
-                <CTableDataCell>
-                  <div class="evento-info">
-                    <div class="fw-semibold">{{ attivita.evento.titolo }}</div>
-                    <small class="text-muted d-block">
-                      <CIcon icon="cil-location-pin" size="sm" class="me-1" />
-                      {{ attivita.evento.stanza }}
-                    </small>
-                  </div>
-                </CTableDataCell>
               </CTableRow>
             </CTableBody>
           </CTable>
@@ -422,14 +403,15 @@
 
         <!-- Stato vuoto -->
         <div v-else class="text-center py-5">
-          <CIcon icon="cil-task" size="3xl" class="text-muted mb-3" />
+          <CIcon icon="cil-task" size="3xl" class="text-muted mb-3"/>
           <h5 class="text-muted">
             {{ searchTerm || hasActiveFiltri ? 'Nessuna attività trovata' : 'Nessuna attività presente' }}
           </h5>
           <p class="text-muted">
-            {{ searchTerm || hasActiveFiltri
-              ? 'Prova a modificare i criteri di ricerca o i filtri'
-              : 'Non ci sono attività registrate per il periodo selezionato'
+            {{
+              searchTerm || hasActiveFiltri
+                ? 'Prova a modificare i criteri di ricerca o i filtri'
+                : 'Non ci sono attività registrate per il periodo selezionato'
             }}
           </p>
           <CButton
@@ -437,7 +419,7 @@
             color="primary"
             @click="resetFiltri"
           >
-            <CIcon icon="cil-refresh" class="me-2" />
+            <CIcon icon="cil-refresh" class="me-2"/>
             Reset Filtri
           </CButton>
         </div>
@@ -458,8 +440,8 @@
  * - Paginazione
  * - Statistiche riassuntive
  */
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useAttivita } from '@/composables/useAttivita'
+import {ref, computed, onMounted, onUnmounted, watch} from 'vue'
+import {useAttivita} from '@/composables/useAttivita'
 
 // Utilizziamo il composable per la logica di business delle attività
 const {
@@ -478,8 +460,7 @@ const {
   applicaFiltri,
   resetFiltri,
   clearNotification,
-  formatDate,
-  formatDateTime
+  formatDate
 } = useAttivita()
 
 // Stati locali per paginazione e ordinamento
@@ -496,7 +477,7 @@ const paginationInfo = computed(() => {
   const end = Math.min(currentPage.value * itemsPerPageNum, total)
   const showing = `${start}-${end}`
 
-  return { total, start, end, showing }
+  return {total, start, end, showing}
 })
 
 const totalPages = computed(() => Math.ceil(sortedAndFilteredAttivita.value.length / itemsPerPage.value))
@@ -553,9 +534,9 @@ const paginatedAttivita = computed(() => {
 // Computed per verificare se ci sono filtri attivi
 const hasActiveFiltri = computed(() => {
   return filtri.prestazioneId ||
-         filtri.specialistaId ||
-         filtri.dataInizio ||
-         filtri.dataFine
+    filtri.specialistaId ||
+    filtri.dataInizio ||
+    filtri.dataFine
 })
 
 // Metodi per paginazione
@@ -658,7 +639,7 @@ const getContrastColor = (backgroundColor) => {
 // Watchers per gestire cambi di stato
 watch([searchTerm, () => filtri], () => {
   currentPage.value = 1 // Reset alla prima pagina quando cambiano i filtri
-}, { deep: true })
+}, {deep: true})
 
 // Lifecycle hooks
 onMounted(() => {
@@ -737,8 +718,7 @@ onUnmounted(() => {
 }
 
 .paziente-info,
-.specialista-info,
-.evento-info {
+.specialista-info {
   line-height: 1.3;
 }
 
@@ -795,8 +775,7 @@ onUnmounted(() => {
   }
 
   .paziente-info,
-  .specialista-info,
-  .evento-info {
+  .specialista-info {
     font-size: 0.875rem;
   }
 
