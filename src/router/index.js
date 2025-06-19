@@ -48,6 +48,15 @@ const routes = [
             /* webpackChunkName: "gestione-team" */ '@/views/gestione-team/GestioneTeamPage.vue'
           ),
       },
+      {
+        path: '/attivita',
+        name: 'Attivita',
+        // Pagina di gestione attività con lazy loading
+        component: () =>
+          import(
+            /* webpackChunkName: "attivita" */ '@/views/attivita/AttivitaPage.vue'
+          ),
+      },
     ],
   },
   {

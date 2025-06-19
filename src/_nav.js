@@ -28,4 +28,10 @@ export default [
     to: '/gestione-team',
     icon: 'cil-people',
   },
+  {
+    component: 'CNavItem',
+    name: 'Attività',
+    to: '/attivita',
+    icon: 'cil-task',
+  },
 ]
