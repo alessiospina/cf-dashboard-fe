@@ -5,8 +5,8 @@
       <CCol>
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <h1 class="h3 mb-1">Dashboard Performance</h1>
-            <p class="text-muted">Analisi dei guadagni e statistiche del centro</p>
+            <h1 class="h3 mb-1">Dashboard Centro Felicemente</h1>
+            <p class="text-muted">Panoramica performance e statistiche del centro</p>
           </div>
 
           <!-- Selector Anno -->
@@ -47,7 +47,7 @@
     <!-- Loading State -->
     <div v-if="isLoading" class="text-center py-5">
       <CSpinner color="primary" size="lg" />
-      <p class="text-muted mt-3">Caricamento dati performance...</p>
+      <p class="text-muted mt-3">Caricamento dati dashboard...</p>
     </div>
 
     <!-- Error State -->
@@ -180,7 +180,7 @@
     <div v-else class="text-center py-5">
       <CIcon :icon="cilChart" size="3xl" class="text-muted mb-3" />
       <h4 class="text-muted">Nessun dato disponibile</h4>
-      <p class="text-muted">Non ci sono dati performance per l'anno selezionato.</p>
+      <p class="text-muted">Non ci sono dati per l'anno selezionato.</p>
     </div>
   </div>
 </template>
@@ -212,7 +212,7 @@ import { usePerformance } from '@/composables/usePerformance.js'
 import { PerformanceService } from '@/services/performanceService.js'
 
 export default {
-  name: 'PerformancePage',
+  name: 'Dashboard',
   components: {
     CRow,
     CCol,
@@ -349,7 +349,7 @@ export default {
 </script>
 
 <style scoped>
-/* Stili specifici per la pagina performance */
+/* Stili specifici per la dashboard principale */
 .chart-wrapper {
   position: relative;
   height: 300px;

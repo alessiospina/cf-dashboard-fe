@@ -13,12 +13,11 @@ const routes = [
       {
         path: '/dashboard',
         name: 'Dashboard',
-        // route level code-splitting
-        // this generates a separate chunk (about.[hash].js) for this route
-        // which is lazy-loaded when the route is visited.
+        // Nuova dashboard principale - ex pagina Performance
+        // Contiene metriche, grafici e statistiche del centro
         component: () =>
           import(
-            /* webpackChunkName: "dashboard" */ '@/views/dashboard/Dashboard.vue'
+            /* webpackChunkName: "dashboard" */ '@/views/dashboard/PerformancePage.vue'
           ),
       },
       {
@@ -55,15 +54,6 @@ const routes = [
         component: () =>
           import(
             /* webpackChunkName: "attivita" */ '@/views/attivita/AttivitaPage.vue'
-          ),
-      },
-      {
-        path: '/dashboard/performance',
-        name: 'Performance',
-        // Pagina di performance e statistiche guadagni con lazy loading
-        component: () =>
-          import(
-            /* webpackChunkName: "performance" */ '@/views/dashboard/PerformancePage.vue'
           ),
       },
     ],

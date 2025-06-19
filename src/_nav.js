@@ -1,16 +1,10 @@
-// Navigazione semplificata - Dashboard e Pazienti
+// Navigazione semplificata - Dashboard principale e sezioni gestionali
 export default [
   {
     component: 'CNavItem',
     name: 'Dashboard',
     to: '/dashboard',
     icon: 'cil-speedometer',
-  },
-  {
-    component: 'CNavItem',
-    name: 'Performance',
-    to: '/dashboard/performance',
-    icon: 'cil-chart',
   },
   {
     component: 'CNavTitle',
