@@ -116,10 +116,7 @@
                 :key="specialista.value"
                 :value="specialista.value"
               >
-                {{ specialista.label }}
-                <span v-if="specialista.prestazione" class="text-muted">
-                  ({{ specialista.prestazione }})
-                </span>
+                {{ specialista.label }}{{ specialista.prestazione ? ' (' + specialista.prestazione + ')' : '' }}
               </option>
             </CFormSelect>
           </CCol>
@@ -466,7 +463,6 @@ import { useAttivita } from '@/composables/useAttivita'
 
 // Utilizziamo il composable per la logica di business delle attività
 const {
-  attivita,
   filteredAttivita,
   loading,
   error,
@@ -650,9 +646,9 @@ const getContrastColor = (backgroundColor) => {
   if (!backgroundColor) return '#000000'
 
   const hex = backgroundColor.replace('#', '')
-  const r = parseInt(hex.substr(0, 2), 16)
-  const g = parseInt(hex.substr(2, 2), 16)
-  const b = parseInt(hex.substr(4, 2), 16)
+  const r = parseInt(hex.substring(0, 2), 16)
+  const g = parseInt(hex.substring(2, 4), 16)
+  const b = parseInt(hex.substring(4, 6), 16)
 
   // Calcolo luminanza per determinare il colore del testo
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
