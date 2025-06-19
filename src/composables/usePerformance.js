@@ -163,6 +163,35 @@ export function usePerformance() {
       },
       legend: {
         display: false
+      },
+      tooltip: {
+        enabled: true,
+        mode: 'index',
+        intersect: false,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: '#fff',
+        bodyColor: '#fff',
+        borderColor: '#321fdb',
+        borderWidth: 1,
+        cornerRadius: 6,
+        displayColors: false,
+        titleFont: {
+          size: 12,
+          weight: 'bold'
+        },
+        bodyFont: {
+          size: 11
+        },
+        padding: 8,
+        caretSize: 4,
+        callbacks: {
+          title: function(context) {
+            return context[0].label
+          },
+          label: function(context) {
+            return 'Guadagno: ' + PerformanceService.formatEuro(context.parsed.y)
+          }
+        }
       }
     },
     scales: {
@@ -222,6 +251,35 @@ export function usePerformance() {
       },
       legend: {
         display: false
+      },
+      tooltip: {
+        enabled: true,
+        mode: 'index',
+        intersect: true,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: '#fff',
+        bodyColor: '#fff',
+        borderColor: '#321fdb',
+        borderWidth: 1,
+        cornerRadius: 6,
+        displayColors: true,
+        titleFont: {
+          size: 12,
+          weight: 'bold'
+        },
+        bodyFont: {
+          size: 11
+        },
+        padding: 8,
+        caretSize: 4,
+        callbacks: {
+          title: function(context) {
+            return context[0].label
+          },
+          label: function(context) {
+            return 'Guadagno: ' + PerformanceService.formatEuro(context.parsed.y)
+          }
+        }
       }
     },
     scales: {

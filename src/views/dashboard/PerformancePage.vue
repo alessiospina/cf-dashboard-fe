@@ -365,6 +365,13 @@ export default {
   max-width: none !important;
 }
 
+/* Fix per i tooltip Chart.js - evita che diventino troppo grandi */
+:deep(.chartjs-tooltip) {
+  max-width: 200px !important;
+  font-size: 11px !important;
+  padding: 8px !important;
+}
+
 /* Stili per CoreUI Chart components */
 :deep(.chart-wrapper > div) {
   height: 100% !important;
