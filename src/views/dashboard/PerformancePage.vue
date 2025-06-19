@@ -103,14 +103,15 @@
             <CCardHeader>
               <h5 class="mb-0">Andamento Mensile</h5>
             </CCardHeader>
-            <CCardBody>
-              <div class="chart-container" style="height: 300px;">
+            <CCardBody class="p-0">
+              <div class="chart-wrapper">
                 <CChartLine
                   v-if="datiGraficoMesi"
                   :data="datiGraficoMesi"
                   :options="opzioniGraficoLinea"
+                  style="height: 300px; width: 100%;"
                 />
-                <div v-else class="d-flex align-items-center justify-content-center h-100">
+                <div v-else class="d-flex align-items-center justify-content-center" style="height: 300px;">
                   <span class="text-muted">Nessun dato disponibile</span>
                 </div>
               </div>
@@ -124,14 +125,15 @@
             <CCardHeader>
               <h5 class="mb-0">Top Specialisti</h5>
             </CCardHeader>
-            <CCardBody>
-              <div class="chart-container" style="height: 300px;">
+            <CCardBody class="p-0">
+              <div class="chart-wrapper">
                 <CChartBar
                   v-if="datiGraficoSpecialisti"
                   :data="datiGraficoSpecialisti"
                   :options="opzioniGraficoBarre"
+                  style="height: 300px; width: 100%;"
                 />
-                <div v-else class="d-flex align-items-center justify-content-center h-100">
+                <div v-else class="d-flex align-items-center justify-content-center" style="height: 300px;">
                   <span class="text-muted">Nessun dato disponibile</span>
                 </div>
               </div>
@@ -348,9 +350,30 @@ export default {
 
 <style scoped>
 /* Stili specifici per la pagina performance */
-.chart-container {
+.chart-wrapper {
   position: relative;
   height: 300px;
+  width: 100%;
+  padding: 1rem;
+}
+
+/* Forza il canvas a occupare tutto lo spazio disponibile */
+.chart-wrapper canvas {
+  height: 100% !important;
+  width: 100% !important;
+  max-height: none !important;
+  max-width: none !important;
+}
+
+/* Stili per CoreUI Chart components */
+:deep(.chart-wrapper > div) {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+:deep(.chart-wrapper .chartjs-render-monitor) {
+  height: 100% !important;
+  width: 100% !important;
 }
 
 .border-start {
@@ -366,8 +389,14 @@ export default {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .chart-container {
+  .chart-wrapper {
     height: 250px;
+    padding: 0.5rem;
+  }
+
+  .chart-wrapper canvas {
+    height: 100% !important;
+    width: 100% !important;
   }
 
   .d-flex.justify-content-between {
@@ -410,5 +439,15 @@ export default {
 
 .border-warning {
   border-color: var(--cui-warning) !important;
+}
+
+/* Fix per i card body dei grafici */
+.card-body.p-0 {
+  padding: 0 !important;
+}
+
+/* Miglioramento padding cards metriche */
+.card .card-body:not(.p-0) {
+  padding: 1.5rem;
 }
 </style>

@@ -14,13 +14,13 @@ import { PerformanceService } from '@/services/performanceService.js'
 export function usePerformance() {
 
   // === STATO REATTIVO ===
-  
+
   // Anno selezionato (solo 2025 per ora)
   const annoSelezionato = ref(2025)
-  
+
   // Dati performance
   const datiPerformance = ref(null)
-  
+
   // Stati di loading e errori
   const isLoading = ref(false)
   const error = ref(null)
@@ -42,7 +42,7 @@ export function usePerformance() {
     if (!datiPerformance.value?.cards) return null
 
     const cards = datiPerformance.value.cards
-    
+
     return {
       totalePatzienti: {
         valore: PerformanceService.formatNumero(cards.totalePatzienti),
@@ -86,11 +86,16 @@ export function usePerformance() {
       datasets: [{
         label: 'Guadagni Mensili',
         data: datiPerformance.value.guadagniPerMese.map(item => item.guadagno),
-        borderColor: 'rgb(54, 162, 235)',
-        backgroundColor: 'rgba(54, 162, 235, 0.1)',
-        borderWidth: 2,
+        borderColor: '#321fdb', // Colore CoreUI primary
+        backgroundColor: 'rgba(50, 31, 219, 0.1)', // Trasparenza del colore primary
+        borderWidth: 3,
         fill: true,
-        tension: 0.4
+        tension: 0.4,
+        pointBackgroundColor: '#321fdb',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 2,
+        pointRadius: 5,
+        pointHoverRadius: 7
       }]
     }
   })
@@ -102,40 +107,38 @@ export function usePerformance() {
     if (!datiPerformance.value?.guadagniPerSpecialista) return null
 
     const specialisti = datiPerformance.value.guadagniPerSpecialista
-    
+
     // Prendiamo i top 10 specialisti per non sovraffollare il grafico
     const topSpecialisti = specialisti.slice(0, 10)
-    
+
+    // Generiamo colori dinamici basati sui colori CoreUI
+    const colori = [
+      '#321fdb', // primary
+      '#39f', // info
+      '#f9b115', // warning
+      '#e55353', // danger
+      '#2eb85c', // success
+      '#6c757d', // secondary
+      '#212529', // dark
+      '#fd7e14', // orange
+      '#6f42c1', // purple
+      '#20c997'  // teal
+    ]
+
     return {
-      labels: topSpecialisti.map(item => item.specialista),
+      labels: topSpecialisti.map(item => {
+        // Accorciamo i nomi troppo lunghi per una migliore visualizzazione
+        const nomeCompleto = item.specialista
+        return nomeCompleto.length > 15 ? nomeCompleto.substring(0, 12) + '...' : nomeCompleto
+      }),
       datasets: [{
         label: 'Guadagni per Specialista',
         data: topSpecialisti.map(item => item.guadagno),
-        backgroundColor: [
-          'rgba(255, 99, 132, 0.8)',
-          'rgba(54, 162, 235, 0.8)',
-          'rgba(255, 205, 86, 0.8)',
-          'rgba(75, 192, 192, 0.8)',
-          'rgba(153, 102, 255, 0.8)',
-          'rgba(255, 159, 64, 0.8)',
-          'rgba(199, 199, 199, 0.8)',
-          'rgba(83, 102, 255, 0.8)',
-          'rgba(255, 99, 255, 0.8)',
-          'rgba(99, 255, 132, 0.8)'
-        ],
-        borderColor: [
-          'rgba(255, 99, 132, 1)',
-          'rgba(54, 162, 235, 1)',
-          'rgba(255, 205, 86, 1)',
-          'rgba(75, 192, 192, 1)',
-          'rgba(153, 102, 255, 1)',
-          'rgba(255, 159, 64, 1)',
-          'rgba(199, 199, 199, 1)',
-          'rgba(83, 102, 255, 1)',
-          'rgba(255, 99, 255, 1)',
-          'rgba(99, 255, 132, 1)'
-        ],
-        borderWidth: 1
+        backgroundColor: topSpecialisti.map((_, index) => colori[index % colori.length]),
+        borderColor: topSpecialisti.map((_, index) => colori[index % colori.length]),
+        borderWidth: 2,
+        borderRadius: 6,
+        borderSkipped: false
       }]
     }
   })
@@ -145,15 +148,18 @@ export function usePerformance() {
    */
   const opzioniGraficoLinea = computed(() => ({
     responsive: true,
-    maintainAspectRatio: false,
+    maintainAspectRatio: false, // IMPORTANTE: permette al grafico di riempire il container
+    layout: {
+      padding: {
+        top: 10,
+        right: 10,
+        bottom: 10,
+        left: 10
+      }
+    },
     plugins: {
       title: {
-        display: true,
-        text: `Andamento Guadagni per Mese - ${annoSelezionato.value}`,
-        font: {
-          size: 16,
-          weight: 'bold'
-        }
+        display: false // Rimuoviamo il titolo interno perché abbiamo l'header della card
       },
       legend: {
         display: false
@@ -166,12 +172,33 @@ export function usePerformance() {
           callback: function(value) {
             return PerformanceService.formatEuro(value)
           }
+        },
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)'
+        }
+      },
+      x: {
+        grid: {
+          display: false
+        },
+        ticks: {
+          maxRotation: 45,
+          minRotation: 0
         }
       }
     },
     interaction: {
       intersect: false,
       mode: 'index'
+    },
+    elements: {
+      point: {
+        radius: 4,
+        hoverRadius: 6
+      },
+      line: {
+        tension: 0.4
+      }
     }
   }))
 
@@ -180,15 +207,18 @@ export function usePerformance() {
    */
   const opzioniGraficoBarre = computed(() => ({
     responsive: true,
-    maintainAspectRatio: false,
+    maintainAspectRatio: false, // IMPORTANTE: permette al grafico di riempire il container
+    layout: {
+      padding: {
+        top: 10,
+        right: 10,
+        bottom: 10,
+        left: 10
+      }
+    },
     plugins: {
       title: {
-        display: true,
-        text: `Top 10 Specialisti per Guadagni - ${annoSelezionato.value}`,
-        font: {
-          size: 16,
-          weight: 'bold'
-        }
+        display: false // Rimuoviamo il titolo interno perché abbiamo l'header della card
       },
       legend: {
         display: false
@@ -201,13 +231,29 @@ export function usePerformance() {
           callback: function(value) {
             return PerformanceService.formatEuro(value)
           }
+        },
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)'
         }
       },
       x: {
         ticks: {
           maxRotation: 45,
-          minRotation: 45
+          minRotation: 45,
+          font: {
+            size: 10
+          }
+        },
+        grid: {
+          display: false
         }
+      }
+    },
+    elements: {
+      bar: {
+        borderWidth: 1,
+        borderSkipped: false,
+        borderRadius: 4
       }
     }
   }))
@@ -221,11 +267,11 @@ export function usePerformance() {
     try {
       isLoading.value = true
       error.value = null
-      
+
       // Chiamiamo il service per ottenere i dati
       const dati = await PerformanceService.getPerformanceAnnuale(annoSelezionato.value)
       datiPerformance.value = dati
-      
+
     } catch (err) {
       error.value = 'Errore nel caricamento dei dati performance'
       console.error('Errore caricamento performance:', err)
@@ -269,7 +315,7 @@ export function usePerformance() {
     datiPerformance,
     isLoading,
     error,
-    
+
     // Computed
     opzioniAnno,
     metricsCards,
@@ -277,7 +323,7 @@ export function usePerformance() {
     datiGraficoSpecialisti,
     opzioniGraficoLinea,
     opzioniGraficoBarre,
-    
+
     // Metodi
     caricaDatiPerformance,
     cambiaAnno,
