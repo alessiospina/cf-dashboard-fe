@@ -7,6 +7,12 @@ export default [
     icon: 'cil-speedometer',
   },
   {
+    component: 'CNavItem',
+    name: 'Performance',
+    to: '/dashboard/performance',
+    icon: 'cil-chart',
+  },
+  {
     component: 'CNavTitle',
     name: 'Gestione',
   },

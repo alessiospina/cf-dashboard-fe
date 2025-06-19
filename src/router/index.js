@@ -57,6 +57,15 @@ const routes = [
             /* webpackChunkName: "attivita" */ '@/views/attivita/AttivitaPage.vue'
           ),
       },
+      {
+        path: '/dashboard/performance',
+        name: 'Performance',
+        // Pagina di performance e statistiche guadagni con lazy loading
+        component: () =>
+          import(
+            /* webpackChunkName: "performance" */ '@/views/dashboard/PerformancePage.vue'
+          ),
+      },
     ],
   },
   {
