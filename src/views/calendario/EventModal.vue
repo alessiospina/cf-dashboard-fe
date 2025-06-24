@@ -412,6 +412,7 @@
 <script setup>
 import {ref, reactive, computed, watch} from 'vue'
 import {useCalendario} from '@/composables/useCalendario'
+import {MAPPING_RICORRENZA_FRONTEND_TO_BACKEND} from '@/types/backend.types.js'
 
 const props = defineProps({
   visible: {type: Boolean, default: false},
@@ -452,17 +453,22 @@ const isEdit = computed(() => !!props.evento?.id)
 
 // Data minima per il picker (domani)
 const dataMinimaPicker = computed(() => {
-  return RicorrenzaUtils.getDataMinimaFineRicorrenza()
+  return RicorrenzaUtils.getDataMinimaFineRicorrenzaString()
 })
 
 // Data massima per il picker (31 dicembre dell'anno corrente)
 const dataMassimaPicker = computed(() => {
-  return RicorrenzaUtils.getDataMassimaFineRicorrenza()
+  return RicorrenzaUtils.getDataMassimaFineRicorrenzaString()
 })
 
 // Data massima formattata per il display
 const dataMassimaFormatted = computed(() => {
-  const dataMassima = new Date(dataMassimaPicker.value)
+  const dataMassima = RicorrenzaUtils.getDataMassimaFineRicorrenza()
+  console.log('🐛 [Debug] Data massima picker:', {
+    dataObject: dataMassima.toDateString(),
+    dataString: RicorrenzaUtils.getDataMassimaFineRicorrenzaString(),
+    formatted: dataMassima.toLocaleDateString('it-IT')
+  })
   return dataMassima.toLocaleDateString('it-IT')
 })
 
@@ -1052,10 +1058,20 @@ const handleSubmit = async () => {
 
     // ⭐ NUOVO - Gestione ricorrenza se abilitata
     if (form.isEventoRicorrente) {
+      // Conversione della data fine ricorrenza in formato ISO completo con orario di fine giornata
+      const dataFineRicorrenza = new Date(`${form.ricorrenza.dataFineRicorrenza}T23:59:59.000Z`)
+
       eventoData.ricorrenza = {
-        tipo: form.ricorrenza.tipo,
-        dataFineRicorrenza: form.ricorrenza.dataFineRicorrenza
+        // ⭐ MAPPATURA: Usa la mappatura centralizzata definita in backend.types.js
+        tipo: MAPPING_RICORRENZA_FRONTEND_TO_BACKEND[form.ricorrenza.tipo] || form.ricorrenza.tipo,
+        dataFineRicorrenza: dataFineRicorrenza.toISOString()
       }
+
+      console.log('📅 [EventModal] Ricorrenza configurata per backend:', {
+        tipoOriginale: form.ricorrenza.tipo,
+        tipoConvertito: eventoData.ricorrenza.tipo,
+        dataFineRicorrenza: eventoData.ricorrenza.dataFineRicorrenza
+      })
     }
 
     // Debug - log dell'oggetto finale inviato al backend

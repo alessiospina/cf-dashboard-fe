@@ -49,11 +49,32 @@ export const FREQUENZA_EVENTO_OPTIONS = [
   {value: FrequenzaEvento.MENSILE, label: 'Ripetizione Mensile'}
 ]
 
-// ⭐ NUOVO - Enum per i tipi di ricorrenza (allineato al backend)
+// ⭐ NUOVO - Enum per i tipi di ricorrenza (frontend - valori italiani)
 export const TipoRicorrenza = {
   GIORNALIERA: 'GIORNALIERA',
   SETTIMANALE: 'SETTIMANALE',
   MENSILE: 'MENSILE'
+}
+
+// ⭐ NUOVO - Enum per i tipi di ricorrenza backend (valori inglesi)
+export const TipoRicorrenzaBackend = {
+  DAILY: 'DAILY',
+  WEEKLY: 'WEEKLY',
+  MONTHLY: 'MONTHLY'
+}
+
+// ⭐ NUOVO - Mappatura tra frontend e backend per tipi ricorrenza
+export const MAPPING_RICORRENZA_FRONTEND_TO_BACKEND = {
+  [TipoRicorrenza.GIORNALIERA]: TipoRicorrenzaBackend.DAILY,
+  [TipoRicorrenza.SETTIMANALE]: TipoRicorrenzaBackend.WEEKLY,
+  [TipoRicorrenza.MENSILE]: TipoRicorrenzaBackend.MONTHLY
+}
+
+// ⭐ NUOVO - Mappatura inversa per convertire dal backend al frontend
+export const MAPPING_RICORRENZA_BACKEND_TO_FRONTEND = {
+  [TipoRicorrenzaBackend.DAILY]: TipoRicorrenza.GIORNALIERA,
+  [TipoRicorrenzaBackend.WEEKLY]: TipoRicorrenza.SETTIMANALE,
+  [TipoRicorrenzaBackend.MONTHLY]: TipoRicorrenza.MENSILE
 }
 
 // ⭐ NUOVO - Opzioni per la select del tipo ricorrenza
@@ -99,24 +120,40 @@ export class RicorrenzaUtils {
   /**
    * Calcola la data massima consentita per la fine ricorrenza
    * (31 dicembre dell'anno corrente come richiesto)
-   * @returns {string} - Data massima in formato YYYY-MM-DD
+   * @returns {Date} - Data massima come oggetto Date
    */
   static getDataMassimaFineRicorrenza() {
     const oggi = new Date()
     const annoCorrente = oggi.getFullYear()
-    const dataMaxima = new Date(annoCorrente, 11, 31) // 31 dicembre dell'anno corrente
-    return dataMaxima.toISOString().split('T')[0] // Formato YYYY-MM-DD
+    // Usa il costruttore locale per evitare problemi di timezone
+    return new Date(annoCorrente, 11, 31) // 31 dicembre dell'anno corrente
+  }
+
+  /**
+   * Calcola la data massima consentita per la fine ricorrenza (formato stringa)
+   * @returns {string} - Data massima in formato YYYY-MM-DD
+   */
+  static getDataMassimaFineRicorrenzaString() {
+    return this.getDataMassimaFineRicorrenza().toISOString().split('T')[0]
   }
 
   /**
    * Calcola la data minima consentita per la fine ricorrenza
    * (domani)
-   * @returns {string} - Data minima in formato YYYY-MM-DD
+   * @returns {Date} - Data minima come oggetto Date
    */
   static getDataMinimaFineRicorrenza() {
-    const domani = new Date()
-    domani.setDate(domani.getDate() + 1)
-    return domani.toISOString().split('T')[0] // Formato YYYY-MM-DD
+    const oggi = new Date()
+    // Crea domani usando il costruttore locale
+    return new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate() + 1)
+  }
+
+  /**
+   * Calcola la data minima consentita per la fine ricorrenza (formato stringa)
+   * @returns {string} - Data minima in formato YYYY-MM-DD
+   */
+  static getDataMinimaFineRicorrenzaString() {
+    return this.getDataMinimaFineRicorrenza().toISOString().split('T')[0]
   }
 
   /**
@@ -125,49 +162,105 @@ export class RicorrenzaUtils {
    * @returns {boolean} - True se la data è valida
    */
   static isDataFineRicorrenzaValida(data) {
-    const dataTest = new Date(data)
-    const dataMinima = new Date(this.getDataMinimaFineRicorrenza())
-    const dataMassima = new Date(this.getDataMassimaFineRicorrenza())
+    // Parsing sicuro della data da validare
+    const dataTest = this.parseDataItaliana(data)
+    // Usa le date dirette senza doppio parsing
+    const dataMinima = this.getDataMinimaFineRicorrenza()
+    const dataMassima = this.getDataMassimaFineRicorrenza()
+
+    console.log('🐛 [Debug] Validazione date ricorrenza:', {
+      dataTest: dataTest.toDateString(),
+      dataMinima: dataMinima.toDateString(),
+      dataMassima: dataMassima.toDateString(),
+      isValid: dataTest >= dataMinima && dataTest <= dataMassima
+    })
 
     return dataTest >= dataMinima && dataTest <= dataMassima
   }
 
   /**
+   * Parse sicuro di una data considerando il locale italiano
+   * @param {string|Date} data - Data da parsare (formato YYYY-MM-DD o oggetto Date)
+   * @returns {Date} - Data parsata correttamente per il timezone italiano
+   */
+  static parseDataItaliana(data) {
+    if (data instanceof Date) {
+      return data
+    }
+
+    // Se è una stringa in formato YYYY-MM-DD, la parsiamo come data locale italiana
+    if (typeof data === 'string') {
+      // Rimuovi il timezone se presente e forza interpretazione locale
+      const dataString = data.split('T')[0] // Prende solo la parte della data
+      const [anno, mese, giorno] = dataString.split('-').map(Number)
+
+      // Crea la data in locale italiano (mese è 0-based in JavaScript)
+      return new Date(anno, mese - 1, giorno)
+    }
+
+    // Fallback: prova a creare una data normale
+    return new Date(data)
+  }
+
+  /**
    * Formatta il label per il tipo ricorrenza
-   * @param {string} tipo - Tipo ricorrenza (GIORNALIERA, SETTIMANALE, MENSILE)
+   * @param {string} tipo - Tipo ricorrenza (frontend o backend)
    * @returns {string} - Label formattato
    */
   static formatTipoRicorrenza(tipo) {
     const labels = {
+      // Valori frontend
       [TipoRicorrenza.GIORNALIERA]: 'ogni giorno',
       [TipoRicorrenza.SETTIMANALE]: 'ogni settimana',
-      [TipoRicorrenza.MENSILE]: 'ogni mese'
+      [TipoRicorrenza.MENSILE]: 'ogni mese',
+      // Valori backend
+      [TipoRicorrenzaBackend.DAILY]: 'ogni giorno',
+      [TipoRicorrenzaBackend.WEEKLY]: 'ogni settimana',
+      [TipoRicorrenzaBackend.MONTHLY]: 'ogni mese'
     }
     return labels[tipo] || tipo
+  }
+
+  /**
+   * Verifica se un valore è un tipo ricorrenza valido (frontend o backend)
+   * @param {string} tipo - Tipo da verificare
+   * @returns {boolean} - True se il tipo è valido
+   */
+  static isValidTipoRicorrenza(tipo) {
+    const valoriValidi = [
+      ...Object.values(TipoRicorrenza), // Frontend: GIORNALIERA, SETTIMANALE, MENSILE
+      ...Object.values(TipoRicorrenzaBackend) // Backend: DAILY, WEEKLY, MONTHLY
+    ]
+    return valoriValidi.includes(tipo)
   }
 
   /**
    * Calcola il numero approssimativo di eventi che verranno creati
    * @param {Date} dataInizio - Data del primo evento
    * @param {Date} dataFineRicorrenza - Data fine ricorrenza
-   * @param {string} tipoRicorrenza - Tipo di ricorrenza
+   * @param {string} tipoRicorrenza - Tipo di ricorrenza (frontend o backend)
    * @returns {number} - Numero approssimativo di eventi
    */
   static calcolaNumeroEventiRicorrenti(dataInizio, dataFineRicorrenza, tipoRicorrenza) {
-    const inizio = new Date(dataInizio)
-    const fine = new Date(dataFineRicorrenza)
+    // Usa il parsing italiano per entrambe le date
+    const inizio = this.parseDataItaliana(dataInizio)
+    const fine = this.parseDataItaliana(dataFineRicorrenza)
 
     if (inizio >= fine) return 1
 
     const diffMs = fine - inizio
     const diffGiorni = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
+    // Accetta sia valori frontend che backend
     switch (tipoRicorrenza) {
       case TipoRicorrenza.GIORNALIERA:
+      case TipoRicorrenzaBackend.DAILY:
         return Math.floor(diffGiorni) + 1
       case TipoRicorrenza.SETTIMANALE:
+      case TipoRicorrenzaBackend.WEEKLY:
         return Math.floor(diffGiorni / 7) + 1
       case TipoRicorrenza.MENSILE:
+      case TipoRicorrenzaBackend.MONTHLY:
         // Calcolo approssimativo basato su 30 giorni per mese
         return Math.floor(diffGiorni / 30) + 1
       default:
@@ -184,7 +277,8 @@ export class RicorrenzaUtils {
    */
   static getDescrizioneRicorrenza(tipoRicorrenza, dataFineRicorrenza, numeroEventi) {
     const tipoFormattato = this.formatTipoRicorrenza(tipoRicorrenza)
-    const dataFormattata = new Date(dataFineRicorrenza).toLocaleDateString('it-IT')
+    // Usa il parsing italiano per la formattazione
+    const dataFormattata = this.parseDataItaliana(dataFineRicorrenza).toLocaleDateString('it-IT')
 
     return `Ripetuto ${tipoFormattato} fino al ${dataFormattata} (circa ${numeroEventi} eventi)`
   }
@@ -334,7 +428,8 @@ export class EventoMapper {
     return new CreateEventoWithRicorrenzaDto({
       ...eventoBase,
       ricorrenza: eventoFrontend.ricorrenza ? {
-        tipo: eventoFrontend.ricorrenza.tipo,
+        // ⭐ MAPPATURA: Converte tipo ricorrenza dal formato frontend (italiano) al backend (inglese)
+        tipo: MAPPING_RICORRENZA_FRONTEND_TO_BACKEND[eventoFrontend.ricorrenza.tipo] || eventoFrontend.ricorrenza.tipo,
         dataFineRicorrenza: eventoFrontend.ricorrenza.dataFineRicorrenza
       } : null
     })
@@ -442,8 +537,8 @@ export class EventoValidator {
   static validateRicorrenza(ricorrenza) {
     const errors = {}
 
-    // Tipo ricorrenza obbligatorio
-    if (!ricorrenza.tipo || !Object.values(TipoRicorrenza).includes(ricorrenza.tipo)) {
+    // Tipo ricorrenza obbligatorio - accetta sia valori frontend che backend
+    if (!ricorrenza.tipo || !RicorrenzaUtils.isValidTipoRicorrenza(ricorrenza.tipo)) {
       errors.tipoRicorrenza = 'Tipo ricorrenza obbligatorio e valido'
     }
 
@@ -451,9 +546,11 @@ export class EventoValidator {
     if (!ricorrenza.dataFineRicorrenza) {
       errors.dataFineRicorrenza = 'Data fine ricorrenza obbligatoria'
     } else {
-      const dataFine = new Date(ricorrenza.dataFineRicorrenza)
+      // Usa il parsing italiano per la data da validare
+      const dataFine = RicorrenzaUtils.parseDataItaliana(ricorrenza.dataFineRicorrenza)
       const oggi = new Date()
-      const fineAnno = new Date(oggi.getFullYear(), 11, 31) // 31 dicembre dell'anno corrente
+      // Usa le date dirette senza doppio parsing
+      const fineAnno = RicorrenzaUtils.getDataMassimaFineRicorrenza()
 
       // La data fine deve essere nel futuro
       if (dataFine <= oggi) {
