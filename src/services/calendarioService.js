@@ -70,53 +70,86 @@ export class EventoService {
   }
 
   /**
-   * Crea un nuovo evento
-   * @param {Object} eventoData - Dati dell'evento da creare (formato frontend)
-   * @returns {Promise<Object>} Evento creato
+   * Crea un nuovo evento utilizzando la nuova struttura separata data/orario
+   * @param {Object} eventoData - Dati evento con struttura separata (date, timeStart, timeEnd)
+   * @returns {Promise<Object>} Nuovo evento creato
    */
   static async createEvento(eventoData) {
     try {
+      console.log('🔄 [EventoService] Creazione nuovo evento con struttura separata:', eventoData)
+
+      // ⭐ VALIDAZIONE - Assicurati che i campi necessari siano presenti
+      if (!eventoData.date) {
+        throw new Error('Data evento obbligatoria')
+      }
+      if (!eventoData.timeStart || !eventoData.timeEnd) {
+        throw new Error('Orari inizio e fine obbligatori')
+      }
+
+      // ⭐ MAPPATURA - Prepara i dati per il backend con la nuova struttura
+      const eventoPerBackend = EventoMapper.frontendToBackend(eventoData)
+
       // Validazione dati
-      const backendData = EventoMapper.frontendToBackend(eventoData)
-      const validation = EventoValidator.validateCreateEvento(backendData)
+      const validation = EventoValidator.validateCreateEvento(eventoPerBackend)
 
       if (!validation.isValid) {
         throw new Error(`Dati non validi: ${Object.values(validation.errors).join(', ')}`)
       }
 
-      const response = await apiClient.post('/evento', backendData)
+      console.log('📤 [EventoService] Invio dati al backend:', eventoPerBackend)
+
+      const response = await apiClient.post('/evento', eventoPerBackend)
       return EventoMapper.backendToFrontend(response.data.data)
     } catch (error) {
-      console.error('Errore nella creazione evento:', error)
+      console.error('❌ [EventoService] Errore nella creazione evento:', error)
       throw error
     }
   }
 
   /**
-   * Aggiorna un evento esistente
-   * @param {Object} eventoData - Dati dell'evento da aggiornare (deve includere id)
+   * Aggiorna un evento esistente utilizzando la nuova struttura separata data/orario
+   * @param {Object} eventoData - Dati evento da aggiornare (deve includere id, date, timeStart, timeEnd)
    * @returns {Promise<Object>} Evento aggiornato
    */
   static async updateEvento(eventoData) {
     try {
+      console.log('🔄 [EventoService] Aggiornamento evento con struttura separata:', eventoData)
+
       // Validazione che l'ID sia presente per l'update
       if (!eventoData.id) {
         throw new Error('ID evento richiesto per l\'aggiornamento')
       }
 
+      // ⭐ VALIDAZIONE - Assicurati che i campi necessari siano presenti
+      if (!eventoData.date) {
+        throw new Error('Data evento obbligatoria')
+      }
+      if (!eventoData.timeStart || !eventoData.timeEnd) {
+        throw new Error('Orari inizio e fine obbligatori')
+      }
+
+      // ⭐ MAPPATURA - Prepara i dati per il backend con la nuova struttura
+      const eventoPerBackend = EventoMapper.frontendToBackend(eventoData)
+
+      // ⭐ CORREZIONE - Aggiungi esplicitamente l'ID che non viene mappato dal CreateEventoDto
+      eventoPerBackend.id = eventoData.id
+
+      console.log('🔧 [EventoService] Dati con ID preservato per backend:', eventoPerBackend)
+
       // Validazione dati
-      const backendData = EventoMapper.frontendToBackend(eventoData)
-      const validation = EventoValidator.validateCreateEvento(backendData)
+      const validation = EventoValidator.validateCreateEvento(eventoPerBackend)
 
       if (!validation.isValid) {
         throw new Error(`Dati non validi: ${Object.values(validation.errors).join(', ')}`)
       }
 
+      console.log('📤 [EventoService] Invio dati aggiornati al backend:', eventoPerBackend)
+
       // Usa PUT con l'ID nell'URL come si aspetta il backend
-      const response = await apiClient.put(`/evento/${eventoData.id}`, backendData)
+      const response = await apiClient.put(`/evento/${eventoData.id}`, eventoPerBackend)
       return EventoMapper.backendToFrontend(response.data.data)
     } catch (error) {
-      console.error('Errore nell\'aggiornamento evento:', error)
+      console.error('❌ [EventoService] Errore nell\'aggiornamento evento:', error)
       throw error
     }
   }
@@ -144,6 +177,8 @@ export class EventoService {
       throw error
     }
   }
+
+
 
   /**
    * Elimina un evento
@@ -298,6 +333,8 @@ export class EventoService {
       throw error
     }
   }
+
+
 
   /**
    * Elimina eventi ricorrenti con direzione specifica

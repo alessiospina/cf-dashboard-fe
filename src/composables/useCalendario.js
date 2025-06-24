@@ -33,6 +33,8 @@ import {PazienteService} from '@/services/pazienteService'
 import {EventoService} from '@/services/calendarioService'
 
 
+
+
 /**
  * Formatta una data nel formato YYYY-MM-DD per le API
  * @param {Date|string} data - Data da formattare
@@ -56,6 +58,8 @@ export function useCalendario() {
   // ⭐ NUOVO - Stato reattivo per la gestione della ricorrenza
   const loadingRicorrenza = ref(false) // Loading specifico per operazioni ricorrenza
   const ricorrenzaError = ref('') // Errori specifici per ricorrenza
+
+
 
   // Funzione per resettare gli errori
   const clearError = () => {
@@ -243,46 +247,115 @@ export function useCalendario() {
   }
 
   // Funzioni CRUD eventi
+  /**
+   * Crea un nuovo evento utilizzando la nuova struttura separata data/orario
+   * @param {Object} eventoData - Dati evento con struttura separata
+   * @returns {Promise<Object>} Nuovo evento creato
+   */
   const creaEvento = async (eventoData) => {
     try {
-      console.log('Creazione nuovo evento:', eventoData)
+      console.log('🔄 [creaEvento] Creazione nuovo evento con struttura separata:', eventoData)
+
+      // ⭐ VALIDAZIONE - Assicurati che i campi necessari siano presenti
+      if (!eventoData.date) {
+        throw new Error('Data evento obbligatoria')
+      }
+      if (!eventoData.timeStart || !eventoData.timeEnd) {
+        throw new Error('Orari inizio e fine obbligatori')
+      }
+
+      // ⭐ MAPPATURA - Prepara i dati per il backend con la nuova struttura
+      const eventoPerBackend = {
+        titolo: eventoData.titolo,
+        stanza: eventoData.stanza,
+        date: eventoData.date,           // ⭐ NUOVO - Data separata
+        timeStart: eventoData.timeStart, // ⭐ NUOVO - Orario inizio
+        timeEnd: eventoData.timeEnd,     // ⭐ NUOVO - Orario fine
+        prezzo: eventoData.prezzo,
+        pazienteID: eventoData.pazienteID,
+        specialistaID: eventoData.specialistaID
+      }
+
+      console.log('📤 [creaEvento] Invio dati al backend:', eventoPerBackend)
 
       // Usa il service del backend per creare l'evento
-      const nuovoEvento = await EventoService.createEvento(eventoData)
+      const nuovoEvento = await EventoService.createEvento(eventoPerBackend)
 
-      // Aggiorna la lista locale degli eventi
+      // ⭐ AGGIORNAMENTO - Aggiorna la lista locale degli eventi
       eventi.value.push(nuovoEvento)
 
-      console.log('Evento creato con successo:', nuovoEvento)
+      console.log('✅ [creaEvento] Evento creato con successo:', nuovoEvento)
       return nuovoEvento
+
     } catch (err) {
       error.value = 'Errore nella creazione dell\'evento'
-      console.error('Errore creazione evento:', err)
+      console.error('❌ [creaEvento] Errore creazione evento:', err)
       throw err
     }
   }
 
+  /**
+   * Aggiorna un evento esistente utilizzando la nuova struttura separata
+   * @param {Object} eventoAggiornato - Dati evento da aggiornare
+   * @returns {Promise<Object>} Evento aggiornato
+   */
   const aggiornaEvento = async (eventoAggiornato) => {
     try {
-      console.log('Aggiornamento evento:', eventoAggiornato)
+      console.log('🔄 [aggiornaEvento] Aggiornamento evento con struttura separata:', eventoAggiornato)
+
+      // ⭐ VALIDAZIONI - Controlli sui nuovi campi
+      if (!eventoAggiornato.id) {
+        throw new Error('ID evento richiesto per aggiornamento')
+      }
+      if (!eventoAggiornato.date) {
+        throw new Error('Data evento obbligatoria')
+      }
+      if (!eventoAggiornato.timeStart || !eventoAggiornato.timeEnd) {
+        throw new Error('Orari inizio e fine obbligatori')
+      }
+
+      // ⭐ MAPPATURA - Prepara i dati per il backend (PRESERVANDO L'ID)
+      const eventoPerBackend = {
+        id: eventoAggiornato.id,               // ⭐ PRESERVA L'ID
+        titolo: eventoAggiornato.titolo,
+        stanza: eventoAggiornato.stanza,
+        date: eventoAggiornato.date,           // ⭐ NUOVO - Data separata
+        timeStart: eventoAggiornato.timeStart, // ⭐ NUOVO - Orario inizio
+        timeEnd: eventoAggiornato.timeEnd,     // ⭐ NUOVO - Orario fine
+        prezzo: eventoAggiornato.prezzo,
+        pazienteID: eventoAggiornato.pazienteID,
+        specialistaID: eventoAggiornato.specialistaID
+      }
+
+      console.log('📋 [aggiornaEvento] Dati preparati per il service (con ID):', eventoPerBackend)
+      console.log('🕐 [aggiornaEvento] Verifica orari normalizzati:', {
+        originale: { timeStart: eventoAggiornato.timeStart, timeEnd: eventoAggiornato.timeEnd },
+        mappato: { timeStart: eventoPerBackend.timeStart, timeEnd: eventoPerBackend.timeEnd }
+      })
 
       // Usa il service del backend per aggiornare l'evento
-      const eventoAggiornato_result = await EventoService.updateEvento(eventoAggiornato)
+      const eventoAggiornato_result = await EventoService.updateEvento(eventoPerBackend)
 
       // Aggiorna la lista locale degli eventi
       const index = eventi.value.findIndex(e => e.id === eventoAggiornato.id)
       if (index !== -1) {
         eventi.value[index] = eventoAggiornato_result
+        console.log('🔄 [aggiornaEvento] Lista locale aggiornata all\'indice:', index)
       }
 
-      console.log('Evento aggiornato con successo:', eventoAggiornato_result)
+      console.log('✅ [aggiornaEvento] Evento aggiornato con successo:', eventoAggiornato_result)
       return eventoAggiornato_result
+
     } catch (err) {
       error.value = 'Errore nell\'aggiornamento dell\'evento'
-      console.error('Errore aggiornamento evento:', err)
+      console.error('❌ [aggiornaEvento] Errore aggiornamento evento:', err)
       throw err
     }
   }
+
+
+
+
 
   const eliminaEvento = async (eventoId) => {
     try {
@@ -305,8 +378,8 @@ export function useCalendario() {
   // ⭐ NUOVO - Funzioni CRUD per eventi ricorrenti
 
   /**
-   * Crea un nuovo evento con ricorrenza
-   * @param {Object} eventoData - Dati dell'evento con ricorrenza (formato frontend)
+   * Crea un nuovo evento con ricorrenza utilizzando la nuova struttura separata
+   * @param {Object} eventoData - Dati dell'evento con ricorrenza (nuova struttura)
    * @returns {Promise<Array>} Lista degli eventi creati
    */
   const creaEventoConRicorrenza = async (eventoData) => {
@@ -314,37 +387,59 @@ export function useCalendario() {
     ricorrenzaError.value = ''
 
     try {
-      console.log('🔄 [useCalendario] Creazione evento con ricorrenza:', eventoData)
+      console.log('🔄 [creaEventoConRicorrenza] Creazione evento con ricorrenza (nuova struttura):', eventoData)
+
+      // ⭐ VALIDAZIONI - Controlli sui nuovi campi
+      if (!eventoData.date) {
+        throw new Error('Data evento obbligatoria per ricorrenza')
+      }
+      if (!eventoData.timeStart || !eventoData.timeEnd) {
+        throw new Error('Orari inizio e fine obbligatori per ricorrenza')
+      }
 
       // Validazione preliminare dati ricorrenza
       if (eventoData.ricorrenza) {
-        // Valida che la data fine ricorrenza sia nel range consentito
         if (!RicorrenzaUtils.isDataFineRicorrenzaValida(eventoData.ricorrenza.dataFineRicorrenza)) {
           throw new Error('Data fine ricorrenza non valida. Deve essere tra domani e il 31 dicembre dell\'anno corrente.')
         }
 
-        // Calcola e mostra quanti eventi verranno creati
+        // ⭐ CALCOLO EVENTI - Usa la nuova struttura per il calcolo
         const numeroEventi = RicorrenzaUtils.calcolaNumeroEventiRicorrenti(
-          eventoData.dataInizio,
+          eventoData.date,                     // ⭐ NUOVO - usa 'date' invece di 'dataInizio'
           eventoData.ricorrenza.dataFineRicorrenza,
           eventoData.ricorrenza.tipo
         )
 
-        console.log(`📊 [useCalendario] Verranno creati circa ${numeroEventi} eventi ricorrenti`)
+        console.log(`📊 [creaEventoConRicorrenza] Verranno creati circa ${numeroEventi} eventi ricorrenti`)
       }
 
+      // ⭐ MAPPATURA - Prepara i dati per il backend con nuova struttura
+      const eventoPerBackend = {
+        titolo: eventoData.titolo,
+        stanza: eventoData.stanza,
+        date: eventoData.date,           // ⭐ NUOVO - Data separata
+        timeStart: eventoData.timeStart, // ⭐ NUOVO - Orario inizio
+        timeEnd: eventoData.timeEnd,     // ⭐ NUOVO - Orario fine
+        prezzo: eventoData.prezzo,
+        pazienteID: eventoData.pazienteID,
+        specialistaID: eventoData.specialistaID,
+        ricorrenza: eventoData.ricorrenza // Mantieni i dati ricorrenza
+      }
+
+      console.log('📤 [creaEventoConRicorrenza] Invio dati al backend:', eventoPerBackend)
+
       // Usa il service del backend per creare l'evento con ricorrenza
-      const eventiCreati = await EventoService.createEventoWithRicorrenza(eventoData)
+      const eventiCreati = await EventoService.createEventoWithRicorrenza(eventoPerBackend)
 
       // Aggiorna la lista locale degli eventi aggiungendo tutti i nuovi eventi
       eventi.value.push(...eventiCreati)
 
-      console.log(`✅ [useCalendario] Creati ${eventiCreati.length} eventi ricorrenti con successo`)
+      console.log(`✅ [creaEventoConRicorrenza] Creati ${eventiCreati.length} eventi ricorrenti con successo`)
       return eventiCreati
 
     } catch (err) {
       ricorrenzaError.value = 'Errore nella creazione dell\'evento ricorrente'
-      console.error('❌ [useCalendario] Errore creazione evento ricorrente:', err)
+      console.error('❌ [creaEventoConRicorrenza] Errore creazione evento ricorrente:', err)
       throw err
     } finally {
       loadingRicorrenza.value = false
@@ -352,7 +447,7 @@ export function useCalendario() {
   }
 
   /**
-   * Aggiorna eventi ricorrenti con direzione specifica
+   * Aggiorna eventi ricorrenti con direzione specifica - nuova struttura
    * @param {Object} eventoData - Dati dell'evento da aggiornare con direction
    * @returns {Promise<Array>} Lista degli eventi aggiornati
    */
@@ -361,20 +456,40 @@ export function useCalendario() {
     ricorrenzaError.value = ''
 
     try {
-      console.log('🔄 [useCalendario] Aggiornamento eventi ricorrenti:', eventoData)
+      console.log('🔄 [aggiornaEventiRicorrenti] Aggiornamento eventi ricorrenti (nuova struttura):', eventoData)
 
-      // Validazione ID evento
+      // ⭐ VALIDAZIONI - Controlli sui nuovi campi
       if (!eventoData.id) {
         throw new Error('ID evento richiesto per l\'aggiornamento di eventi ricorrenti')
       }
-
-      // Validazione direction
+      if (!eventoData.date) {
+        throw new Error('Data evento obbligatoria per aggiornamento ricorrenti')
+      }
+      if (!eventoData.timeStart || !eventoData.timeEnd) {
+        throw new Error('Orari inizio e fine obbligatori per aggiornamento ricorrenti')
+      }
       if (!eventoData.direction || !Object.values(Direction).includes(eventoData.direction)) {
         throw new Error('Direzione aggiornamento obbligatoria e valida')
       }
 
+      // ⭐ MAPPATURA - Prepara i dati per il backend con nuova struttura
+      const eventoPerBackend = {
+        id: eventoData.id,
+        titolo: eventoData.titolo,
+        stanza: eventoData.stanza,
+        date: eventoData.date,           // ⭐ NUOVO - Data separata
+        timeStart: eventoData.timeStart, // ⭐ NUOVO - Orario inizio
+        timeEnd: eventoData.timeEnd,     // ⭐ NUOVO - Orario fine
+        prezzo: eventoData.prezzo,
+        pazienteID: eventoData.pazienteID,
+        specialistaID: eventoData.specialistaID,
+        direction: eventoData.direction  // Direzione aggiornamento
+      }
+
+      console.log('📤 [aggiornaEventiRicorrenti] Invio dati al backend:', eventoPerBackend)
+
       // Usa il service del backend per aggiornare gli eventi ricorrenti
-      const eventiAggiornati = await EventoService.updateEventiRicorrenti(eventoData)
+      const eventiAggiornati = await EventoService.updateEventiRicorrenti(eventoPerBackend)
 
       // Aggiorna la lista locale degli eventi sostituendo quelli modificati
       eventiAggiornati.forEach(eventoAggiornato => {
@@ -384,12 +499,12 @@ export function useCalendario() {
         }
       })
 
-      console.log(`✅ [useCalendario] Aggiornati ${eventiAggiornati.length} eventi ricorrenti con successo`)
+      console.log(`✅ [aggiornaEventiRicorrenti] Aggiornati ${eventiAggiornati.length} eventi ricorrenti con successo`)
       return eventiAggiornati
 
     } catch (err) {
       ricorrenzaError.value = 'Errore nell\'aggiornamento degli eventi ricorrenti'
-      console.error('❌ [useCalendario] Errore aggiornamento eventi ricorrenti:', err)
+      console.error('❌ [aggiornaEventiRicorrenti] Errore aggiornamento eventi ricorrenti:', err)
       throw err
     } finally {
       loadingRicorrenza.value = false
@@ -437,6 +552,10 @@ export function useCalendario() {
       loadingRicorrenza.value = false
     }
   }
+
+
+
+
 
   /**
    * Estrae i specialisti unici dalla lista degli eventi + slot per eventi non assegnati
@@ -799,17 +918,31 @@ export function useCalendario() {
   }
 
   /**
-   * Genera un preview descrittivo della ricorrenza
-   * @param {Object} ricorrenzaData - Dati ricorrenza {tipo, dataFineRicorrenza}
-   * @param {Date} dataInizio - Data del primo evento
+   * Genera un preview descrittivo della ricorrenza (AGGIORNATO - Nuova struttura)
+   * @param {Object} ricorrenzaData - Dati ricorrenza con evento incluso
+   * @param {Date|string} dataEvento - Data del primo evento (opzionale, può essere in ricorrenzaData)
    * @returns {string} - Descrizione leggibile della ricorrenza
    */
-  const getPreviewRicorrenza = (ricorrenzaData, dataInizio) => {
+  const getPreviewRicorrenza = (ricorrenzaData, dataEvento = null) => {
     if (!ricorrenzaData || !ricorrenzaData.tipo || !ricorrenzaData.dataFineRicorrenza) {
       return 'Evento singolo'
     }
 
     try {
+      // ⭐ COMPATIBILITÀ - Estrai la data dall'evento in qualsiasi formato
+      let dataInizio = dataEvento
+
+      // Se dataEvento non è fornito, prova a estrarlo da ricorrenzaData
+      if (!dataInizio) {
+        dataInizio = ricorrenzaData.date || ricorrenzaData.dataInizio
+      }
+
+      // Se ancora non hai la data, usa oggi
+      if (!dataInizio) {
+        dataInizio = new Date()
+      }
+
+      // ⭐ CALCOLO EVENTI - Usa la utility aggiornata
       const numeroEventi = RicorrenzaUtils.calcolaNumeroEventiRicorrenti(
         dataInizio,
         ricorrenzaData.dataFineRicorrenza,
@@ -891,6 +1024,8 @@ export function useCalendario() {
     creaEventoConRicorrenza, // Crea evento con ricorrenza
     aggiornaEventiRicorrenti, // Aggiorna eventi ricorrenti con direction
     eliminaEventiRicorrenti, // Elimina eventi ricorrenti con direction
+
+
 
     // Utilità
     filtraEventi,

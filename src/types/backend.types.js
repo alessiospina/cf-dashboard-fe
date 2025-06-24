@@ -84,31 +84,35 @@ export const TIPO_RICORRENZA_OPTIONS = [
   {value: TipoRicorrenza.GIORNALIERA, label: 'Ripeti Giornalmente'}
 ]
 
-// ⭐ NUOVO - Enum per la direzione delle modifiche eventi ricorrenti
+// ⭐ NUOVO - Enum per la direzione delle modifiche eventi ricorrenti (ALLINEATO AL BACKEND)
 export const Direction = {
-  THIS: 'THIS', // Solo evento corrente
-  THIS_AND_FOLLOWING: 'THIS_AND_FOLLOWING' // Evento corrente e successivi
+  ALL: 'ALL',           // Tutti gli eventi ricorrenti
+  BACKWARD: 'BACKWARD', // Evento corrente e precedenti
+  FORWARD: 'FORWARD'    // Evento corrente e successivi
 }
 
-// ⭐ NUOVO - Opzioni per la select della direzione
+// ⭐ NUOVO - Opzioni per la select della direzione (AGGIORNATO)
 export const DIRECTION_OPTIONS = [
-  {value: Direction.THIS, label: 'Solo questo evento'},
-  {value: Direction.THIS_AND_FOLLOWING, label: 'Questo evento e i successivi'}
+  {value: Direction.ALL, label: 'Tutti gli eventi ricorrenti'},
+  {value: Direction.BACKWARD, label: 'Questo evento e i precedenti'},
+  {value: Direction.FORWARD, label: 'Questo evento e i successivi'}
 ]
 
 /**
- * Interfaccia per l'entità Evento (backend)
- * Corrisponde a evento.entity.ts e evento.dto.ts
+ * Interfaccia per l'entità Evento (backend) - AGGIORNATA
+ * Corrisponde a evento.entity.ts e evento.dto.ts con nuova struttura
  */
 export class EventoBackend {
   constructor(data = {}) {
     this.id = data.id || null
     this.titolo = data.titolo || ''
     this.stanza = data.stanza || ''
-    this.dataInizio = data.dataInizio || null
-    this.dataFine = data.dataFine || null
-    this.prezzo = data.prezzo || null // Campo prezzo aggiunto
-    this.master = data.master || null // ⭐ NUOVO - Campo master per eventi ricorrenti
+    // ⭐ NUOVA STRUTTURA - Data e orari separati dal backend
+    this.date = data.date || null           // Data dell'evento (DATE)
+    this.timeStart = data.timeStart || null // Orario inizio (TIME)
+    this.timeEnd = data.timeEnd || null     // Orario fine (TIME)
+    this.prezzo = data.prezzo || null
+    this.master = data.master || null // Campo master per eventi ricorrenti
     this.createdAt = data.createdAt || null
     this.paziente = data.paziente || null
     this.specialista = data.specialista || null
@@ -235,13 +239,21 @@ export class RicorrenzaUtils {
   }
 
   /**
-   * Calcola il numero approssimativo di eventi che verranno creati
-   * @param {Date} dataInizio - Data del primo evento
+   * Calcola il numero approssimativo di eventi che verranno creati (AGGIORNATO - Nuova struttura)
+   * @param {Date|string} dataEvento - Data del primo evento (supporta sia 'date' che 'dataInizio')
    * @param {Date} dataFineRicorrenza - Data fine ricorrenza
    * @param {string} tipoRicorrenza - Tipo di ricorrenza (frontend o backend)
    * @returns {number} - Numero approssimativo di eventi
    */
-  static calcolaNumeroEventiRicorrenti(dataInizio, dataFineRicorrenza, tipoRicorrenza) {
+  static calcolaNumeroEventiRicorrenti(dataEvento, dataFineRicorrenza, tipoRicorrenza) {
+    // ⭐ COMPATIBILITÀ - Accetta sia la nuova struttura che quella vecchia
+    let dataInizio = dataEvento
+
+    // Se è un oggetto, estrai il campo 'date' (nuova struttura) o 'dataInizio' (vecchia)
+    if (typeof dataEvento === 'object' && dataEvento !== null && !(dataEvento instanceof Date)) {
+      dataInizio = dataEvento.date || dataEvento.dataInizio
+    }
+
     // Usa il parsing italiano per entrambe le date
     const inizio = this.parseDataItaliana(dataInizio)
     const fine = this.parseDataItaliana(dataFineRicorrenza)
@@ -269,11 +281,10 @@ export class RicorrenzaUtils {
   }
 
   /**
-   * Genera un messaggio descrittivo per la ricorrenza
-   * @param {string} tipoRicorrenza - Tipo di ricorrenza
-   * @param {Date} dataFineRicorrenza - Data fine ricorrenza
-   * @param {number} numeroEventi - Numero di eventi che verranno creati
-   * @returns {string} - Messaggio descrittivo
+   * Genera un preview descrittivo della ricorrenza (AGGIORNATO - Nuova struttura)
+   * @param {Object} ricorrenzaData - Dati ricorrenza {tipo, dataFineRicorrenza} + dati evento
+   * @param {Date|string} dataEvento - Data del primo evento (opzionale, può essere incluso in ricorrenzaData)
+   * @returns {string} - Descrizione leggibile della ricorrenza
    */
   static getDescrizioneRicorrenza(tipoRicorrenza, dataFineRicorrenza, numeroEventi) {
     const tipoFormattato = this.formatTipoRicorrenza(tipoRicorrenza)
@@ -282,21 +293,123 @@ export class RicorrenzaUtils {
 
     return `Ripetuto ${tipoFormattato} fino al ${dataFormattata} (circa ${numeroEventi} eventi)`
   }
+
+  // ⭐ NUOVA UTILITY - Conversione tra vecchia e nuova struttura
+  /**
+   * Converte da dataInizio/dataFine (vecchia struttura) a date/timeStart/timeEnd (nuova)
+   * @param {Object} eventoVecchiaStruttura - Evento con dataInizio/dataFine
+   * @returns {Object} - Evento con date/timeStart/timeEnd
+   */
+  static convertiVecchiaANuovaStruttura(eventoVecchiaStruttura) {
+    if (!eventoVecchiaStruttura.dataInizio || !eventoVecchiaStruttura.dataFine) {
+      return eventoVecchiaStruttura
+    }
+
+    try {
+      const dataInizio = new Date(eventoVecchiaStruttura.dataInizio)
+      const dataFine = new Date(eventoVecchiaStruttura.dataFine)
+
+      // Estrai la data (assumendo che gli eventi siano nello stesso giorno)
+      const date = dataInizio.toISOString().split('T')[0] // YYYY-MM-DD
+
+      // Estrai gli orari
+      const timeStart = dataInizio.toTimeString().substring(0, 5) // HH:MM
+      const timeEnd = dataFine.toTimeString().substring(0, 5) // HH:MM
+
+      return {
+        ...eventoVecchiaStruttura,
+        date,
+        timeStart,
+        timeEnd,
+        // Mantieni anche i campi originali per compatibilità
+        dataInizio: eventoVecchiaStruttura.dataInizio,
+        dataFine: eventoVecchiaStruttura.dataFine
+      }
+    } catch (error) {
+      console.warn('Errore nella conversione struttura evento:', error)
+      return eventoVecchiaStruttura
+    }
+  }
+
+  /**
+   * Converte da date/timeStart/timeEnd (nuova struttura) a dataInizio/dataFine (vecchia)
+   * @param {Object} eventoNuovaStruttura - Evento con date/timeStart/timeEnd
+   * @returns {Object} - Evento con dataInizio/dataFine
+   */
+  static convertiNuovaAVecchiaStruttura(eventoNuovaStruttura) {
+    if (!eventoNuovaStruttura.date || !eventoNuovaStruttura.timeStart || !eventoNuovaStruttura.timeEnd) {
+      return eventoNuovaStruttura
+    }
+
+    try {
+      // Combina data e orari per creare le date complete
+      const dataInizio = new Date(`${eventoNuovaStruttura.date}T${eventoNuovaStruttura.timeStart}:00`)
+      const dataFine = new Date(`${eventoNuovaStruttura.date}T${eventoNuovaStruttura.timeEnd}:00`)
+
+      return {
+        ...eventoNuovaStruttura,
+        dataInizio: dataInizio.toISOString(),
+        dataFine: dataFine.toISOString(),
+        // Mantieni anche i campi nuovi per compatibilità
+        date: eventoNuovaStruttura.date,
+        timeStart: eventoNuovaStruttura.timeStart,
+        timeEnd: eventoNuovaStruttura.timeEnd
+      }
+    } catch (error) {
+      console.warn('Errore nella conversione struttura evento:', error)
+      return eventoNuovaStruttura
+    }
+  }
+
+  /**
+   * Utility per estrarre data/orari da qualsiasi struttura evento
+   * @param {Object} evento - Evento in qualsiasi formato
+   * @returns {Object} - {date, timeStart, timeEnd, dataInizio, dataFine}
+   */
+  static estraiCampiTemporali(evento) {
+    const risultato = {}
+
+    // Se ha la nuova struttura
+    if (evento.date && evento.timeStart && evento.timeEnd) {
+      risultato.date = evento.date
+      risultato.timeStart = evento.timeStart
+      risultato.timeEnd = evento.timeEnd
+
+      // Genera anche i campi vecchi
+      const conversione = this.convertiNuovaAVecchiaStruttura(evento)
+      risultato.dataInizio = conversione.dataInizio
+      risultato.dataFine = conversione.dataFine
+    }
+    // Se ha la vecchia struttura
+    else if (evento.dataInizio && evento.dataFine) {
+      risultato.dataInizio = evento.dataInizio
+      risultato.dataFine = evento.dataFine
+
+      // Genera anche i campi nuovi
+      const conversione = this.convertiVecchiaANuovaStruttura(evento)
+      risultato.date = conversione.date
+      risultato.timeStart = conversione.timeStart
+      risultato.timeEnd = conversione.timeEnd
+    }
+
+    return risultato
+  }
 }
 
 
 /**
- * DTO per la creazione di un evento
- * Corrisponde a CreateEventoDto del backend
+ * DTO per la creazione di un evento (AGGIORNATO - Nuova struttura backend)
+ * Corrisponde a CreateEventoDto del backend con campi separati data/orario
  */
 export class CreateEventoDto {
   constructor(data = {}) {
     this.titolo = data.titolo || ''
     this.stanza = data.stanza || ''
-    this.professionista = data.professionista || ''
-    this.dataInizio = data.dataInizio || null
-    this.dataFine = data.dataFine || null
-    this.prezzo = data.prezzo || null // Campo prezzo aggiunto
+    // ⭐ NUOVA STRUTTURA - Data e orari separati
+    this.date = data.date || null           // Data dell'evento (YYYY-MM-DD)
+    this.timeStart = data.timeStart || null // Orario inizio (HH:MM)
+    this.timeEnd = data.timeEnd || null     // Orario fine (HH:MM)
+    this.prezzo = data.prezzo || null
     this.pazienteID = data.pazienteID || null
     this.specialistaID = data.specialistaID || null
   }
@@ -310,7 +423,7 @@ export class CreateRicorrenzaDto {
   }
 }
 
-// ⭐ NUOVO - DTO per la creazione di eventi con ricorrenza (corrisponde a CreateEventoWithRicorrenzaDTO del backend)
+// ⭐ NUOVO - DTO per la creazione di eventi con ricorrenza (AGGIORNATO - Nuova struttura)
 export class CreateEventoWithRicorrenzaDto extends CreateEventoDto {
   constructor(data = {}) {
     super(data)
@@ -318,19 +431,19 @@ export class CreateEventoWithRicorrenzaDto extends CreateEventoDto {
   }
 }
 
-// ⭐ NUOVO - DTO per l'aggiornamento di eventi ricorrenti (corrisponde a UpdateEventoWithRicorrenzaDTO del backend)
+// ⭐ NUOVO - DTO per l'aggiornamento di eventi ricorrenti (AGGIORNATO - Nuova struttura)
 export class UpdateEventoWithRicorrenzaDto extends CreateEventoDto {
   constructor(data = {}) {
     super(data)
     this.id = data.id || null // ID dell'evento da modificare
-    this.direction = data.direction || Direction.THIS // Direzione della modifica
+    this.direction = data.direction || Direction.ALL // Direzione della modifica (DEFAULT: ALL)
   }
 }
 
 // ⭐ NUOVO - DTO per la cancellazione di eventi ricorrenti (corrisponde a CancellaEventiRicorrentiDTO del backend)
 export class CancellaEventiRicorrentiDto {
   constructor(data = {}) {
-    this.direction = data.direction || Direction.THIS // Direzione della cancellazione
+    this.direction = data.direction || Direction.ALL // Direzione della cancellazione (DEFAULT: ALL)
   }
 }
 
@@ -340,7 +453,7 @@ export class CancellaEventiRicorrentiDto {
  */
 export class EventoMapper {
   /**
-   * Converte un evento dal formato frontend al formato backend
+   * Converte un evento dal formato frontend al formato backend (AGGIORNATO - Nuova struttura)
    * @param {Object} eventoFrontend - Evento nel formato frontend attuale
    * @returns {CreateEventoDto} - Evento nel formato backend allineato a NestJS
    */
@@ -348,9 +461,10 @@ export class EventoMapper {
     return new CreateEventoDto({
       titolo: eventoFrontend.titolo.toUpperCase(),
       stanza: eventoFrontend.stanza.toUpperCase(),
-      dataInizio: eventoFrontend.dataInizio,
-      dataFine: eventoFrontend.dataFine,
-      // Il prezzo rimane in formato decimale come ricevuto (es: 25.50)
+      // ⭐ NUOVA STRUTTURA - Data e orari separati
+      date: eventoFrontend.date,           // Data separata (YYYY-MM-DD)
+      timeStart: eventoFrontend.timeStart, // Orario inizio (HH:MM)
+      timeEnd: eventoFrontend.timeEnd,     // Orario fine (HH:MM)
       prezzo: eventoFrontend.prezzo ?? null,
       pazienteID: eventoFrontend.pazienteID ?? null,
       specialistaID: eventoFrontend.specialistaID ?? null,
@@ -358,40 +472,68 @@ export class EventoMapper {
   }
 
   /**
-   * Converte un evento dal formato backend al formato frontend
+   * Converte un evento dal formato backend al formato frontend (AGGIORNATO - Nuova struttura)
    * @param {EventoBackend} eventoBackend - Evento nel formato backend
    * @returns {Object} - Evento nel formato frontend
    */
   static backendToFrontend(eventoBackend) {
+    // ⭐ UTILITY - Combina data e orario per creare dataInizio e dataFine per compatibilità frontend
+    const combineDateTime = (date, time) => {
+      if (!date || !time) return null
+      try {
+        // ⭐ FIX - Gestisce sia formato HH:MM che HH:MM:SS
+        let timeFormatted = time
+
+        // Se il time include i secondi (HH:MM:SS), rimuovili
+        if (time.includes(':') && time.split(':').length === 3) {
+          timeFormatted = time.substring(0, 5) // Prende solo HH:MM
+        }
+
+        // Crea la data combinata in formato ISO per il frontend
+        const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0]
+
+        console.log('🐛 [Debug] combineDateTime:', {
+          originalDate: date,
+          originalTime: time,
+          formattedTime: timeFormatted,
+          dateStr: dateStr
+        })
+
+        return new Date(`${dateStr}T${timeFormatted}:00`).toISOString()
+      } catch (error) {
+        console.warn('❌ [EventoMapper] Errore nella combinazione data/orario:', { date, time, error })
+        return null
+      }
+    }
+
     return {
       id: eventoBackend.id?.toString(),
       titolo: eventoBackend.titolo,
       stanza: eventoBackend.stanza,
-      // Il prezzo arriva già in formato decimale dal backend (es: "20.80")
+      // ⭐ NUOVA STRUTTURA - Mantieni i campi separati E quelli combinati per compatibilità
+      date: eventoBackend.date,           // Data separata dal backend
+      timeStart: eventoBackend.timeStart, // Orario inizio dal backend
+      timeEnd: eventoBackend.timeEnd,     // Orario fine dal backend
+      // ⭐ COMPATIBILITÀ - Mantieni anche i campi combinati per il frontend esistente
+      dataInizio: combineDateTime(eventoBackend.date, eventoBackend.timeStart),
+      dataFine: combineDateTime(eventoBackend.date, eventoBackend.timeEnd),
       prezzo: eventoBackend.prezzo !== null ? eventoBackend.prezzo : null,
-      // ⭐ NUOVO - Campo master per eventi ricorrenti
       master: eventoBackend.master,
       specialista: eventoBackend.specialista ? {
         id: eventoBackend.specialista.id,
         nome: eventoBackend.specialista.nome,
         cognome: eventoBackend.specialista.cognome,
         nomeCompleto: `${eventoBackend.specialista.nome} ${eventoBackend.specialista.cognome}`.trim(),
-        // Includiamo la prestazione con il colore per la colorazione dinamica
         prestazione: eventoBackend.specialista.prestazione
       } : null,
-      // Paziente direttamente dalla relazione dell'evento
       paziente: eventoBackend.paziente ? {
         id: eventoBackend.paziente.id?.toString(),
         nome: eventoBackend.paziente.nome,
         cognome: eventoBackend.paziente.cognome,
         nomeCompleto: `${eventoBackend.paziente.nome} ${eventoBackend.paziente.cognome}`.trim()
       } : null,
-      dataInizio: eventoBackend.dataInizio,
-      dataFine: eventoBackend.dataFine,
       createdAt: eventoBackend.createdAt,
-      // Aggiungiamo il colore direttamente dall'evento per facilità d'uso
-      colore: eventoBackend.specialista?.prestazione?.color || '#6c757d', // Grigio di default per eventi senza prestazione
-      // ⭐ NUOVO - Indica se questo evento fa parte di una serie ricorrente
+      colore: eventoBackend.specialista?.prestazione?.color || '#6c757d',
       isPartOfSeries: eventoBackend.master !== null
     }
   }
@@ -416,10 +558,10 @@ export class EventoMapper {
     }
   }
 
-  // ⭐ NUOVO - Mapper per eventi con ricorrenza
+  // ⭐ NUOVO - Mapper per eventi con ricorrenza (AGGIORNATO - Nuova struttura)
   /**
-   * Converte dati frontend con ricorrenza al formato backend
-   * @param {Object} eventoFrontend - Evento con dati ricorrenza dal frontend
+   * Converte dati frontend con ricorrenza al formato backend con nuova struttura
+   * @param {Object} eventoFrontend - Evento con dati ricorrenza dal frontend (date, timeStart, timeEnd)
    * @returns {CreateEventoWithRicorrenzaDto} - DTO per backend con ricorrenza
    */
   static frontendToBackendWithRicorrenza(eventoFrontend) {
@@ -436,8 +578,8 @@ export class EventoMapper {
   }
 
   /**
-   * Converte dati frontend per aggiornamento eventi ricorrenti al formato backend
-   * @param {Object} eventoFrontend - Evento con direction per aggiornamento
+   * Converte dati frontend per aggiornamento eventi ricorrenti al formato backend (AGGIORNATO - Nuova struttura)
+   * @param {Object} eventoFrontend - Evento con direction per aggiornamento (date, timeStart, timeEnd)
    * @returns {UpdateEventoWithRicorrenzaDto} - DTO per aggiornamento backend
    */
   static frontendToBackendUpdateRicorrenza(eventoFrontend) {
@@ -446,9 +588,11 @@ export class EventoMapper {
     return new UpdateEventoWithRicorrenzaDto({
       ...eventoBase,
       id: eventoFrontend.id,
-      direction: eventoFrontend.direction || Direction.THIS
+      direction: eventoFrontend.direction || Direction.ALL // ⭐ CORRETTO - Default ALL invece di THIS
     })
   }
+
+
 
   /**
    * Converte dati frontend per cancellazione eventi ricorrenti al formato backend
@@ -457,9 +601,11 @@ export class EventoMapper {
    */
   static frontendToBackendDeleteRicorrenza(direction) {
     return new CancellaEventiRicorrentiDto({
-      direction: direction || Direction.THIS
+      direction: direction || Direction.ALL // ⭐ CORRETTO - Default ALL invece di THIS
     })
   }
+
+
 }
 
 /**
@@ -469,7 +615,7 @@ export class EventoValidator {
   static validateCreateEvento(data) {
     const errors = {}
 
-    // Validazioni allineate ai DTO del backend NestJS
+    // Validazioni allineate ai DTO del backend NestJS con nuova struttura
     if (!data.titolo || data.titolo.length > 50) {
       errors.titolo = 'Titolo obbligatorio (max 50 caratteri)'
     }
@@ -478,16 +624,42 @@ export class EventoValidator {
       errors.stanza = 'Stanza obbligatoria (max 50 caratteri)'
     }
 
-    if (!data.dataInizio) {
-      errors.dataInizio = 'Data inizio obbligatoria'
+    // ⭐ NUOVE VALIDAZIONI - Data e orari separati
+    if (!data.date) {
+      errors.date = 'Data evento obbligatoria'
     }
 
-    if (!data.dataFine) {
-      errors.dataFine = 'Data fine obbligatoria'
+    if (!data.timeStart) {
+      errors.timeStart = 'Orario inizio obbligatorio'
+    } else {
+      // Validazione formato orario HH:MM
+      const timeStartRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/
+      if (!timeStartRegex.test(data.timeStart)) {
+        errors.timeStart = 'Formato orario inizio non valido. Utilizzare HH:MM (es: 09:30)'
+      }
     }
 
-    if (data.dataInizio && data.dataFine && new Date(data.dataInizio) >= new Date(data.dataFine)) {
-      errors.dataFine = 'Data fine deve essere successiva a data inizio'
+    if (!data.timeEnd) {
+      errors.timeEnd = 'Orario fine obbligatorio'
+    } else {
+      // Validazione formato orario HH:MM
+      const timeEndRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/
+      if (!timeEndRegex.test(data.timeEnd)) {
+        errors.timeEnd = 'Formato orario fine non valido. Utilizzare HH:MM (es: 10:30)'
+      }
+    }
+
+    // ⭐ VALIDAZIONE LOGICA - Orario fine deve essere dopo orario inizio
+    if (data.timeStart && data.timeEnd) {
+      const [startHour, startMin] = data.timeStart.split(':').map(Number)
+      const [endHour, endMin] = data.timeEnd.split(':').map(Number)
+
+      const startMinutes = startHour * 60 + startMin
+      const endMinutes = endHour * 60 + endMin
+
+      if (endMinutes <= startMinutes) {
+        errors.timeEnd = 'Orario fine deve essere successivo all\'orario inizio'
+      }
     }
 
     // Validazione campo prezzo (opzionale, ma se presente deve essere un numero positivo)
@@ -602,6 +774,10 @@ export class EventoValidator {
       errors
     }
   }
+
+
+
+
 
   static validateCreateSlot(data) {
     const errors = {}

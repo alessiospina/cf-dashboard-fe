@@ -262,8 +262,66 @@
           </div>
         </div>
 
-        <!-- ⭐ NUOVO - Sezione Ricorrenza -->
-        <div class="form-section mb-4">
+        <!-- ⭐ NUOVO - Sezione Indicatore Evento Ricorrente (solo in modifica) -->
+        <div v-if="isEventoRicorrenteInModifica" class="form-section mb-4">
+          <h6 class="section-title text-warning">
+            <CIcon icon="cil-reload" class="me-2"/>
+            Evento Ricorrente
+          </h6>
+
+          <!-- Indicatore visivo evento ricorrente -->
+          <CRow class="g-3 mb-3">
+            <CCol cols="12">
+              <div class="input-group-with-icon">
+                <CIcon icon="cil-info" class="input-icon text-warning"/>
+                <div class="input-content">
+                  <div class="ricorrenza-info-display">
+                    <div class="d-flex align-items-center">
+                      <CIcon icon="cil-warning" class="me-2 text-warning"/>
+                      <span class="fw-bold">Stai modificando un evento ricorrente</span>
+                    </div>
+                    <small class="text-muted d-block mt-1">
+                      Scegli come applicare le modifiche agli eventi della serie
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </CCol>
+          </CRow>
+
+          <!-- Select per tipo modifica -->
+          <CRow class="g-3">
+            <CCol cols="12">
+              <div class="input-group-with-icon">
+                <div class="input-content">
+                  <CFormLabel class="form-label-clean">Applica modifica a:</CFormLabel>
+                  <div class="d-flex">
+                    <CIcon icon="cil-options" class="input-icon"/>
+                    <CFormSelect
+                      v-model="form.tipoModificaRicorrente"
+                      :invalid="!!errors.tipoModificaRicorrente"
+                      class="form-control-clean"
+                    >
+                      <option
+                        v-for="opzione in OPZIONI_MODIFICA_EVENTO"
+                        :key="opzione.valore"
+                        :value="opzione.valore"
+                      >
+                        {{ opzione.label }}
+                      </option>
+                    </CFormSelect>
+                  </div>
+                  <CFormFeedback v-if="errors.tipoModificaRicorrente" invalid>
+                    {{ errors.tipoModificaRicorrente }}
+                  </CFormFeedback>
+                </div>
+              </div>
+            </CCol>
+          </CRow>
+        </div>
+
+        <!-- ⭐ NUOVO - Sezione Ricorrenza (solo per nuovi eventi) -->
+        <div v-if="!isEventoRicorrenteInModifica" class="form-section mb-4">
           <h6 class="section-title">Ricorrenza</h6>
 
           <!-- Toggle per abilitare ricorrenza -->
@@ -413,6 +471,14 @@
 import {ref, reactive, computed, watch} from 'vue'
 import {useCalendario} from '@/composables/useCalendario'
 import {MAPPING_RICORRENZA_FRONTEND_TO_BACKEND} from '@/types/backend.types.js'
+// ⭐ NUOVO - Import per gestione eventi ricorrenti in modifica
+import {
+  Direction,
+  TipoModificaEvento,
+  OPZIONI_MODIFICA_EVENTO,
+  getDirectionFromTipo,
+  isEventoRicorrente as isEventoRicorrenteHelper
+} from '@/types/ricorrenza.types.ts'
 
 const props = defineProps({
   visible: {type: Boolean, default: false},
@@ -436,8 +502,6 @@ const {
   eliminaEventiRicorrenti,
   TipoRicorrenza,
   TIPO_RICORRENZA_OPTIONS,
-  Direction,
-  DIRECTION_OPTIONS,
   RicorrenzaUtils,
   isEventoRicorrente,
   getPreviewRicorrenza,
@@ -448,6 +512,10 @@ const {
 } = useCalendario()
 
 const isEdit = computed(() => !!props.evento?.id)
+// ⭐ NUOVO - Computed per verificare se è evento ricorrente in modifica
+const isEventoRicorrenteInModifica = computed(() => {
+  return isEdit.value && props.evento && isEventoRicorrenteHelper(props.evento)
+})
 
 // ⭐ NUOVO - Computed per la gestione della ricorrenza
 
@@ -517,13 +585,22 @@ const form = reactive({
   ricorrenza: {
     tipo: '', // TipoRicorrenza (SETTIMANALE, MENSILE, GIORNALIERA)
     dataFineRicorrenza: '' // Data fine ripetizione
-  }
+  },
+
+  // ⭐ NUOVO - Campo per tipo modifica eventi ricorrenti
+  tipoModificaRicorrente: TipoModificaEvento.EVENTO_SINGOLO // Default: solo evento singolo
 })
 
 const errors = ref({})
 const submitting = ref(false)
 const deleting = ref(false)
 const submitError = ref('')
+
+// ⭐ NUOVO - Setup del form tracker per tracciare modifiche
+// RIMOSSO - Ora utilizziamo il sistema di tracking integrato nel composable useCalendario
+
+// ⭐ NUOVO - Computed per verificare se usare update parziale
+// RIMOSSO - Il sistema di tracking gestisce automaticamente gli update parziali
 
 // Computed per il paziente selezionato
 const pazienteSelezionato = computed(() => {
@@ -864,6 +941,7 @@ const resetForm = () => {
     tipo: '',
     dataFineRicorrenza: ''
   }
+  form.tipoModificaRicorrente = TipoModificaEvento.EVENTO_SINGOLO // ⭐ NUOVO - Reset tipo modifica
 
   form.stato = 'confermato'
   form.note = ''
@@ -881,10 +959,39 @@ const resetForm = () => {
 
 const populateForm = (evento) => {
   if (evento) {
-    const dataInizio = new Date(evento.dataInizio)
-    const dataFine = new Date(evento.dataFine)
+    // ⭐ GESTIONE NUOVA STRUTTURA - Supporta sia vecchia che nuova struttura
 
-    // Campi backend
+    let data, oraInizio, oraFine
+
+    // Se l'evento ha la nuova struttura (date, timeStart, timeEnd)
+    if (evento.date && evento.timeStart && evento.timeEnd) {
+      console.log('✅ [EventModal] Evento con nuova struttura (date/timeStart/timeEnd)')
+      data = evento.date
+      // ⭐ NORMALIZZAZIONE - Assicura che gli orari siano nel formato HH:MM
+      oraInizio = normalizzaOrario(evento.timeStart)
+      oraFine = normalizzaOrario(evento.timeEnd)
+    }
+    // Se l'evento ha la vecchia struttura (dataInizio, dataFine)
+    else if (evento.dataInizio && evento.dataFine) {
+      console.log('🔄 [EventModal] Evento con vecchia struttura (dataInizio/dataFine) - conversione in corso...')
+      const dataInizio = new Date(evento.dataInizio)
+      const dataFineDate = new Date(evento.dataFine)
+
+      data = dataInizio.toISOString().split('T')[0]  // YYYY-MM-DD
+      // ⭐ NORMALIZZAZIONE - Estrai e normalizza gli orari
+      oraInizio = normalizzaOrario(dataInizio.toTimeString().slice(0, 5))  // HH:MM
+      oraFine = normalizzaOrario(dataFineDate.toTimeString().slice(0, 5))  // HH:MM
+      console.log('✅ [EventModal] Conversione completata:', { data, oraInizio, oraFine })
+    }
+    else {
+      console.warn('⚠️ [EventModal] Evento senza struttura dati temporale valida:', evento)
+      // Usa valori di default normalizzati
+      data = new Date().toISOString().split('T')[0]
+      oraInizio = '09:00'
+      oraFine = '10:00'
+    }
+
+    // Popolamento campi backend
     form.titolo = evento.titolo || `TERAPIA ${evento.tipoTerapia?.replace('_', ' ') || ''}`
     form.stanza = evento.sala || evento.stanza || ''
     // Formattazione del prezzo se presente (già in formato euro dal backend)
@@ -897,12 +1004,18 @@ const populateForm = (evento) => {
     form.dataFineRipetizione = evento.dataFineRipetizione ?
       new Date(evento.dataFineRipetizione).toISOString().split('T')[0] : ''
 
-    // Campi interfaccia
+    // ⭐ NUOVA STRUTTURA - Campi interfaccia aggiornati con orari normalizzati
     form.specialistaId = evento.specialista?.id || ''
-    form.data = dataInizio.toISOString().split('T')[0]
-    form.oraInizio = dataInizio.toTimeString().slice(0, 5)
-    form.oraFine = dataFine.toTimeString().slice(0, 5)
+    form.data = data
+    form.oraInizio = oraInizio  // ⭐ ORARIO NORMALIZZATO
+    form.oraFine = oraFine      // ⭐ ORARIO NORMALIZZATO
     form.tipoTerapia = evento.tipoTerapia || ''
+
+    console.log('📋 [EventModal] Form popolato con nuova struttura (orari normalizzati):', {
+      data: form.data,
+      oraInizio: form.oraInizio,
+      oraFine: form.oraFine
+    })
 
     // ⭐ NUOVO - Gestione ricorrenza per eventi ricorrenti
     form.isEventoRicorrente = isEventoRicorrente(evento)
@@ -913,12 +1026,15 @@ const populateForm = (evento) => {
         tipo: '',
         dataFineRicorrenza: ''
       }
+      // ⭐ NUOVO - Per eventi ricorrenti in modifica, imposta il default
+      form.tipoModificaRicorrente = TipoModificaEvento.EVENTO_SINGOLO
       console.log('⚠️ [EventModal] Evento ricorrente in modifica - ricorrenza disabilitata nel form')
     } else {
       form.ricorrenza = {
         tipo: '',
         dataFineRicorrenza: ''
       }
+      form.tipoModificaRicorrente = TipoModificaEvento.EVENTO_SINGOLO // ⭐ NUOVO - Reset per eventi non ricorrenti
     }
 
     // Popolamento campi input e specialista selezionato
@@ -987,9 +1103,33 @@ const validateForm = () => {
   // ✅ IMPORTANTE: Specialista NON è più obbligatorio per eventi non assegnati
   // if (!form.specialistaSelezionato) newErrors.specialista = 'Specialista obbligatorio'
 
-  // Validazione logica date/orari
-  if (form.oraInizio && form.oraFine && form.oraInizio >= form.oraFine) {
-    newErrors.oraFine = 'Ora fine deve essere successiva all\'ora inizio'
+  // ⭐ NUOVO - Validazione logica date/orari con normalizzazione
+  if (form.oraInizio && form.oraFine) {
+    // Normalizza gli orari per la validazione
+    const oraInizioNormalizzata = normalizzaOrario(form.oraInizio)
+    const oraFineNormalizzata = normalizzaOrario(form.oraFine)
+
+    // Controlla che siano nel formato HH:MM dopo normalizzazione
+    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/
+    if (!timeRegex.test(oraInizioNormalizzata)) {
+      newErrors.oraInizio = 'Formato orario non valido'
+    }
+    if (!timeRegex.test(oraFineNormalizzata)) {
+      newErrors.oraFine = 'Formato orario non valido'
+    }
+
+    // Validazione logica: ora fine deve essere dopo ora inizio
+    if (oraInizioNormalizzata && oraFineNormalizzata && timeRegex.test(oraInizioNormalizzata) && timeRegex.test(oraFineNormalizzata)) {
+      const [startHour, startMin] = oraInizioNormalizzata.split(':').map(Number)
+      const [endHour, endMin] = oraFineNormalizzata.split(':').map(Number)
+
+      const startMinutes = startHour * 60 + startMin
+      const endMinutes = endHour * 60 + endMin
+
+      if (endMinutes <= startMinutes) {
+        newErrors.oraFine = 'Ora fine deve essere successiva all\'ora inizio'
+      }
+    }
   }
 
   // ⭐ NUOVO - Validazione ricorrenza se abilitata
@@ -1020,6 +1160,19 @@ const validateForm = () => {
   return Object.keys(newErrors).length === 0
 }
 
+// ⭐ NUOVO - Funzione di utilità per normalizzare gli orari al formato HH:MM
+const normalizzaOrario = (orario) => {
+  if (!orario) return orario
+
+  // Se l'orario include i secondi (HH:MM:SS), rimuovili per ottenere HH:MM
+  if (orario.includes(':') && orario.split(':').length === 3) {
+    return orario.substring(0, 5) // Prende solo HH:MM
+  }
+
+  // Se è già nel formato HH:MM, restituiscilo com'è
+  return orario
+}
+
 const handleSubmit = async () => {
   if (!validateForm()) return
 
@@ -1027,84 +1180,98 @@ const handleSubmit = async () => {
   submitError.value = ''
 
   try {
-    const dataInizio = new Date(`${form.data}T${form.oraInizio}:00`)
-    const dataFine = new Date(`${form.data}T${form.oraFine}:00`)
+    // ⭐ NORMALIZZAZIONE ORARI - Assicura che siano sempre nel formato HH:MM
+    const timeStartNormalizzato = normalizzaOrario(form.oraInizio)
+    const timeEndNormalizzato = normalizzaOrario(form.oraFine)
 
-    // Debug - log dei dati del form prima dell'invio
-    console.log('🐛 [EventModal] Debug - Form prima dell\'invio:', {
-      isEventoRicorrente: form.isEventoRicorrente,
-      ricorrenza: form.ricorrenza,
-      pazienteId: form.pazienteId,
-      pazienteSelezionato: pazienteSelezionato.value,
-      specialistaSelezionato: form.specialistaSelezionato,
-      specialistaId: form.specialistaSelezionato?.id
-    })
-
-    // Preparazione dati evento con mapping backend
-    const eventoData = {
-      // Campi backend
-      titolo: form.titolo,
-      stanza: form.stanza,
-      // Il prezzo rimane in formato decimale come inserito dall'utente
-      prezzo: form.prezzo ? parseFloat(form.prezzo) : null,
-      dataInizio: dataInizio.toISOString(),
-      dataFine: dataFine.toISOString(),
-
-      // Conversione esplicita a number per coerenza con backend
-      pazienteID: form.pazienteId ? Number(form.pazienteId) : null,
-      specialistaID: form.specialistaSelezionato?.id ? Number(form.specialistaSelezionato.id) :
-        (form.specialistaId ? Number(form.specialistaId) : null),
-    }
-
-    // ⭐ NUOVO - Gestione ricorrenza se abilitata
-    if (form.isEventoRicorrente) {
-      // Conversione della data fine ricorrenza in formato ISO completo con orario di fine giornata
-      const dataFineRicorrenza = new Date(`${form.ricorrenza.dataFineRicorrenza}T23:59:59.000Z`)
-
-      eventoData.ricorrenza = {
-        // ⭐ MAPPATURA: Usa la mappatura centralizzata definita in backend.types.js
-        tipo: MAPPING_RICORRENZA_FRONTEND_TO_BACKEND[form.ricorrenza.tipo] || form.ricorrenza.tipo,
-        dataFineRicorrenza: dataFineRicorrenza.toISOString()
-      }
-
-      console.log('📅 [EventModal] Ricorrenza configurata per backend:', {
-        tipoOriginale: form.ricorrenza.tipo,
-        tipoConvertito: eventoData.ricorrenza.tipo,
-        dataFineRicorrenza: eventoData.ricorrenza.dataFineRicorrenza
-      })
-    }
-
-    // Debug - log dell'oggetto finale inviato al backend
-    console.log('📤 [EventModal] Debug - Dati inviati al backend:', {
-      eventoData,
-      pazienteID: eventoData.pazienteID,
-      specialistaID: eventoData.specialistaID,
-      prezzo: eventoData.prezzo,
-      ricorrenza: eventoData.ricorrenza, // ⭐ NUOVO - Debug ricorrenza
-      pazienteIDType: typeof eventoData.pazienteID,
-      specialistaIDType: typeof eventoData.specialistaID,
-      prezzoType: typeof eventoData.prezzo
+    console.log('🕐 [EventModal] Normalizzazione orari:', {
+      originale: { oraInizio: form.oraInizio, oraFine: form.oraFine },
+      normalizzato: { timeStart: timeStartNormalizzato, timeEnd: timeEndNormalizzato }
     })
 
     if (isEdit.value) {
-      // ⭐ IMPORTANTE: Per gli eventi ricorrenti in modifica usiamo la logica standard
-      // La gestione avanzata della ricorrenza è gestita separatamente
-      eventoData.id = props.evento.id
-      const updated = await aggiornaEvento(eventoData)
-      emit('updated', updated)
-    } else {
-      // ⭐ NUOVO - Creazione con o senza ricorrenza
-      let created
-      if (form.isEventoRicorrente) {
-        // Utilizza l'endpoint per eventi ricorrenti
-        created = await creaEventoConRicorrenza(eventoData)
-        console.log('✅ [EventModal] Eventi ricorrenti creati:', created.length || 1)
+      // ⭐ AGGIORNAMENTO EVENTI
+
+      if (isEventoRicorrenteInModifica.value && form.tipoModificaRicorrente !== TipoModificaEvento.EVENTO_SINGOLO) {
+        // EVENTI RICORRENTI - Modifica con direction
+        console.log('🔄 [EventModal] Modifica eventi ricorrenti')
+
+        const direction = getDirectionFromTipo(form.tipoModificaRicorrente)
+
+        // ⭐ NUOVA STRUTTURA - Costruisci l'evento con date/timeStart/timeEnd normalizzati
+        const eventoData = {
+          id: props.evento.id,
+          titolo: form.titolo,
+          stanza: form.stanza,
+          date: form.data,                    // ⭐ NUOVO - Data separata (YYYY-MM-DD)
+          timeStart: timeStartNormalizzato,   // ⭐ CORRETTO - Orario inizio normalizzato (HH:MM)
+          timeEnd: timeEndNormalizzato,       // ⭐ CORRETTO - Orario fine normalizzato (HH:MM)
+          prezzo: form.prezzo ? parseFloat(form.prezzo) : null,
+          pazienteID: form.pazienteId ? Number(form.pazienteId) : null,
+          specialistaID: form.specialistaSelezionato?.id ? Number(form.specialistaSelezionato.id) : null,
+          direction: direction
+        }
+
+        console.log('📋 [EventModal] Dati evento ricorrenti (nuova struttura):', eventoData)
+
+        const updated = await aggiornaEventiRicorrenti(eventoData)
+        emit('updated', updated)
+
       } else {
-        // Utilizza l'endpoint standard per evento singolo
-        created = await creaEvento(eventoData)
-        console.log('✅ [EventModal] Evento singolo creato:', created.id)
+        // EVENTO SINGOLO - Modifica normale
+        console.log('🔄 [EventModal] Modifica evento singolo')
+
+        // ⭐ NUOVA STRUTTURA - Costruisci l'evento con date/timeStart/timeEnd normalizzati
+        const eventoData = {
+          id: props.evento.id,
+          titolo: form.titolo,
+          stanza: form.stanza,
+          date: form.data,                    // ⭐ NUOVO - Data separata (YYYY-MM-DD)
+          timeStart: timeStartNormalizzato,   // ⭐ CORRETTO - Orario inizio normalizzato (HH:MM)
+          timeEnd: timeEndNormalizzato,       // ⭐ CORRETTO - Orario fine normalizzato (HH:MM)
+          prezzo: form.prezzo ? parseFloat(form.prezzo) : null,
+          pazienteID: form.pazienteId ? Number(form.pazienteId) : null,
+          specialistaID: form.specialistaSelezionato?.id ? Number(form.specialistaSelezionato.id) : null,
+        }
+
+        console.log('📋 [EventModal] Dati evento singolo (nuova struttura):', eventoData)
+
+        const updated = await aggiornaEvento(eventoData)
+        emit('updated', updated)
       }
-      emit('created', created)
+
+    } else {
+      // ⭐ CREAZIONE EVENTO - Nuova struttura
+
+      // ⭐ NUOVA STRUTTURA - Costruisci l'evento con date/timeStart/timeEnd normalizzati
+      const eventoData = {
+        titolo: form.titolo,
+        stanza: form.stanza,
+        date: form.data,                    // ⭐ NUOVO - Data separata (YYYY-MM-DD)
+        timeStart: timeStartNormalizzato,   // ⭐ CORRETTO - Orario inizio normalizzato (HH:MM)
+        timeEnd: timeEndNormalizzato,       // ⭐ CORRETTO - Orario fine normalizzato (HH:MM)
+        prezzo: form.prezzo ? parseFloat(form.prezzo) : null,
+        pazienteID: form.pazienteId ? Number(form.pazienteId) : null,
+        specialistaID: form.specialistaSelezionato?.id ? Number(form.specialistaSelezionato.id) : null,
+      }
+
+      console.log('📋 [EventModal] Dati nuovo evento (nuova struttura):', eventoData)
+
+      // Gestione ricorrenza per creazione
+      if (form.isEventoRicorrente) {
+        const dataFineRicorrenza = new Date(`${form.ricorrenza.dataFineRicorrenza}T23:59:59.000Z`)
+        eventoData.ricorrenza = {
+          tipo: MAPPING_RICORRENZA_FRONTEND_TO_BACKEND[form.ricorrenza.tipo] || form.ricorrenza.tipo,
+          dataFineRicorrenza: dataFineRicorrenza.toISOString()
+        }
+        console.log('🔄 [EventModal] Creazione evento con ricorrenza:', eventoData)
+        const created = await creaEventoConRicorrenza(eventoData)
+        emit('created', created)
+      } else {
+        console.log('🔄 [EventModal] Creazione evento singolo:', eventoData)
+        const created = await creaEvento(eventoData)
+        emit('created', created)
+      }
     }
 
     handleClose()
@@ -1112,7 +1279,6 @@ const handleSubmit = async () => {
   } catch (error) {
     console.error('❌ [EventModal] Errore salvataggio evento:', error)
 
-    // ⭐ NUOVO - Gestione errori specifici per ricorrenza
     if (ricorrenzaError.value) {
       submitError.value = `Errore ricorrenza: ${ricorrenzaError.value}`
     } else {
@@ -1142,6 +1308,7 @@ const handleDelete = async () => {
 
 const handleClose = () => {
   if (submitting.value || deleting.value) return
+
   resetForm()
   emit('close')
 }
@@ -1284,6 +1451,7 @@ watch(() => props.visible, (newVisible) => {
   if (newVisible) {
     if (isEdit.value) {
       populateForm(props.evento)
+      // Il tracking viene inizializzato nella populateForm
     } else {
       resetForm()
       if (props.evento?.dataInizio) {
@@ -1588,6 +1756,29 @@ watch(() => props.visible, (newVisible) => {
 }
 
 /* ⭐ NUOVO - Stili per la sezione Ricorrenza */
+
+/* Indicatore evento ricorrente in modifica */
+.ricorrenza-info-display {
+  background-color: rgba(var(--cui-warning-rgb), 0.1);
+  border: 2px solid rgba(var(--cui-warning-rgb), 0.3);
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--cui-body-color);
+  border-left: 4px solid var(--cui-warning);
+}
+
+/* Sezione per evento ricorrente in modifica */
+.form-section h6.section-title.text-warning {
+  color: var(--cui-warning) !important;
+  border-bottom-color: rgba(var(--cui-warning-rgb), 0.3);
+}
+
+/* Select per tipo modifica eventi ricorrenti */
+.form-section .input-group-with-icon .input-icon.text-warning {
+  background-color: rgba(var(--cui-warning-rgb), 0.1);
+  color: var(--cui-warning);
+}
 
 /* Toggle ricorrenza */
 .ricorrenza-toggle {
