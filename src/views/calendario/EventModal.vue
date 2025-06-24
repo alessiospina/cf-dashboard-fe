@@ -262,6 +262,106 @@
           </div>
         </div>
 
+        <!-- ⭐ NUOVO - Sezione Ricorrenza -->
+        <div class="form-section mb-4">
+          <h6 class="section-title">Ricorrenza</h6>
+
+          <!-- Toggle per abilitare ricorrenza -->
+          <CRow class="g-3 mb-3">
+            <CCol cols="12">
+              <div class="input-group-with-icon">
+                <CIcon icon="cil-reload" class="input-icon text-info"/>
+                <div class="input-content">
+                  <div class="ricorrenza-toggle">
+                    <CFormCheck
+                      v-model="form.isEventoRicorrente"
+                      :id="'ricorrenza-toggle'"
+                      label="Ripeti questo evento"
+                      class="ricorrenza-checkbox"
+                    />
+                    <small class="text-muted d-block mt-1">
+                      Attiva per creare eventi ricorrenti automaticamente
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </CCol>
+          </CRow>
+
+          <!-- Configurazione ricorrenza (visibile solo se abilitata) -->
+          <div v-if="form.isEventoRicorrente" class="ricorrenza-config">
+            <CRow class="g-3">
+              <!-- Tipo ricorrenza -->
+              <CCol md="6">
+                <div class="input-group-with-icon">
+                  <div class="input-content">
+                    <CFormLabel class="form-label-clean">Tipo ricorrenza</CFormLabel>
+                    <div class="d-flex">
+                      <CIcon icon="cil-loop-circular" class="input-icon"/>
+                      <CFormSelect
+                        v-model="form.ricorrenza.tipo"
+                        :invalid="!!errors.tipoRicorrenza"
+                        class="form-control-clean"
+                      >
+                        <option value="">Seleziona tipo ricorrenza</option>
+                        <option
+                          v-for="opzione in TIPO_RICORRENZA_OPTIONS"
+                          :key="opzione.value"
+                          :value="opzione.value"
+                        >
+                          {{ opzione.label }}
+                        </option>
+                      </CFormSelect>
+                    </div>
+                    <CFormFeedback v-if="errors.tipoRicorrenza" invalid>{{ errors.tipoRicorrenza }}</CFormFeedback>
+                  </div>
+                </div>
+              </CCol>
+
+              <!-- Data fine ricorrenza -->
+              <CCol md="6">
+                <div class="input-group-with-icon">
+                  <div class="input-content">
+                    <CFormLabel class="form-label-clean">Ripeti fino al</CFormLabel>
+                    <div class="d-flex">
+                      <CIcon icon="cil-calendar-check" class="input-icon"/>
+                      <CFormInput
+                        v-model="form.ricorrenza.dataFineRicorrenza"
+                        type="date"
+                        :min="dataMinimaPicker"
+                        :max="dataMassimaPicker"
+                        :invalid="!!errors.dataFineRicorrenza"
+                        class="form-control-clean"
+                      />
+                    </div>
+                    <CFormFeedback v-if="errors.dataFineRicorrenza" invalid>{{ errors.dataFineRicorrenza }}</CFormFeedback>
+                    <small class="text-muted mt-1">
+                      Data massima: {{ dataMassimaFormatted }}
+                    </small>
+                  </div>
+                </div>
+              </CCol>
+            </CRow>
+
+            <!-- Preview ricorrenza -->
+            <CRow v-if="form.ricorrenza.tipo && form.ricorrenza.dataFineRicorrenza && form.data" class="g-3 mt-2">
+              <CCol cols="12">
+                <div class="input-group-with-icon">
+                  <CIcon icon="cil-info" class="input-icon text-info"/>
+                  <div class="input-content">
+                    <div class="ricorrenza-preview">
+                      <div class="d-flex align-items-center">
+                        <span class="me-2">Preview:</span>
+                        <strong>{{ previewRicorrenza }}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CCol>
+            </CRow>
+          </div>
+        </div>
+
         <!-- Errore generale -->
         <CAlert v-if="submitError" color="danger" class="mb-0">
           <CIcon icon="cil-warning" class="me-2"/>
@@ -329,9 +429,56 @@ const {
   eliminaEvento,
   FrequenzaEvento,
   cercaSpecialisti, // Funzione di ricerca specialisti dal backend
+  // ⭐ NUOVO - Import funzioni e tipi per ricorrenza
+  creaEventoConRicorrenza,
+  aggiornaEventiRicorrenti,
+  eliminaEventiRicorrenti,
+  TipoRicorrenza,
+  TIPO_RICORRENZA_OPTIONS,
+  Direction,
+  DIRECTION_OPTIONS,
+  RicorrenzaUtils,
+  isEventoRicorrente,
+  getPreviewRicorrenza,
+  validaRicorrenza,
+  loadingRicorrenza,
+  ricorrenzaError,
+  clearRicorrenzaError
 } = useCalendario()
 
 const isEdit = computed(() => !!props.evento?.id)
+
+// ⭐ NUOVO - Computed per la gestione della ricorrenza
+
+// Data minima per il picker (domani)
+const dataMinimaPicker = computed(() => {
+  return RicorrenzaUtils.getDataMinimaFineRicorrenza()
+})
+
+// Data massima per il picker (31 dicembre dell'anno corrente)
+const dataMassimaPicker = computed(() => {
+  return RicorrenzaUtils.getDataMassimaFineRicorrenza()
+})
+
+// Data massima formattata per il display
+const dataMassimaFormatted = computed(() => {
+  const dataMassima = new Date(dataMassimaPicker.value)
+  return dataMassima.toLocaleDateString('it-IT')
+})
+
+// Preview della ricorrenza
+const previewRicorrenza = computed(() => {
+  if (!form.isEventoRicorrente || !form.ricorrenza.tipo || !form.ricorrenza.dataFineRicorrenza || !form.data) {
+    return 'Configura la ricorrenza'
+  }
+
+  try {
+    const dataInizio = new Date(`${form.data}T${form.oraInizio || '09:00'}:00`)
+    return getPreviewRicorrenza(form.ricorrenza, dataInizio)
+  } catch (error) {
+    return 'Ricorrenza non valida'
+  }
+})
 
 // Stato per gestione dropdown suggerimenti
 const specialistiFiltrati = ref([])
@@ -358,6 +505,13 @@ const form = reactive({
   // Gestione specialista - nuovi campi per il dropdown
   specialistaInput: '', // Input per la ricerca dello specialista
   specialistaSelezionato: null, // Oggetto specialista selezionato dal backend
+
+  // ⭐ NUOVO - Campi per la gestione della ricorrenza
+  isEventoRicorrente: false, // Toggle per abilitare ricorrenza
+  ricorrenza: {
+    tipo: '', // TipoRicorrenza (SETTIMANALE, MENSILE, GIORNALIERA)
+    dataFineRicorrenza: '' // Data fine ripetizione
+  }
 })
 
 const errors = ref({})
@@ -698,6 +852,13 @@ const resetForm = () => {
   form.specialistaSelezionato = null
   form.pazienteInput = ''
 
+  // ⭐ NUOVO - Reset campi ricorrenza
+  form.isEventoRicorrente = false
+  form.ricorrenza = {
+    tipo: '',
+    dataFineRicorrenza: ''
+  }
+
   form.stato = 'confermato'
   form.note = ''
 
@@ -709,6 +870,7 @@ const resetForm = () => {
 
   errors.value = {}
   submitError.value = ''
+  clearRicorrenzaError() // ⭐ NUOVO - Pulisce errori ricorrenza
 }
 
 const populateForm = (evento) => {
@@ -735,6 +897,23 @@ const populateForm = (evento) => {
     form.oraInizio = dataInizio.toTimeString().slice(0, 5)
     form.oraFine = dataFine.toTimeString().slice(0, 5)
     form.tipoTerapia = evento.tipoTerapia || ''
+
+    // ⭐ NUOVO - Gestione ricorrenza per eventi ricorrenti
+    form.isEventoRicorrente = isEventoRicorrente(evento)
+    if (form.isEventoRicorrente) {
+      // In modifica, disabilitiamo la ricorrenza perché gestiamo diversamente
+      form.isEventoRicorrente = false
+      form.ricorrenza = {
+        tipo: '',
+        dataFineRicorrenza: ''
+      }
+      console.log('⚠️ [EventModal] Evento ricorrente in modifica - ricorrenza disabilitata nel form')
+    } else {
+      form.ricorrenza = {
+        tipo: '',
+        dataFineRicorrenza: ''
+      }
+    }
 
     // Popolamento campi input e specialista selezionato
     form.specialistaInput = form.professionista
@@ -807,6 +986,30 @@ const validateForm = () => {
     newErrors.oraFine = 'Ora fine deve essere successiva all\'ora inizio'
   }
 
+  // ⭐ NUOVO - Validazione ricorrenza se abilitata
+  if (form.isEventoRicorrente) {
+    const ricorrenzaValidation = validaRicorrenza(form.ricorrenza)
+    if (!ricorrenzaValidation.isValid) {
+      ricorrenzaValidation.errors.forEach(errorMsg => {
+        if (errorMsg.includes('tipo')) {
+          newErrors.tipoRicorrenza = errorMsg
+        } else if (errorMsg.includes('data')) {
+          newErrors.dataFineRicorrenza = errorMsg
+        }
+      })
+    }
+
+    // Validazione aggiuntiva: data fine ricorrenza deve essere dopo la data dell'evento
+    if (form.ricorrenza.dataFineRicorrenza && form.data) {
+      const dataEvento = new Date(form.data)
+      const dataFineRicorrenza = new Date(form.ricorrenza.dataFineRicorrenza)
+
+      if (dataFineRicorrenza <= dataEvento) {
+        newErrors.dataFineRicorrenza = 'Data fine ricorrenza deve essere successiva alla data dell\'evento'
+      }
+    }
+  }
+
   errors.value = newErrors
   return Object.keys(newErrors).length === 0
 }
@@ -823,6 +1026,8 @@ const handleSubmit = async () => {
 
     // Debug - log dei dati del form prima dell'invio
     console.log('🐛 [EventModal] Debug - Form prima dell\'invio:', {
+      isEventoRicorrente: form.isEventoRicorrente,
+      ricorrenza: form.ricorrenza,
       pazienteId: form.pazienteId,
       pazienteSelezionato: pazienteSelezionato.value,
       specialistaSelezionato: form.specialistaSelezionato,
@@ -845,31 +1050,58 @@ const handleSubmit = async () => {
         (form.specialistaId ? Number(form.specialistaId) : null),
     }
 
+    // ⭐ NUOVO - Gestione ricorrenza se abilitata
+    if (form.isEventoRicorrente) {
+      eventoData.ricorrenza = {
+        tipo: form.ricorrenza.tipo,
+        dataFineRicorrenza: form.ricorrenza.dataFineRicorrenza
+      }
+    }
+
     // Debug - log dell'oggetto finale inviato al backend
     console.log('📤 [EventModal] Debug - Dati inviati al backend:', {
       eventoData,
       pazienteID: eventoData.pazienteID,
       specialistaID: eventoData.specialistaID,
-      prezzo: eventoData.prezzo, // Aggiunto debug per prezzo
+      prezzo: eventoData.prezzo,
+      ricorrenza: eventoData.ricorrenza, // ⭐ NUOVO - Debug ricorrenza
       pazienteIDType: typeof eventoData.pazienteID,
       specialistaIDType: typeof eventoData.specialistaID,
       prezzoType: typeof eventoData.prezzo
     })
 
     if (isEdit.value) {
+      // ⭐ IMPORTANTE: Per gli eventi ricorrenti in modifica usiamo la logica standard
+      // La gestione avanzata della ricorrenza è gestita separatamente
       eventoData.id = props.evento.id
       const updated = await aggiornaEvento(eventoData)
       emit('updated', updated)
     } else {
-      const created = await creaEvento(eventoData)
+      // ⭐ NUOVO - Creazione con o senza ricorrenza
+      let created
+      if (form.isEventoRicorrente) {
+        // Utilizza l'endpoint per eventi ricorrenti
+        created = await creaEventoConRicorrenza(eventoData)
+        console.log('✅ [EventModal] Eventi ricorrenti creati:', created.length || 1)
+      } else {
+        // Utilizza l'endpoint standard per evento singolo
+        created = await creaEvento(eventoData)
+        console.log('✅ [EventModal] Evento singolo creato:', created.id)
+      }
       emit('created', created)
     }
 
     handleClose()
 
   } catch (error) {
-    console.error('Errore salvataggio evento:', error)
-    submitError.value = 'Errore nel salvataggio dell\'evento'
+    console.error('❌ [EventModal] Errore salvataggio evento:', error)
+
+    // ⭐ NUOVO - Gestione errori specifici per ricorrenza
+    if (ricorrenzaError.value) {
+      submitError.value = `Errore ricorrenza: ${ricorrenzaError.value}`
+    } else {
+      submitError.value = 'Errore nel salvataggio dell\'evento'
+    }
   } finally {
     submitting.value = false
   }
@@ -985,6 +1217,50 @@ watch(() => form.specialistaInput, (newValue) => {
     form.specialistaSelezionato = null
   } else {
     form.professionista = newValue
+  }
+})
+
+// ⭐ NUOVO - Watcher per la gestione della ricorrenza
+
+// Quando si abilita/disabilita la ricorrenza, reset dei campi
+watch(() => form.isEventoRicorrente, (isAbilitata) => {
+  if (!isAbilitata) {
+    // Se disabilitiamo la ricorrenza, reset dei campi
+    form.ricorrenza = {
+      tipo: '',
+      dataFineRicorrenza: ''
+    }
+    clearRicorrenzaError()
+    console.log('🔄 [EventModal] Ricorrenza disabilitata - campi resettati')
+  } else {
+    console.log('✅ [EventModal] Ricorrenza abilitata')
+  }
+})
+
+// Validazione automatica quando cambiano i campi ricorrenza
+watch(() => [form.ricorrenza.tipo, form.ricorrenza.dataFineRicorrenza], ([nuovoTipo, nuovaData]) => {
+  if (form.isEventoRicorrente && nuovoTipo && nuovaData) {
+    const validation = validaRicorrenza(form.ricorrenza)
+    if (!validation.isValid) {
+      console.log('⚠️ [EventModal] Validazione ricorrenza fallita:', validation.errors)
+    } else {
+      console.log('✅ [EventModal] Ricorrenza valida')
+      clearRicorrenzaError()
+    }
+  }
+}, { deep: true })
+
+// Auto-popolazione data minima ricorrenza quando cambia la data evento
+watch(() => form.data, (nuovaData) => {
+  if (form.isEventoRicorrenza && nuovaData && form.ricorrenza.dataFineRicorrenza) {
+    const dataEvento = new Date(nuovaData)
+    const dataFineRicorrenza = new Date(form.ricorrenza.dataFineRicorrenza)
+
+    // Se la data fine ricorrenza è prima della data evento, resettala
+    if (dataFineRicorrenza <= dataEvento) {
+      form.ricorrenza.dataFineRicorrenza = ''
+      console.log('⚠️ [EventModal] Data fine ricorrenza resettata (era prima della data evento)')
+    }
   }
 })
 
@@ -1292,6 +1568,103 @@ watch(() => props.visible, (newVisible) => {
 
   .suggestion-item-clean {
     padding: 0.5rem;
+  }
+}
+
+/* ⭐ NUOVO - Stili per la sezione Ricorrenza */
+
+/* Toggle ricorrenza */
+.ricorrenza-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.ricorrenza-checkbox {
+  margin-bottom: 0;
+}
+
+.ricorrenza-checkbox :deep(.form-check-input) {
+  border: 2px solid var(--cui-border-color);
+  border-radius: 4px;
+  margin-top: 0.1em;
+  transition: all 0.2s ease;
+}
+
+.ricorrenza-checkbox :deep(.form-check-input:checked) {
+  background-color: var(--cui-info);
+  border-color: var(--cui-info);
+}
+
+.ricorrenza-checkbox :deep(.form-check-label) {
+  font-weight: 500;
+  color: var(--cui-body-color);
+  cursor: pointer;
+}
+
+/* Configurazione ricorrenza */
+.ricorrenza-config {
+  background-color: rgba(var(--cui-info-rgb), 0.05);
+  border: 2px solid rgba(var(--cui-info-rgb), 0.2);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 1rem;
+  animation: ricorrenzaSlideIn 0.3s ease-out;
+}
+
+@keyframes ricorrenzaSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 200px;
+  }
+}
+
+/* Preview ricorrenza */
+.ricorrenza-preview {
+  background-color: var(--cui-gray-50);
+  border: 2px solid rgba(var(--cui-info-rgb), 0.3);
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--cui-body-color);
+  border-left: 4px solid var(--cui-info);
+}
+
+/* Select ricorrenza */
+.ricorrenza-config .form-control-clean,
+.ricorrenza-config .form-select {
+  border-color: rgba(var(--cui-info-rgb), 0.3);
+  background-color: var(--cui-body-bg);
+}
+
+.ricorrenza-config .form-control-clean:focus,
+.ricorrenza-config .form-select:focus {
+  border-color: var(--cui-info);
+  box-shadow: 0 0 0 3px rgba(var(--cui-info-rgb), 0.1);
+}
+
+/* Icone per ricorrenza */
+.ricorrenza-config .input-icon {
+  background-color: rgba(var(--cui-info-rgb), 0.1);
+  color: var(--cui-info);
+}
+
+/* Responsive per ricorrenza */
+@media (max-width: 768px) {
+  .ricorrenza-config {
+    padding: 0.75rem;
+    margin-top: 0.75rem;
+  }
+
+  .ricorrenza-preview {
+    padding: 0.5rem;
+    font-size: 0.8rem;
   }
 }
 

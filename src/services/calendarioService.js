@@ -6,7 +6,13 @@
  */
 
 import axios from 'axios'
-import {CreateEventoDto, EventoMapper, EventoValidator} from '@/types/backend.types'
+import {
+  CreateEventoDto,
+  EventoMapper,
+  EventoValidator,
+  TipoRicorrenza,
+  Direction
+} from '@/types/backend.types'
 
 // Configurazione base per le chiamate API
 const API_BASE_URL = 'http://localhost:8000/api'
@@ -206,39 +212,143 @@ export class EventoService {
         }
       })
 
-      // Mappa i dati del backend al formato frontend
-      return response.data.data?.map(evento => ({
-        id: evento.id,
-        titolo: evento.titolo,
-        stanza: evento.stanza,
-        dataInizio: evento.dataInizio,
-        dataFine: evento.dataFine,
-        // Il prezzo arriva già in formato decimale dal backend (es: "20.80")
-        prezzo: evento.prezzo ? parseFloat(evento.prezzo) : null,
-        createdAt: evento.createdAt,
-        specialista: evento.specialista ? {
-          id: evento.specialista.id,
-          nome: evento.specialista.nome,
-          cognome: evento.specialista.cognome,
-          nomeCompleto: `${evento.specialista.nome} ${evento.specialista.cognome}`,
-          email: evento.specialista.email,
-          telefono: evento.specialista.telefono,
-          prestazione: evento.specialista.prestazione,
-          createdAt: evento.specialista.createdAt,
-        } : null,
-        paziente: evento.paziente ? {
-          id: evento.paziente.id,
-          nome: evento.paziente.nome,
-          cognome: evento.paziente.cognome,
-          nomeCompleto: `${evento.paziente.nome} ${evento.paziente.cognome}`
-        } : null,
-      })) || []
+      // ⭐ AGGIORNATO - Usa il mapper standard per includere il campo master e isPartOfSeries
+      return response.data.data?.map(evento => EventoMapper.backendToFrontend(evento)) || []
     } catch (error) {
       console.error('Errore nel recupero eventi between:', error)
       throw error
     }
   }
+
+  // ⭐ NUOVO - Metodi per la gestione degli eventi ricorrenti
+
+  /**
+   * Crea un nuovo evento con ricorrenza
+   * @param {Object} eventoData - Dati dell'evento da creare con ricorrenza (formato frontend)
+   * @returns {Promise<Array>} Lista degli eventi creati (evento master + eventi ricorrenti)
+   */
+  static async createEventoWithRicorrenza(eventoData) {
+    try {
+      console.log('🔄 [EventoService] Creazione evento con ricorrenza:', eventoData)
+
+      // Validazione dati con ricorrenza usando il nuovo validator
+      const backendData = EventoMapper.frontendToBackendWithRicorrenza(eventoData)
+      const validation = EventoValidator.validateCreateEventoWithRicorrenza(backendData)
+
+      if (!validation.isValid) {
+        const errorMessage = `Dati non validi: ${Object.values(validation.errors).join(', ')}`
+        console.error('❌ [EventoService] Validazione fallita:', validation.errors)
+        throw new Error(errorMessage)
+      }
+
+      console.log('📤 [EventoService] Invio dati al backend:', backendData)
+
+      // Chiamata API all'endpoint ricorrenza del backend
+      const response = await apiClient.post('/ricorrenza', backendData)
+
+      // Il backend restituisce un array di eventi creati
+      const eventiCreati = response.data.data?.map(evento => EventoMapper.backendToFrontend(evento)) || []
+
+      console.log(`✅ [EventoService] Creati ${eventiCreati.length} eventi ricorrenti`)
+      return eventiCreati
+
+    } catch (error) {
+      console.error('❌ [EventoService] Errore nella creazione evento con ricorrenza:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Aggiorna eventi ricorrenti con direzione specifica
+   * @param {Object} eventoData - Dati dell'evento da aggiornare con direzione (deve includere id e direction)
+   * @returns {Promise<Array>} Lista degli eventi aggiornati
+   */
+  static async updateEventiRicorrenti(eventoData) {
+    try {
+      console.log('🔄 [EventoService] Aggiornamento eventi ricorrenti:', eventoData)
+
+      // Validazione che l'ID sia presente per l'update
+      if (!eventoData.id) {
+        throw new Error('ID evento richiesto per l\'aggiornamento di eventi ricorrenti')
+      }
+
+      // Validazione con direction per eventi ricorrenti
+      const backendData = EventoMapper.frontendToBackendUpdateRicorrenza(eventoData)
+      const validation = EventoValidator.validateUpdateEventoWithRicorrenza(backendData)
+
+      if (!validation.isValid) {
+        const errorMessage = `Dati non validi: ${Object.values(validation.errors).join(', ')}`
+        console.error('❌ [EventoService] Validazione update ricorrenza fallita:', validation.errors)
+        throw new Error(errorMessage)
+      }
+
+      console.log('📤 [EventoService] Invio update ricorrenza al backend:', backendData)
+
+      // Chiamata API all'endpoint ricorrenza per update
+      const response = await apiClient.put(`/ricorrenza/${eventoData.id}`, backendData)
+
+      // Il backend restituisce un array di eventi aggiornati
+      const eventiAggiornati = response.data.data?.map(evento => EventoMapper.backendToFrontend(evento)) || []
+
+      console.log(`✅ [EventoService] Aggiornati ${eventiAggiornati.length} eventi ricorrenti`)
+      return eventiAggiornati
+
+    } catch (error) {
+      console.error('❌ [EventoService] Errore nell\'aggiornamento eventi ricorrenti:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Elimina eventi ricorrenti con direzione specifica
+   * @param {number} eventoId - ID dell'evento da eliminare
+   * @param {string} direction - Direzione dell'eliminazione (THIS o THIS_AND_FOLLOWING)
+   * @returns {Promise<Array>} Lista degli ID eventi eliminati
+   */
+  static async deleteEventiRicorrenti(eventoId, direction = Direction.THIS) {
+    try {
+      console.log('🔄 [EventoService] Eliminazione eventi ricorrenti:', { eventoId, direction })
+
+      // Validazione parametri
+      if (!eventoId) {
+        throw new Error('ID evento richiesto per l\'eliminazione di eventi ricorrenti')
+      }
+
+      // Validazione direction
+      const deleteData = EventoMapper.frontendToBackendDeleteRicorrenza(direction)
+      const validation = EventoValidator.validateDeleteEventiRicorrenti(deleteData)
+
+      if (!validation.isValid) {
+        const errorMessage = `Dati non validi: ${Object.values(validation.errors).join(', ')}`
+        console.error('❌ [EventoService] Validazione delete ricorrenza fallita:', validation.errors)
+        throw new Error(errorMessage)
+      }
+
+      console.log('📤 [EventoService] Invio delete ricorrenza al backend:', deleteData)
+
+      // Chiamata API all'endpoint ricorrenza per eliminazione
+      const response = await apiClient.delete(`/ricorrenza/${eventoId}`, {
+        data: deleteData // DELETE con body data
+      })
+
+      // Il backend restituisce gli ID degli eventi eliminati
+      const eventiEliminatiIds = response.data.data || []
+
+      console.log(`✅ [EventoService] Eliminati ${eventiEliminatiIds.length} eventi ricorrenti:`, eventiEliminatiIds)
+      return eventiEliminatiIds
+
+    } catch (error) {
+      console.error('❌ [EventoService] Errore nell\'eliminazione eventi ricorrenti:', error)
+      throw error
+    }
+  }
 }
 
-// Esportiamo anche le utility
-export {EventoMapper, EventoValidator} from '@/types/backend.types'
+// Esportiamo anche le utility per la ricorrenza
+export {
+  EventoMapper,
+  EventoValidator,
+  TipoRicorrenza,
+  Direction,
+  RicorrenzaUtils
+} from '@/types/backend.types'

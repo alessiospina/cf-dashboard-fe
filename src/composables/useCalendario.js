@@ -18,7 +18,13 @@ import {
   FREQUENZA_EVENTO_OPTIONS,
   TipoTerapia,
   TIPI_TERAPIA_OPTIONS,
-  COLORI_TERAPIA
+  COLORI_TERAPIA,
+  // ⭐ NUOVO - Import per la ricorrenza
+  TipoRicorrenza,
+  TIPO_RICORRENZA_OPTIONS,
+  Direction,
+  DIRECTION_OPTIONS,
+  RicorrenzaUtils
 } from '@/types/backend.types'
 
 // Import dei service per specialisti, pazienti ed eventi
@@ -47,9 +53,18 @@ export function useCalendario() {
   const loadingPazienti = ref(false) // Loading specifico per pazienti
   const error = ref('')
 
+  // ⭐ NUOVO - Stato reattivo per la gestione della ricorrenza
+  const loadingRicorrenza = ref(false) // Loading specifico per operazioni ricorrenza
+  const ricorrenzaError = ref('') // Errori specifici per ricorrenza
+
   // Funzione per resettare gli errori
   const clearError = () => {
     error.value = ''
+  }
+
+  // ⭐ NUOVO - Funzione per resettare gli errori di ricorrenza
+  const clearRicorrenzaError = () => {
+    ricorrenzaError.value = ''
   }
 
 
@@ -284,6 +299,142 @@ export function useCalendario() {
       error.value = 'Errore nell\'eliminazione dell\'evento'
       console.error('Errore eliminazione evento:', err)
       throw err
+    }
+  }
+
+  // ⭐ NUOVO - Funzioni CRUD per eventi ricorrenti
+
+  /**
+   * Crea un nuovo evento con ricorrenza
+   * @param {Object} eventoData - Dati dell'evento con ricorrenza (formato frontend)
+   * @returns {Promise<Array>} Lista degli eventi creati
+   */
+  const creaEventoConRicorrenza = async (eventoData) => {
+    loadingRicorrenza.value = true
+    ricorrenzaError.value = ''
+
+    try {
+      console.log('🔄 [useCalendario] Creazione evento con ricorrenza:', eventoData)
+
+      // Validazione preliminare dati ricorrenza
+      if (eventoData.ricorrenza) {
+        // Valida che la data fine ricorrenza sia nel range consentito
+        if (!RicorrenzaUtils.isDataFineRicorrenzaValida(eventoData.ricorrenza.dataFineRicorrenza)) {
+          throw new Error('Data fine ricorrenza non valida. Deve essere tra domani e il 31 dicembre dell\'anno corrente.')
+        }
+
+        // Calcola e mostra quanti eventi verranno creati
+        const numeroEventi = RicorrenzaUtils.calcolaNumeroEventiRicorrenti(
+          eventoData.dataInizio,
+          eventoData.ricorrenza.dataFineRicorrenza,
+          eventoData.ricorrenza.tipo
+        )
+
+        console.log(`📊 [useCalendario] Verranno creati circa ${numeroEventi} eventi ricorrenti`)
+      }
+
+      // Usa il service del backend per creare l'evento con ricorrenza
+      const eventiCreati = await EventoService.createEventoWithRicorrenza(eventoData)
+
+      // Aggiorna la lista locale degli eventi aggiungendo tutti i nuovi eventi
+      eventi.value.push(...eventiCreati)
+
+      console.log(`✅ [useCalendario] Creati ${eventiCreati.length} eventi ricorrenti con successo`)
+      return eventiCreati
+
+    } catch (err) {
+      ricorrenzaError.value = 'Errore nella creazione dell\'evento ricorrente'
+      console.error('❌ [useCalendario] Errore creazione evento ricorrente:', err)
+      throw err
+    } finally {
+      loadingRicorrenza.value = false
+    }
+  }
+
+  /**
+   * Aggiorna eventi ricorrenti con direzione specifica
+   * @param {Object} eventoData - Dati dell'evento da aggiornare con direction
+   * @returns {Promise<Array>} Lista degli eventi aggiornati
+   */
+  const aggiornaEventiRicorrenti = async (eventoData) => {
+    loadingRicorrenza.value = true
+    ricorrenzaError.value = ''
+
+    try {
+      console.log('🔄 [useCalendario] Aggiornamento eventi ricorrenti:', eventoData)
+
+      // Validazione ID evento
+      if (!eventoData.id) {
+        throw new Error('ID evento richiesto per l\'aggiornamento di eventi ricorrenti')
+      }
+
+      // Validazione direction
+      if (!eventoData.direction || !Object.values(Direction).includes(eventoData.direction)) {
+        throw new Error('Direzione aggiornamento obbligatoria e valida')
+      }
+
+      // Usa il service del backend per aggiornare gli eventi ricorrenti
+      const eventiAggiornati = await EventoService.updateEventiRicorrenti(eventoData)
+
+      // Aggiorna la lista locale degli eventi sostituendo quelli modificati
+      eventiAggiornati.forEach(eventoAggiornato => {
+        const index = eventi.value.findIndex(e => e.id.toString() === eventoAggiornato.id.toString())
+        if (index !== -1) {
+          eventi.value[index] = eventoAggiornato
+        }
+      })
+
+      console.log(`✅ [useCalendario] Aggiornati ${eventiAggiornati.length} eventi ricorrenti con successo`)
+      return eventiAggiornati
+
+    } catch (err) {
+      ricorrenzaError.value = 'Errore nell\'aggiornamento degli eventi ricorrenti'
+      console.error('❌ [useCalendario] Errore aggiornamento eventi ricorrenti:', err)
+      throw err
+    } finally {
+      loadingRicorrenza.value = false
+    }
+  }
+
+  /**
+   * Elimina eventi ricorrenti con direzione specifica
+   * @param {number} eventoId - ID dell'evento da eliminare
+   * @param {string} direction - Direzione dell'eliminazione (THIS o THIS_AND_FOLLOWING)
+   * @returns {Promise<Array>} Lista degli ID eventi eliminati
+   */
+  const eliminaEventiRicorrenti = async (eventoId, direction = Direction.THIS) => {
+    loadingRicorrenza.value = true
+    ricorrenzaError.value = ''
+
+    try {
+      console.log('🔄 [useCalendario] Eliminazione eventi ricorrenti:', { eventoId, direction })
+
+      // Validazione parametri
+      if (!eventoId) {
+        throw new Error('ID evento richiesto per l\'eliminazione di eventi ricorrenti')
+      }
+
+      if (!Object.values(Direction).includes(direction)) {
+        throw new Error('Direzione eliminazione non valida')
+      }
+
+      // Usa il service del backend per eliminare gli eventi ricorrenti
+      const eventiEliminatiIds = await EventoService.deleteEventiRicorrenti(eventoId, direction)
+
+      // Rimuovi dalla lista locale tutti gli eventi eliminati
+      eventi.value = eventi.value.filter(evento =>
+        !eventiEliminatiIds.includes(parseInt(evento.id))
+      )
+
+      console.log(`✅ [useCalendario] Eliminati ${eventiEliminatiIds.length} eventi ricorrenti con successo`)
+      return eventiEliminatiIds
+
+    } catch (err) {
+      ricorrenzaError.value = 'Errore nell\'eliminazione degli eventi ricorrenti'
+      console.error('❌ [useCalendario] Errore eliminazione eventi ricorrenti:', err)
+      throw err
+    } finally {
+      loadingRicorrenza.value = false
     }
   }
 
@@ -612,6 +763,104 @@ export function useCalendario() {
     }
   }
 
+  // ⭐ NUOVO - Utilità specifiche per la ricorrenza
+
+  /**
+   * Controlla se un evento fa parte di una serie ricorrente
+   * @param {Object} evento - Evento da controllare
+   * @returns {boolean} - True se l'evento fa parte di una serie ricorrente
+   */
+  const isEventoRicorrente = (evento) => {
+    return evento && evento.isPartOfSeries === true
+  }
+
+  /**
+   * Ottiene tutti gli eventi correlati in una serie ricorrente
+   * @param {Object} eventoBase - Evento di cui trovare la serie
+   * @returns {Array} - Lista degli eventi della stessa serie
+   */
+  const getEventiSerie = (eventoBase) => {
+    if (!eventoBase || !isEventoRicorrente(eventoBase)) {
+      return [eventoBase].filter(Boolean)
+    }
+
+    // Se l'evento ha un master, filtra per master
+    // Se l'evento è master (master = null), filtra per eventi che hanno questo ID come master
+    const masterId = eventoBase.master || eventoBase.id
+
+    return eventi.value.filter(evento => {
+      // Include l'evento master stesso (master = null e ID corrispondente)
+      if (!evento.master && evento.id.toString() === masterId.toString()) {
+        return true
+      }
+      // Include gli eventi che hanno questo master
+      return evento.master && evento.master.toString() === masterId.toString()
+    })
+  }
+
+  /**
+   * Genera un preview descrittivo della ricorrenza
+   * @param {Object} ricorrenzaData - Dati ricorrenza {tipo, dataFineRicorrenza}
+   * @param {Date} dataInizio - Data del primo evento
+   * @returns {string} - Descrizione leggibile della ricorrenza
+   */
+  const getPreviewRicorrenza = (ricorrenzaData, dataInizio) => {
+    if (!ricorrenzaData || !ricorrenzaData.tipo || !ricorrenzaData.dataFineRicorrenza) {
+      return 'Evento singolo'
+    }
+
+    try {
+      const numeroEventi = RicorrenzaUtils.calcolaNumeroEventiRicorrenti(
+        dataInizio,
+        ricorrenzaData.dataFineRicorrenza,
+        ricorrenzaData.tipo
+      )
+
+      return RicorrenzaUtils.getDescrizioneRicorrenza(
+        ricorrenzaData.tipo,
+        ricorrenzaData.dataFineRicorrenza,
+        numeroEventi
+      )
+    } catch (error) {
+      console.warn('Errore nel calcolo preview ricorrenza:', error)
+      return 'Ricorrenza non valida'
+    }
+  }
+
+  /**
+   * Valida i dati di ricorrenza prima dell'invio
+   * @param {Object} ricorrenzaData - Dati ricorrenza da validare
+   * @returns {Object} - {isValid: boolean, errors: Array}
+   */
+  const validaRicorrenza = (ricorrenzaData) => {
+    const errors = []
+
+    if (!ricorrenzaData) {
+      return { isValid: true, errors: [] } // Ricorrenza opzionale
+    }
+
+    // Tipo ricorrenza obbligatorio se è presente la ricorrenza
+    if (!ricorrenzaData.tipo || !Object.values(TipoRicorrenza).includes(ricorrenzaData.tipo)) {
+      errors.push('Tipo ricorrenza obbligatorio e valido')
+    }
+
+    // Data fine ricorrenza obbligatoria
+    if (!ricorrenzaData.dataFineRicorrenza) {
+      errors.push('Data fine ricorrenza obbligatoria')
+    } else {
+      // Valida il range di date
+      if (!RicorrenzaUtils.isDataFineRicorrenzaValida(ricorrenzaData.dataFineRicorrenza)) {
+        const dataMaxima = RicorrenzaUtils.getDataMassimaFineRicorrenza()
+        errors.push(`Data fine ricorrenza deve essere tra domani e il ${new Date(dataMaxima).toLocaleDateString('it-IT')}`)
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    }
+  }
+
   return {
     // Stato
     eventi,
@@ -622,6 +871,9 @@ export function useCalendario() {
     loadingSpecialisti, // Loading specifico per specialisti
     loadingPazienti, // Loading specifico per pazienti
     error,
+    // ⭐ NUOVO - Stato ricorrenza
+    loadingRicorrenza, // Loading specifico per operazioni ricorrenza
+    ricorrenzaError, // Errori specifici per ricorrenza
 
     // Metodi principali
     caricaEventi, // Carica eventi per una data specifica
@@ -635,6 +887,11 @@ export function useCalendario() {
     aggiornaEvento,
     eliminaEvento,
 
+    // ⭐ NUOVO - Metodi ricorrenza
+    creaEventoConRicorrenza, // Crea evento con ricorrenza
+    aggiornaEventiRicorrenti, // Aggiorna eventi ricorrenti con direction
+    eliminaEventiRicorrenti, // Elimina eventi ricorrenti con direction
+
     // Utilità
     filtraEventi,
     estraiSpecialistiDaEventi, // Funzione per estrarre specialisti da eventi
@@ -645,6 +902,12 @@ export function useCalendario() {
     formatDuration,
     formatDateForAPI, // Utility per formattare date per API
     clearError, // Utility per pulire errori
+    // ⭐ NUOVO - Utilità ricorrenza
+    clearRicorrenzaError, // Utility per pulire errori ricorrenza
+    isEventoRicorrente, // Controlla se evento fa parte di serie ricorrente
+    getEventiSerie, // Ottiene tutti gli eventi di una serie ricorrente
+    getPreviewRicorrenza, // Genera preview descrittivo ricorrenza
+    validaRicorrenza, // Valida dati ricorrenza
 
     // Costanti
     TipoTerapia,
@@ -653,6 +916,12 @@ export function useCalendario() {
     FrequenzaEvento,
     FREQUENZA_EVENTO_OPTIONS,
     EventoMapper,
-    EventoValidator
+    EventoValidator,
+    // ⭐ NUOVO - Costanti ricorrenza
+    TipoRicorrenza,
+    TIPO_RICORRENZA_OPTIONS,
+    Direction,
+    DIRECTION_OPTIONS,
+    RicorrenzaUtils
   }
 }

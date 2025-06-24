@@ -1,802 +1,530 @@
-<template>
-  <div class="attivita-page">
-    <!-- Header della pagina -->
-    <CRow class="mb-4">
-      <CCol>
-        <h2 class="page-title">
-          <CIcon icon="cil-task" class="me-2"/>
-          Attività Centro
-        </h2>
-        <p class="text-muted">
-          Visualizza tutte le attività svolte al centro con informazioni complete su pazienti, specialisti e prestazioni
-        </p>
-      </CCol>
-      <CCol md="auto">
-        <!-- Statistiche rapide -->
-        <div class="stats-cards" v-if="!loading && filteredAttivita.length > 0">
-          <CRow class="g-2">
-            <CCol>
-              <CCard class="text-center border-0 bg-primary text-white">
-                <CCardBody class="py-2">
-                  <h6 class="mb-0">{{ statistiche.totaleAttivita }}</h6>
-                  <small>Attività</small>
-                </CCardBody>
-              </CCard>
-            </CCol>
-            <CCol>
-              <CCard class="text-center border-0 bg-success text-white">
-                <CCardBody class="py-2">
-                  <h6 class="mb-0">{{ statistiche.pazientiUnici }}</h6>
-                  <small>Pazienti</small>
-                </CCardBody>
-              </CCard>
-            </CCol>
-            <CCol>
-              <CCard class="text-center border-0 bg-info text-white">
-                <CCardBody class="py-2">
-                  <h6 class="mb-0">{{ statistiche.specialistiUnichi }}</h6>
-                  <small>Specialisti</small>
-                </CCardBody>
-              </CCard>
-            </CCol>
-          </CRow>
-        </div>
-      </CCol>
-    </CRow>
-
-    <!-- Notifica -->
-    <CAlert
-      v-if="notification"
-      :color="notification.type === 'error' ? 'danger' : notification.type"
-      dismissible
-      @close="clearNotification"
-      class="mb-4"
-    >
-      {{ notification.message }}
-    </CAlert>
-
-    <!-- Card filtri -->
-    <CCard class="mb-4">
-      <CCardHeader>
-        <CRow class="align-items-center">
-          <CCol>
-            <h5 class="mb-0">
-              <CIcon icon="cil-filter" class="me-2"/>
-              Filtri
-            </h5>
-          </CCol>
-          <CCol md="auto">
-            <CButton
-              variant="outline"
-              color="secondary"
-              size="sm"
-              @click="resetFiltri"
-              :disabled="loading"
-            >
-              <CIcon icon="cil-refresh" class="me-1"/>
-              Reset Filtri
-            </CButton>
-          </CCol>
-        </CRow>
-      </CCardHeader>
-      <CCardBody>
-        <CRow class="g-3">
-          <!-- Filtro Prestazione -->
-          <CCol md="3">
-            <CFormLabel for="filtro-prestazione">Prestazione</CFormLabel>
-            <CFormSelect
-              id="filtro-prestazione"
-              v-model="filtri.prestazioneId"
-              @change="applicaFiltriConDebounce"
-              :disabled="loading"
-            >
-              <option value="">Tutte le prestazioni</option>
-              <option
-                v-for="prestazione in prestazioniOptions"
-                :key="prestazione.value"
-                :value="prestazione.value"
-              >
-                {{ prestazione.label }}
-              </option>
-            </CFormSelect>
-          </CCol>
-
-          <!-- Filtro Specialista -->
-          <CCol md="3">
-            <CFormLabel for="filtro-specialista">Specialista</CFormLabel>
-            <CFormSelect
-              id="filtro-specialista"
-              v-model="filtri.specialistaId"
-              @change="applicaFiltriConDebounce"
-              :disabled="loading"
-            >
-              <option value="">Tutti gli specialisti</option>
-              <option
-                v-for="specialista in specialistiOptions"
-                :key="specialista.value"
-                :value="specialista.value"
-              >
-                {{ specialista.label }}{{ specialista.prestazione ? ' (' + specialista.prestazione + ')' : '' }}
-              </option>
-            </CFormSelect>
-          </CCol>
-
-          <!-- Filtro Data Inizio -->
-          <CCol md="3">
-            <CFormLabel for="filtro-data-inizio">Data Inizio</CFormLabel>
-            <CFormInput
-              id="filtro-data-inizio"
-              type="date"
-              v-model="filtri.dataInizio"
-              @change="applicaFiltriConDebounce"
-              :disabled="loading"
-            />
-          </CCol>
-
-          <!-- Filtro Data Fine -->
-          <CCol md="3">
-            <CFormLabel for="filtro-data-fine">Data Fine</CFormLabel>
-            <CFormInput
-              id="filtro-data-fine"
-              type="date"
-              v-model="filtri.dataFine"
-              @change="applicaFiltriConDebounce"
-              :disabled="loading"
-            />
-          </CCol>
-        </CRow>
-      </CCardBody>
-    </CCard>
-
-    <!-- Card contenitore principale -->
-    <CCard>
-      <CCardHeader>
-        <CRow class="align-items-center">
-          <CCol md="6">
-            <h5 class="mb-0">Lista Attività</h5>
-            <small v-if="!loading && sortedAndFilteredAttivita.length > 0" class="text-muted">
-              {{ paginationInfo.showing }} di {{ paginationInfo.total }} attività
-            </small>
-          </CCol>
-          <CCol md="6">
-            <!-- Barra di ricerca -->
-            <CInputGroup>
-              <CFormInput
-                v-model="searchTerm"
-                placeholder="Cerca per paziente, specialista, prestazione..."
-                :disabled="loading"
-              />
-              <CInputGroupText>
-                <CIcon icon="cil-magnifying-glass"/>
-              </CInputGroupText>
-            </CInputGroup>
-          </CCol>
-        </CRow>
-      </CCardHeader>
-
-      <CCardBody>
-        <!-- Stato di caricamento -->
-        <div v-if="loading" class="text-center py-4">
-          <CSpinner color="primary"/>
-          <p class="mt-2 text-muted">Caricamento attività...</p>
-        </div>
-
-        <!-- Messaggio di errore -->
-        <CAlert v-else-if="error" color="danger">
-          {{ error }}
-          <CButton
-            color="link"
-            size="sm"
-            @click="initializeData"
-            class="ms-2"
-          >
-            Riprova
-          </CButton>
-        </CAlert>
-
-        <!-- Tabella attività -->
-        <div v-else-if="sortedAndFilteredAttivita.length > 0">
-          <!-- Info filtri attivi -->
-          <CRow class="align-items-center mb-3" v-if="hasActiveFiltri">
-            <CCol>
-              <div class="d-flex flex-wrap gap-1">
-                <CBadge
-                  v-if="filtri.prestazioneId"
-                  color="primary"
-                  class="active-filter-badge"
-                >
-                  {{ getPrestazioneLabel(filtri.prestazioneId) }}
-                  <CButton
-                    variant="ghost"
-                    size="sm"
-                    @click="clearFiltro('prestazioneId')"
-                    class="ms-1 p-0"
-                    style="font-size: 0.7rem;"
-                  >
-                    ×
-                  </CButton>
-                </CBadge>
-                <CBadge
-                  v-if="filtri.specialistaId"
-                  color="info"
-                  class="active-filter-badge"
-                >
-                  {{ getSpecialistaLabel(filtri.specialistaId) }}
-                  <CButton
-                    variant="ghost"
-                    size="sm"
-                    @click="clearFiltro('specialistaId')"
-                    class="ms-1 p-0"
-                    style="font-size: 0.7rem;"
-                  >
-                    ×
-                  </CButton>
-                </CBadge>
-                <CBadge
-                  v-if="filtri.dataInizio || filtri.dataFine"
-                  color="success"
-                  class="active-filter-badge"
-                >
-                  {{ getDateRangeLabel() }}
-                  <CButton
-                    variant="ghost"
-                    size="sm"
-                    @click="clearDateFilters"
-                    class="ms-1 p-0"
-                    style="font-size: 0.7rem;"
-                  >
-                    ×
-                  </CButton>
-                </CBadge>
-              </div>
-            </CCol>
-          </CRow>
-
-          <!-- Tabella responsive con ordinamento -->
-          <CTable hover responsive striped>
-            <CTableHead>
-              <CTableRow>
-                <!-- Data Attività - Sortable -->
-                <CTableHeaderCell
-                  scope="col"
-                  :class="getSortClass('dataEvento')"
-                  @click="handleSort('dataEvento')"
-                  style="cursor: pointer; user-select: none; width: 120px;"
-                >
-                  <div class="d-flex align-items-center justify-content-between">
-                    <span>Data</span>
-                    <CIcon
-                      :icon="getSortIcon('dataEvento')"
-                      size="sm"
-                      class="sort-icon"
-                    />
-                  </div>
-                </CTableHeaderCell>
-
-                <!-- Paziente - Sortable -->
-                <CTableHeaderCell
-                  scope="col"
-                  :class="getSortClass('paziente')"
-                  @click="handleSort('paziente')"
-                  style="cursor: pointer; user-select: none;"
-                >
-                  <div class="d-flex align-items-center justify-content-between">
-                    <span>Paziente</span>
-                    <CIcon
-                      :icon="getSortIcon('paziente')"
-                      size="sm"
-                      class="sort-icon"
-                    />
-                  </div>
-                </CTableHeaderCell>
-
-                <!-- Specialista - Sortable -->
-                <CTableHeaderCell
-                  scope="col"
-                  :class="getSortClass('specialista')"
-                  @click="handleSort('specialista')"
-                  style="cursor: pointer; user-select: none;"
-                >
-                  <div class="d-flex align-items-center justify-content-between">
-                    <span>Specialista</span>
-                    <CIcon
-                      :icon="getSortIcon('specialista')"
-                      size="sm"
-                      class="sort-icon"
-                    />
-                  </div>
-                </CTableHeaderCell>
-
-                <!-- Prestazione - Sortable -->
-                <CTableHeaderCell
-                  scope="col"
-                  :class="getSortClass('prestazione')"
-                  @click="handleSort('prestazione')"
-                  style="cursor: pointer; user-select: none;"
-                >
-                  <div class="d-flex align-items-center justify-content-between">
-                    <span>Prestazione</span>
-                    <CIcon
-                      :icon="getSortIcon('prestazione')"
-                      size="sm"
-                      class="sort-icon"
-                    />
-                  </div>
-                </CTableHeaderCell>
-              </CTableRow>
-            </CTableHead>
-            <CTableBody>
-              <CTableRow
-                v-for="attivita in paginatedAttivita"
-                :key="attivita.id"
-                class="table-row-hover"
-              >
-                <!-- Data -->
-                <CTableDataCell>
-                  <strong>{{ formatDate(attivita.evento.dataEvento) }}</strong>
-                </CTableDataCell>
-
-                <!-- Paziente -->
-                <CTableDataCell>
-                  <div v-if="attivita.paziente" class="paziente-info">
-                    <div class="fw-semibold">
-                      {{ attivita.paziente.nomeCompleto }}
-                    </div>
-                    <small class="text-muted d-block">
-                      CF: {{ attivita.paziente.codiceFiscale }}
-                    </small>
-                    <small class="text-muted d-block">
-                      {{ formatDate(attivita.paziente.dataDiNascita) }}
-                    </small>
-                  </div>
-                  <span v-else class="text-muted">-</span>
-                </CTableDataCell>
-
-                <!-- Specialista -->
-                <CTableDataCell>
-                  <div v-if="attivita.specialista" class="specialista-info">
-                    <div class="fw-semibold">
-                      {{ attivita.specialista.nomeCompleto }}
-                    </div>
-                    <small v-if="attivita.specialista.email" class="text-muted d-block">
-                      {{ attivita.specialista.email }}
-                    </small>
-                  </div>
-                  <span v-else class="text-muted">-</span>
-                </CTableDataCell>
-
-                <!-- Prestazione -->
-                <CTableDataCell>
-                  <div v-if="attivita.prestazione" class="prestazione-info">
-                    <CBadge
-                      :style="{ backgroundColor: attivita.prestazione.color, color: getContrastColor(attivita.prestazione.color) }"
-                      class="prestazione-badge"
-                    >
-                      {{ attivita.prestazione.tipologia }}
-                    </CBadge>
-                  </div>
-                  <span v-else class="text-muted">-</span>
-                </CTableDataCell>
-              </CTableRow>
-            </CTableBody>
-          </CTable>
-
-          <!-- Paginazione -->
-          <CRow class="align-items-center mt-4" v-if="totalPages > 1">
-            <CCol md="6">
-              <p class="text-muted small mb-0">
-                Pagina {{ currentPage }} di {{ totalPages }}
-                ({{ paginationInfo.start }}-{{ paginationInfo.end }} di {{ paginationInfo.total }})
-              </p>
-            </CCol>
-            <CCol md="6">
-              <CPagination
-                class="justify-content-end"
-                :pages="totalPages"
-                :active-page="currentPage"
-                @item-click="changePage"
-                size="sm"
-              />
-            </CCol>
-          </CRow>
-        </div>
-
-        <!-- Stato vuoto -->
-        <div v-else class="text-center py-5">
-          <CIcon icon="cil-task" size="3xl" class="text-muted mb-3"/>
-          <h5 class="text-muted">
-            {{ searchTerm || hasActiveFiltri ? 'Nessuna attività trovata' : 'Nessuna attività presente' }}
-          </h5>
-          <p class="text-muted">
-            {{
-              searchTerm || hasActiveFiltri
-                ? 'Prova a modificare i criteri di ricerca o i filtri'
-                : 'Non ci sono attività registrate per il periodo selezionato'
-            }}
-          </p>
-          <CButton
-            v-if="hasActiveFiltri"
-            color="primary"
-            @click="resetFiltri"
-          >
-            <CIcon icon="cil-refresh" class="me-2"/>
-            Reset Filtri
-          </CButton>
-        </div>
-      </CCardBody>
-    </CCard>
-  </div>
-</template>
-
-<script setup>
 /**
- * Pagina Gestione Attività
- *
- * Questa pagina mostra tutte le attività del centro con informazioni complete
- * su pazienti, specialisti, prestazioni ed eventi. Include funzionalità di:
- * - Filtraggi dinamici per prestazione, specialista e periodo
- * - Ricerca testuale
- * - Ordinamento colonne
- * - Paginazione
- * - Statistiche riassuntive
+ * Tipi TypeScript che riflettono le entità backend
+ * Questi tipi sono allineati con le entità NestJS del backend
  */
-import {ref, computed, onMounted, onUnmounted, watch} from 'vue'
-import {useAttivita} from '@/composables/useAttivita'
 
-// Utilizziamo il composable per la logica di business delle attività
-const {
-  filteredAttivita,
-  loading,
-  error,
-  filtri,
-  notification,
-  searchTerm,
-  prestazioni,
-  specialisti,
-  prestazioniOptions,
-  specialistiOptions,
-  statistiche,
-  initializeData,
-  applicaFiltri,
-  resetFiltri,
-  clearNotification,
-  formatDate
-} = useAttivita()
+// Enum per i tipi di terapia (dal backend TipoTerapia enum)
+export const TipoTerapia = {
+  LOGOPEDIA: 'LOGOPEDIA',
+  NEUROPSICHIATRIA_INFANTILE: 'NEUROPSICHIATRIA_INFANTILE',
+  NEUROPSICOMOTRICITÀ: 'NEUROPSICOMOTRICITÀ',
+  TERAPIA_ABA: 'TERAPIA_ABA',
+  PSICOLOGA: 'PSICOLOGA',
+  COLLOQUIO_CONOSCITIVO: 'COLLOQUIO_CONOSCITIVO'
+}
 
-// Stati locali per paginazione e ordinamento
-const currentPage = ref(1)
-const itemsPerPage = ref(10)
-const sortColumn = ref('dataEvento')
-const sortDirection = ref('desc')
+// Opzioni per la select dei tipi di terapia
+export const TIPI_TERAPIA_OPTIONS = [
+  {value: TipoTerapia.LOGOPEDIA, label: 'Logopedia'},
+  {value: TipoTerapia.NEUROPSICHIATRIA_INFANTILE, label: 'Neuropsichiatria Infantile'},
+  {value: TipoTerapia.NEUROPSICOMOTRICITÀ, label: 'Neuropsicomotricità'},
+  {value: TipoTerapia.TERAPIA_ABA, label: 'Terapia ABA'},
+  {value: TipoTerapia.PSICOLOGA, label: 'Psicologa'},
+  {value: TipoTerapia.COLLOQUIO_CONOSCITIVO, label: 'Colloquio Conoscitivo'}
+]
 
-// Computed properties per paginazione e ordinamento
-const paginationInfo = computed(() => {
-  const total = sortedAndFilteredAttivita.value.length
-  const itemsPerPageNum = Number(itemsPerPage.value)
-  const start = total === 0 ? 0 : (currentPage.value - 1) * itemsPerPageNum + 1
-  const end = Math.min(currentPage.value * itemsPerPageNum, total)
-  const showing = `${start}-${end}`
+// Colori associati ai tipi di terapia per la UI
+export const COLORI_TERAPIA = {
+  [TipoTerapia.LOGOPEDIA]: '#0d6efd',
+  [TipoTerapia.NEUROPSICHIATRIA_INFANTILE]: '#198754',
+  [TipoTerapia.NEUROPSICOMOTRICITÀ]: '#17a2b8',
+  [TipoTerapia.TERAPIA_ABA]: '#ffc107',
+  [TipoTerapia.PSICOLOGA]: '#6f42c1',
+  [TipoTerapia.COLLOQUIO_CONOSCITIVO]: '#6c757d'
+}
 
-  return {total, start, end, showing}
-})
+// Enum per la frequenza degli eventi (dal backend)
+export const FrequenzaEvento = {
+  GIORNALIERA: 'GIORNALIERA',
+  SETTIMANALE: 'SETTIMANALE',
+  MENSILE: 'MENSILE',
+  UNICA: 'UNICA'
+}
 
-const totalPages = computed(() => Math.ceil(sortedAndFilteredAttivita.value.length / itemsPerPage.value))
+// Opzioni per la select della frequenza
+export const FREQUENZA_EVENTO_OPTIONS = [
+  {value: FrequenzaEvento.UNICA, label: 'Evento Unico'},
+  {value: FrequenzaEvento.GIORNALIERA, label: 'Ripetizione Giornaliera'},
+  {value: FrequenzaEvento.SETTIMANALE, label: 'Ripetizione Settimanale'},
+  {value: FrequenzaEvento.MENSILE, label: 'Ripetizione Mensile'}
+]
 
-// Computed per ordinamento e filtraggi
-const sortedAndFilteredAttivita = computed(() => {
-  let result = [...filteredAttivita.value]
+// ⭐ NUOVO - Enum per i tipi di ricorrenza (allineato al backend)
+export const TipoRicorrenza = {
+  GIORNALIERA: 'GIORNALIERA',
+  SETTIMANALE: 'SETTIMANALE',
+  MENSILE: 'MENSILE'
+}
 
-  // Applicazione ordinamento se presente
-  if (sortColumn.value) {
-    result.sort((a, b) => {
-      let valueA, valueB
+// ⭐ NUOVO - Opzioni per la select del tipo ricorrenza
+export const TIPO_RICORRENZA_OPTIONS = [
+  {value: TipoRicorrenza.SETTIMANALE, label: 'Ripeti Settimanalmente'},
+  {value: TipoRicorrenza.MENSILE, label: 'Ripeti Mensilmente'},
+  {value: TipoRicorrenza.GIORNALIERA, label: 'Ripeti Giornalmente'}
+]
 
-      switch (sortColumn.value) {
-        case 'dataEvento':
-          valueA = a.evento.dataEvento ? new Date(a.evento.dataEvento) : new Date(0)
-          valueB = b.evento.dataEvento ? new Date(b.evento.dataEvento) : new Date(0)
-          break
-        case 'paziente':
-          valueA = (a.paziente?.nomeCompleto || '').toLowerCase()
-          valueB = (b.paziente?.nomeCompleto || '').toLowerCase()
-          break
-        case 'specialista':
-          valueA = (a.specialista?.nomeCompleto || '').toLowerCase()
-          valueB = (b.specialista?.nomeCompleto || '').toLowerCase()
-          break
-        case 'prestazione':
-          valueA = (a.prestazione?.tipologia || '').toLowerCase()
-          valueB = (b.prestazione?.tipologia || '').toLowerCase()
-          break
-        default:
-          valueA = ''
-          valueB = ''
-      }
+// ⭐ NUOVO - Enum per la direzione delle modifiche eventi ricorrenti
+export const Direction = {
+  THIS: 'THIS', // Solo evento corrente
+  THIS_AND_FOLLOWING: 'THIS_AND_FOLLOWING' // Evento corrente e successivi
+}
 
-      let comparison = 0
-      if (valueA > valueB) comparison = 1
-      else if (valueA < valueB) comparison = -1
+// ⭐ NUOVO - Opzioni per la select della direzione
+export const DIRECTION_OPTIONS = [
+  {value: Direction.THIS, label: 'Solo questo evento'},
+  {value: Direction.THIS_AND_FOLLOWING, label: 'Questo evento e i successivi'}
+]
 
-      return sortDirection.value === 'desc' ? comparison * -1 : comparison
+/**
+ * Interfaccia per l'entità Evento (backend)
+ * Corrisponde a evento.entity.ts e evento.dto.ts
+ */
+export class EventoBackend {
+  constructor(data = {}) {
+    this.id = data.id || null
+    this.titolo = data.titolo || ''
+    this.stanza = data.stanza || ''
+    this.dataInizio = data.dataInizio || null
+    this.dataFine = data.dataFine || null
+    this.prezzo = data.prezzo || null // Campo prezzo aggiunto
+    this.master = data.master || null // ⭐ NUOVO - Campo master per eventi ricorrenti
+    this.createdAt = data.createdAt || null
+    this.paziente = data.paziente || null
+    this.specialista = data.specialista || null
+  }
+}
+
+/**
+ * DTO per la creazione di un evento
+ * Corrisponde a CreateEventoDto del backend
+ */
+export class CreateEventoDto {
+  constructor(data = {}) {
+    this.titolo = data.titolo || ''
+    this.stanza = data.stanza || ''
+    this.professionista = data.professionista || ''
+    this.dataInizio = data.dataInizio || null
+    this.dataFine = data.dataFine || null
+    this.prezzo = data.prezzo || null // Campo prezzo aggiunto
+    this.pazienteID = data.pazienteID || null
+    this.specialistaID = data.specialistaID || null
+  }
+}
+
+// ⭐ NUOVO - DTO per la creazione della ricorrenza (corrisponde a CreateRicorrenzaDTO del backend)
+export class CreateRicorrenzaDto {
+  constructor(data = {}) {
+    this.tipo = data.tipo || null // TipoRicorrenza (GIORNALIERA, SETTIMANALE, MENSILE)
+    this.dataFineRicorrenza = data.dataFineRicorrenza || null // Data fine ripetizione
+  }
+}
+
+// ⭐ NUOVO - DTO per la creazione di eventi con ricorrenza (corrisponde a CreateEventoWithRicorrenzaDTO del backend)
+export class CreateEventoWithRicorrenzaDto extends CreateEventoDto {
+  constructor(data = {}) {
+    super(data)
+    this.ricorrenza = data.ricorrenza ? new CreateRicorrenzaDto(data.ricorrenza) : null
+  }
+}
+
+// ⭐ NUOVO - DTO per l'aggiornamento di eventi ricorrenti (corrisponde a UpdateEventoWithRicorrenzaDTO del backend)
+export class UpdateEventoWithRicorrenzaDto extends CreateEventoDto {
+  constructor(data = {}) {
+    super(data)
+    this.id = data.id || null // ID dell'evento da modificare
+    this.direction = data.direction || Direction.THIS // Direzione della modifica
+  }
+}
+
+// ⭐ NUOVO - DTO per la cancellazione di eventi ricorrenti (corrisponde a CancellaEventiRicorrentiDTO del backend)
+export class CancellaEventiRicorrentiDto {
+  constructor(data = {}) {
+    this.direction = data.direction || Direction.THIS // Direzione della cancellazione
+  }
+}
+
+/**
+ * Interfaccia per il mapping tra frontend e backend
+ * Definisce come convertire i dati tra le due strutture
+ */
+export class EventoMapper {
+  /**
+   * Converte un evento dal formato frontend al formato backend
+   * @param {Object} eventoFrontend - Evento nel formato frontend attuale
+   * @returns {CreateEventoDto} - Evento nel formato backend allineato a NestJS
+   */
+  static frontendToBackend(eventoFrontend) {
+    return new CreateEventoDto({
+      titolo: eventoFrontend.titolo.toUpperCase(),
+      stanza: eventoFrontend.stanza.toUpperCase(),
+      dataInizio: eventoFrontend.dataInizio,
+      dataFine: eventoFrontend.dataFine,
+      // Il prezzo rimane in formato decimale come ricevuto (es: 25.50)
+      prezzo: eventoFrontend.prezzo ?? null,
+      pazienteID: eventoFrontend.pazienteID ?? null,
+      specialistaID: eventoFrontend.specialistaID ?? null,
     })
   }
 
-  return result
-})
-
-// Computed per paginazione
-const paginatedAttivita = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage.value
-  const end = start + Number(itemsPerPage.value)
-  return sortedAndFilteredAttivita.value.slice(start, end)
-})
-
-// Computed per verificare se ci sono filtri attivi
-const hasActiveFiltri = computed(() => {
-  return filtri.prestazioneId ||
-    filtri.specialistaId ||
-    filtri.dataInizio ||
-    filtri.dataFine
-})
-
-// Metodi per paginazione
-const changePage = (pageNumber) => {
-  if (pageNumber >= 1 && pageNumber <= totalPages.value) {
-    currentPage.value = pageNumber
-  }
-}
-
-// Metodi per ordinamento
-const handleSort = (column) => {
-  if (sortColumn.value === column) {
-    // Cambia direzione se è la stessa colonna
-    if (sortDirection.value === 'asc') {
-      sortDirection.value = 'desc'
-    } else {
-      // Reset ordinamento se era già desc
-      sortColumn.value = null
-      sortDirection.value = 'asc'
+  /**
+   * Converte un evento dal formato backend al formato frontend
+   * @param {EventoBackend} eventoBackend - Evento nel formato backend
+   * @returns {Object} - Evento nel formato frontend
+   */
+  static backendToFrontend(eventoBackend) {
+    return {
+      id: eventoBackend.id?.toString(),
+      titolo: eventoBackend.titolo,
+      stanza: eventoBackend.stanza,
+      // Il prezzo arriva già in formato decimale dal backend (es: "20.80")
+      prezzo: eventoBackend.prezzo !== null ? eventoBackend.prezzo : null,
+      // ⭐ NUOVO - Campo master per eventi ricorrenti
+      master: eventoBackend.master,
+      specialista: eventoBackend.specialista ? {
+        id: eventoBackend.specialista.id,
+        nome: eventoBackend.specialista.nome,
+        cognome: eventoBackend.specialista.cognome,
+        nomeCompleto: `${eventoBackend.specialista.nome} ${eventoBackend.specialista.cognome}`.trim(),
+        // Includiamo la prestazione con il colore per la colorazione dinamica
+        prestazione: eventoBackend.specialista.prestazione
+      } : null,
+      // Paziente direttamente dalla relazione dell'evento
+      paziente: eventoBackend.paziente ? {
+        id: eventoBackend.paziente.id?.toString(),
+        nome: eventoBackend.paziente.nome,
+        cognome: eventoBackend.paziente.cognome,
+        nomeCompleto: `${eventoBackend.paziente.nome} ${eventoBackend.paziente.cognome}`.trim()
+      } : null,
+      dataInizio: eventoBackend.dataInizio,
+      dataFine: eventoBackend.dataFine,
+      createdAt: eventoBackend.createdAt,
+      // Aggiungiamo il colore direttamente dall'evento per facilità d'uso
+      colore: eventoBackend.specialista?.prestazione?.color || '#6c757d', // Grigio di default per eventi senza prestazione
+      // ⭐ NUOVO - Indica se questo evento fa parte di una serie ricorrente
+      isPartOfSeries: eventoBackend.master !== null,
+      // ⭐ NUOVO - Indica se questo è l'evento master (primo della serie)
+      isMasterEvent: eventoBackend.master === null && eventoBackend.id ? true : false
     }
-  } else {
-    // Nuova colonna, imposta ascendente
-    sortColumn.value = column
-    sortDirection.value = 'asc'
   }
-  currentPage.value = 1 // Reset alla prima pagina
-}
 
-const getSortIcon = (column) => {
-  if (sortColumn.value !== column) return 'cilSwapVertical'
-  return sortDirection.value === 'asc' ? 'cilArrowTop' : 'cilArrowBottom'
-}
+  /**
+   * Converte uno slot dal formato backend al formato frontend
+   * @param {SlotBackend} slotBackend - Slot nel formato backend
+   * @returns {Object} - Slot nel formato frontend
+   */
+  static slotBackendToFrontend(slotBackend) {
+    return {
+      id: slotBackend.id?.toString(),
+      dataInizio: slotBackend.dataInizio,
+      dataFine: slotBackend.dataFine,
+      evento: slotBackend.evento ? this.backendToFrontend(slotBackend.evento) : null,
+      paziente: slotBackend.paziente ? {
+        id: slotBackend.paziente.id?.toString(),
+        nome: slotBackend.paziente.nome,
+        cognome: slotBackend.paziente.cognome,
+        nomeCompleto: `${slotBackend.paziente.nome} ${slotBackend.paziente.cognome}`
+      } : null
+    }
+  }
 
-const getSortClass = (column) => {
-  return {
-    'sortable-header': true,
-    'sorted': sortColumn.value === column
+  // ⭐ NUOVO - Mapper per eventi con ricorrenza
+  /**
+   * Converte dati frontend con ricorrenza al formato backend
+   * @param {Object} eventoFrontend - Evento con dati ricorrenza dal frontend
+   * @returns {CreateEventoWithRicorrenzaDto} - DTO per backend con ricorrenza
+   */
+  static frontendToBackendWithRicorrenza(eventoFrontend) {
+    const eventoBase = this.frontendToBackend(eventoFrontend)
+
+    return new CreateEventoWithRicorrenzaDto({
+      ...eventoBase,
+      ricorrenza: eventoFrontend.ricorrenza ? {
+        tipo: eventoFrontend.ricorrenza.tipo,
+        dataFineRicorrenza: eventoFrontend.ricorrenza.dataFineRicorrenza
+      } : null
+    })
+  }
+
+  /**
+   * Converte dati frontend per aggiornamento eventi ricorrenti al formato backend
+   * @param {Object} eventoFrontend - Evento con direction per aggiornamento
+   * @returns {UpdateEventoWithRicorrenzaDto} - DTO per aggiornamento backend
+   */
+  static frontendToBackendUpdateRicorrenza(eventoFrontend) {
+    const eventoBase = this.frontendToBackend(eventoFrontend)
+
+    return new UpdateEventoWithRicorrenzaDto({
+      ...eventoBase,
+      id: eventoFrontend.id,
+      direction: eventoFrontend.direction || Direction.THIS
+    })
+  }
+
+  /**
+   * Converte dati frontend per cancellazione eventi ricorrenti al formato backend
+   * @param {string} direction - Direzione della cancellazione (THIS o THIS_AND_FOLLOWING)
+   * @returns {CancellaEventiRicorrentiDto} - DTO per cancellazione backend
+   */
+  static frontendToBackendDeleteRicorrenza(direction) {
+    return new CancellaEventiRicorrentiDto({
+      direction: direction || Direction.THIS
+    })
   }
 }
 
-// Debounce per filtri (evita troppe chiamate durante la digitazione)
-let filterTimeout = null
-const applicaFiltriConDebounce = () => {
-  if (filterTimeout) clearTimeout(filterTimeout)
-
-  filterTimeout = setTimeout(() => {
-    applicaFiltri(filtri)
-    currentPage.value = 1 // Reset alla prima pagina quando si filtrano i dati
-  }, 300)
-}
-
-// Utility per filtri attivi (per mostrare i badge)
-const getPrestazioneLabel = (prestazioneId) => {
-  const prestazione = prestazioni.value.find(p => p.id === parseInt(prestazioneId))
-  return prestazione?.tipologia || 'Prestazione'
-}
-
-const getSpecialistaLabel = (specialistaId) => {
-  const specialista = specialisti.value.find(s => s.id === parseInt(specialistaId))
-  return specialista ? `${specialista.nome} ${specialista.cognome}`.trim() : 'Specialista'
-}
-
-const getDateRangeLabel = () => {
-  if (filtri.dataInizio && filtri.dataFine) {
-    return `${formatDate(filtri.dataInizio)} - ${formatDate(filtri.dataFine)}`
-  } else if (filtri.dataInizio) {
-    return `Da ${formatDate(filtri.dataInizio)}`
-  } else if (filtri.dataFine) {
-    return `Fino a ${formatDate(filtri.dataFine)}`
-  }
-  return 'Periodo'
-}
-
-// Metodi per pulire singoli filtri
-const clearFiltro = (filtroName) => {
-  filtri[filtroName] = null
-  applicaFiltriConDebounce()
-}
-
-const clearDateFilters = () => {
-  filtri.dataInizio = null
-  filtri.dataFine = null
-  applicaFiltriConDebounce()
-}
-
-// Utility per contrasto colori delle prestazioni
-const getContrastColor = (backgroundColor) => {
-  if (!backgroundColor) return '#000000'
-
-  const hex = backgroundColor.replace('#', '')
-  const r = parseInt(hex.substring(0, 2), 16)
-  const g = parseInt(hex.substring(2, 4), 16)
-  const b = parseInt(hex.substring(4, 6), 16)
-
-  // Calcolo luminanza per determinare il colore del testo
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-  return luminance > 0.5 ? '#000000' : '#ffffff'
-}
-
-// Watchers per gestire cambi di stato
-watch([searchTerm, () => filtri], () => {
-  currentPage.value = 1 // Reset alla prima pagina quando cambiano i filtri
-}, {deep: true})
-
-// Lifecycle hooks
-onMounted(() => {
-  console.log('Pagina Attività montata - caricamento dati...')
-  initializeData()
-})
-
-onUnmounted(() => {
-  // Pulizia timeout se la pagina viene smontata
-  if (filterTimeout) clearTimeout(filterTimeout)
-})
-</script>
-
-<style scoped>
 /**
- * Stili specifici per la pagina Attività
- * Compatibili con dark mode di CoreUI
+ * Utility per validare i dati secondo le regole backend NestJS
  */
+export class EventoValidator {
+  static validateCreateEvento(data) {
+    const errors = {}
 
-.attivita-page {
-  padding: 0;
-}
+    // Validazioni allineate ai DTO del backend NestJS
+    if (!data.titolo || data.titolo.length > 50) {
+      errors.titolo = 'Titolo obbligatorio (max 50 caratteri)'
+    }
 
-.page-title {
-  color: #2c3e50;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
+    if (!data.stanza || data.stanza.length > 50) {
+      errors.stanza = 'Stanza obbligatoria (max 50 caratteri)'
+    }
 
-/* Statistiche rapide */
-.stats-cards .card {
-  transition: transform 0.2s ease-in-out;
-}
+    if (!data.dataInizio) {
+      errors.dataInizio = 'Data inizio obbligatoria'
+    }
 
-.stats-cards .card:hover {
-  transform: translateY(-2px);
-}
+    if (!data.dataFine) {
+      errors.dataFine = 'Data fine obbligatoria'
+    }
 
-.stats-cards h6 {
-  font-size: 1.25rem;
-  font-weight: bold;
-}
+    if (data.dataInizio && data.dataFine && new Date(data.dataInizio) >= new Date(data.dataFine)) {
+      errors.dataFine = 'Data fine deve essere successiva a data inizio'
+    }
 
-.stats-cards small {
-  font-size: 0.75rem;
-}
+    // Validazione campo prezzo (opzionale, ma se presente deve essere un numero positivo)
+    if (data.prezzo !== null && data.prezzo !== undefined && data.prezzo !== '') {
+      // Gestione sia virgola che punto come separatore decimale
+      const prezzoString = data.prezzo?.toString().replace(',', '.') ?? ''
+      const prezzoNum = parseFloat(prezzoString)
+      if (isNaN(prezzoNum) || prezzoNum < 0) {
+        errors.prezzo = 'Il prezzo deve essere un numero positivo'
+      }
+    }
 
-/* Badge filtri attivi */
-.active-filter-badge {
-  font-size: 0.75rem;
-  display: inline-flex;
-  align-items: center;
-}
+    // pazienteID e specialistaID sono opzionali (entrambi number)
+    if (data.pazienteID && isNaN(Number(data.pazienteID))) {
+      errors.pazienteID = 'ID paziente deve essere un numero valido'
+    }
 
-.active-filter-badge .btn {
-  width: 16px;
-  height: 16px;
-  line-height: 1;
-  border: none;
-  background: transparent;
-  color: inherit;
-}
+    if (data.specialistaID && isNaN(Number(data.specialistaID))) {
+      errors.specialistaID = 'ID specialista deve essere un numero valido'
+    }
 
-.active-filter-badge .btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
-}
-
-/* Tabella */
-.table-row-hover {
-  transition: background-color 0.15s ease-in-out;
-}
-
-.table-row-hover:hover {
-  background-color: rgba(0, 123, 255, 0.05) !important;
-}
-
-.paziente-info,
-.specialista-info {
-  line-height: 1.3;
-}
-
-.prestazione-badge {
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* Ordinamento colonne */
-.sortable-header {
-  transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
-}
-
-.sortable-header:hover {
-  background-color: rgba(0, 123, 255, 0.1) !important;
-  color: #0056b3;
-}
-
-.sortable-header.sorted {
-  background-color: rgba(0, 123, 255, 0.15) !important;
-  color: #0056b3;
-  font-weight: 600;
-}
-
-.sort-icon {
-  opacity: 0.3;
-  transition: opacity 0.15s ease-in-out;
-}
-
-.sortable-header:hover .sort-icon {
-  opacity: 0.6;
-}
-
-.sortable-header.sorted .sort-icon {
-  opacity: 1;
-  color: #0056b3;
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .page-title {
-    font-size: 1.5rem;
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors
+    }
   }
 
-  .stats-cards .card h6 {
-    font-size: 1rem;
+  // ⭐ NUOVO - Validazione per eventi con ricorrenza
+  static validateCreateEventoWithRicorrenza(data) {
+    // Prima valida l'evento base
+    const baseValidation = this.validateCreateEvento(data)
+    const errors = { ...baseValidation.errors }
+
+    // Se è presente la ricorrenza, validala
+    if (data.ricorrenza) {
+      const ricorrenzaErrors = this.validateRicorrenza(data.ricorrenza)
+      Object.assign(errors, ricorrenzaErrors)
+    }
+
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors
+    }
   }
 
-  .table-responsive {
-    font-size: 0.875rem;
+  // ⭐ NUOVO - Validazione specifica per la ricorrenza
+  static validateRicorrenza(ricorrenza) {
+    const errors = {}
+
+    // Tipo ricorrenza obbligatorio
+    if (!ricorrenza.tipo || !Object.values(TipoRicorrenza).includes(ricorrenza.tipo)) {
+      errors.tipoRicorrenza = 'Tipo ricorrenza obbligatorio e valido'
+    }
+
+    // Data fine ricorrenza obbligatoria
+    if (!ricorrenza.dataFineRicorrenza) {
+      errors.dataFineRicorrenza = 'Data fine ricorrenza obbligatoria'
+    } else {
+      const dataFine = new Date(ricorrenza.dataFineRicorrenza)
+      const oggi = new Date()
+      const fineAnno = new Date(oggi.getFullYear(), 11, 31) // 31 dicembre dell'anno corrente
+
+      // La data fine deve essere nel futuro
+      if (dataFine <= oggi) {
+        errors.dataFineRicorrenza = 'La data fine ricorrenza deve essere nel futuro'
+      }
+
+      // La data fine deve essere massimo entro la fine dell'anno corrente (come richiesto)
+      if (dataFine > fineAnno) {
+        errors.dataFineRicorrenza = `La data fine ricorrenza non può superare il ${fineAnno.toLocaleDateString('it-IT')}`
+      }
+    }
+
+    return errors
   }
 
-  .paziente-info,
-  .specialista-info {
-    font-size: 0.875rem;
+  // ⭐ NUOVO - Validazione per aggiornamento eventi ricorrenti
+  static validateUpdateEventoWithRicorrenza(data) {
+    // Prima valida l'evento base
+    const baseValidation = this.validateCreateEvento(data)
+    const errors = { ...baseValidation.errors }
+
+    // ID obbligatorio per update
+    if (!data.id) {
+      errors.id = 'ID evento obbligatorio per aggiornamento'
+    }
+
+    // Direction obbligatoria
+    if (!data.direction || !Object.values(Direction).includes(data.direction)) {
+      errors.direction = 'Direzione aggiornamento obbligatoria e valida'
+    }
+
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors
+    }
   }
 
-  .prestazione-badge {
-    font-size: 0.7rem;
-    padding: 0.25rem 0.5rem;
+  // ⭐ NUOVO - Validazione per cancellazione eventi ricorrenti
+  static validateDeleteEventiRicorrenti(data) {
+    const errors = {}
+
+    // Direction obbligatoria
+    if (!data.direction || !Object.values(Direction).includes(data.direction)) {
+      errors.direction = 'Direzione cancellazione obbligatoria e valida'
+    }
+
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors
+    }
+  }
+
+  static validateCreateSlot(data) {
+    const errors = {}
+
+    if (!data.dataInizio) {
+      errors.dataInizio = 'Data inizio obbligatoria'
+    }
+
+    if (!data.dataFine) {
+      errors.dataFine = 'Data fine obbligatoria'
+    }
+
+    if (!data.eventoId || data.eventoId < 1) {
+      errors.eventoId = 'ID evento obbligatorio'
+    }
+
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors
+    }
   }
 }
 
-/* Dark mode compatibilità */
-:deep(.dark-theme) .page-title {
-  color: #ffffff;
-}
+// ⭐ NUOVO - Utility functions per la gestione della ricorrenza
+export class RicorrenzaUtils {
+  /**
+   * Calcola la data massima consentita per la fine ricorrenza
+   * (31 dicembre dell'anno corrente come richiesto)
+   * @returns {string} - Data massima in formato YYYY-MM-DD
+   */
+  static getDataMassimaFineRicorrenza() {
+    const oggi = new Date()
+    const annoCorrente = oggi.getFullYear()
+    const dataMaxima = new Date(annoCorrente, 11, 31) // 31 dicembre dell'anno corrente
+    return dataMaxima.toISOString().split('T')[0] // Formato YYYY-MM-DD
+  }
 
-:deep(.dark-theme) .sortable-header:hover {
-  background-color: rgba(255, 255, 255, 0.1) !important;
-  color: #ffffff;
-}
+  /**
+   * Calcola la data minima consentita per la fine ricorrenza
+   * (domani)
+   * @returns {string} - Data minima in formato YYYY-MM-DD
+   */
+  static getDataMinimaFineRicorrenza() {
+    const domani = new Date()
+    domani.setDate(domani.getDate() + 1)
+    return domani.toISOString().split('T')[0] // Formato YYYY-MM-DD
+  }
 
-:deep(.dark-theme) .sortable-header.sorted {
-  background-color: rgba(255, 255, 255, 0.15) !important;
-  color: #ffffff;
+  /**
+   * Valida se una data è nel range consentito per la fine ricorrenza
+   * @param {string|Date} data - Data da validare
+   * @returns {boolean} - True se la data è valida
+   */
+  static isDataFineRicorrenzaValida(data) {
+    const dataTest = new Date(data)
+    const dataMinima = new Date(this.getDataMinimaFineRicorrenza())
+    const dataMassima = new Date(this.getDataMassimaFineRicorrenza())
+
+    return dataTest >= dataMinima && dataTest <= dataMassima
+  }
+
+  /**
+   * Formatta il label per il tipo ricorrenza
+   * @param {string} tipo - Tipo ricorrenza (GIORNALIERA, SETTIMANALE, MENSILE)
+   * @returns {string} - Label formattato
+   */
+  static formatTipoRicorrenza(tipo) {
+    const labels = {
+      [TipoRicorrenza.GIORNALIERA]: 'ogni giorno',
+      [TipoRicorrenza.SETTIMANALE]: 'ogni settimana',
+      [TipoRicorrenza.MENSILE]: 'ogni mese'
+    }
+    return labels[tipo] || tipo
+  }
+
+  /**
+   * Calcola il numero approssimativo di eventi che verranno creati
+   * @param {Date} dataInizio - Data del primo evento
+   * @param {Date} dataFineRicorrenza - Data fine ricorrenza
+   * @param {string} tipoRicorrenza - Tipo di ricorrenza
+   * @returns {number} - Numero approssimativo di eventi
+   */
+  static calcolaNumeroEventiRicorrenti(dataInizio, dataFineRicorrenza, tipoRicorrenza) {
+    const inizio = new Date(dataInizio)
+    const fine = new Date(dataFineRicorrenza)
+
+    if (inizio >= fine) return 1
+
+    const diffMs = fine - inizio
+    const diffGiorni = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+    switch (tipoRicorrenza) {
+      case TipoRicorrenza.GIORNALIERA:
+        return Math.floor(diffGiorni) + 1
+      case TipoRicorrenza.SETTIMANALE:
+        return Math.floor(diffGiorni / 7) + 1
+      case TipoRicorrenza.MENSILE:
+        // Calcolo approssimativo basato su 30 giorni per mese
+        return Math.floor(diffGiorni / 30) + 1
+      default:
+        return 1
+    }
+  }
+
+  /**
+   * Genera un messaggio descrittivo per la ricorrenza
+   * @param {string} tipoRicorrenza - Tipo di ricorrenza
+   * @param {Date} dataFineRicorrenza - Data fine ricorrenza
+   * @param {number} numeroEventi - Numero di eventi che verranno creati
+   * @returns {string} - Messaggio descrittivo
+   */
+  static getDescrizioneRicorrenza(tipoRicorrenza, dataFineRicorrenza, numeroEventi) {
+    const tipoFormattato = this.formatTipoRicorrenza(tipoRicorrenza)
+    const dataFormattata = new Date(dataFineRicorrenza).toLocaleDateString('it-IT')
+
+    return `Ripetuto ${tipoFormattato} fino al ${dataFormattata} (circa ${numeroEventi} eventi)`
+  }
 }
-</style>
