@@ -252,9 +252,17 @@ const handleEventoAggiornato = async (eventoAggiornato) => {
   chiudiModalEvento()
 }
 
-const handleEventoEliminato = async (eventoId) => {
-  console.log('Evento eliminato:', eventoId)
-  // Ricarica eventi per la data corrente
+const handleEventoEliminato = async (risultatoEliminazione) => {
+  console.log('🗑️ [CalendarioView] Evento eliminato:', risultatoEliminazione)
+
+  // Se è un risultato di cancellazione eventi ricorrenti, gestisci diversamente
+  if (risultatoEliminazione && typeof risultatoEliminazione === 'object' && risultatoEliminazione.deletedIds) {
+    console.log(`✅ [CalendarioView] Cancellazione eventi ricorrenti completata: ${risultatoEliminazione.deletedIds.length} eventi eliminati`)
+  } else {
+    console.log('✅ [CalendarioView] Evento singolo eliminato:', risultatoEliminazione)
+  }
+
+  // Ricarica eventi per la data corrente in entrambi i casi
   await caricaEventi(dataSelezionata.value)
   chiudiModalEvento()
 }

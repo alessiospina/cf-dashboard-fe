@@ -1,56 +1,94 @@
 <template>
-  <div
-    class="event-card"
-    :class="[
-      `event-card--${evento.stato || 'default'}`,
-      { 'event-card--small': isSmall }
-    ]"
-    :style="{
-      backgroundColor: getEventBackgroundColor(),
-      borderLeftColor: getEventBorderColor()
-    }"
-    @click="$emit('click', evento)"
-  >
-    <!-- Contenuto evento -->
-    <div class="event-content">
-      <!-- Header con stanza e stato -->
-      <div class="event-header">
-        <div class="event-tipo" :title="`Stanza: ${evento.stanza || 'Non specificata'}`">
-          {{ evento.stanza || '---' }}
+  <div class="event-card-container">
+    <div
+      class="event-card"
+      :class="[
+        `event-card--${evento.stato || 'default'}`,
+        { 'event-card--small': isSmall }
+      ]"
+      :style="{
+        backgroundColor: getEventBackgroundColor(),
+        borderLeftColor: getEventBorderColor()
+      }"
+      @click="$emit('click', evento)"
+      @contextmenu.prevent="showContextMenu = true"
+    >
+      <!-- Contenuto evento -->
+      <div class="event-content">
+        <!-- Header con stanza e stato -->
+        <div class="event-header">
+          <div class="event-tipo" :title="`Stanza: ${evento.stanza || 'Non specificata'}`">
+            {{ evento.stanza || '---' }}
+          </div>
+          <div class="event-stato">
+            <CIcon
+              :icon="getStatoIcon(evento.stato)"
+              size="sm"
+              :class="getStatoClass(evento.stato)"
+            />
+          </div>
         </div>
-        <div class="event-stato">
-          <CIcon
-            :icon="getStatoIcon(evento.stato)"
-            size="sm"
-            :class="getStatoClass(evento.stato)"
-          />
+
+        <!-- Body con paziente e orario -->
+        <div class="event-body">
+          <div class="event-paziente" :title="evento.paziente?.nomeCompleto || 'Paziente non specificato'">
+            {{ evento.paziente?.nome || 'N/A' }} {{ evento.paziente?.cognome || '' }}
+          </div>
+          <div class="event-orario">
+            {{ formatOrario(evento.dataInizio) }} - {{ formatOrario(evento.dataFine) }}
+          </div>
+        </div>
+
+        <!-- Durata (mostrata solo se c'è spazio) -->
+        <div v-if="!isSmall" class="event-durata">
+          {{ formatDurata(evento.dataInizio, evento.dataFine) }}
         </div>
       </div>
 
-      <!-- Body con paziente e orario -->
-      <div class="event-body">
-        <div class="event-paziente" :title="evento.paziente?.nomeCompleto || 'Paziente non specificato'">
-          {{ evento.paziente?.nome || 'N/A' }} {{ evento.paziente?.cognome || '' }}
-        </div>
-        <div class="event-orario">
-          {{ formatOrario(evento.dataInizio) }} - {{ formatOrario(evento.dataFine) }}
-        </div>
+      <!-- Indicatore stato laterale -->
+      <div class="event-indicator" :class="`event-indicator--${evento.stato}`"></div>
+
+      <!-- ⭐ NUOVO - Indicatore evento ricorrente -->
+      <div v-if="isEventoRicorrente" class="recurring-indicator" title="Evento ricorrente">
+        <CIcon icon="cil-reload" size="sm"/>
       </div>
 
-      <!-- Durata (mostrata solo se c'è spazio) -->
-      <div v-if="!isSmall" class="event-durata">
-        {{ formatDurata(evento.dataInizio, evento.dataFine) }}
+      <!-- ⭐ NUOVO - Bottone menu 3 pallini -->
+      <div class="event-menu-trigger" @click.stop="toggleDropdownMenu">
+        <CIcon icon="cil-options" size="sm"/>
+      </div>
+
+      <!-- ⭐ NUOVO - Dropdown menu -->
+      <div v-if="showDropdownMenu" class="event-dropdown-menu" @click.stop>
+        <div class="dropdown-backdrop" @click="showDropdownMenu = false"></div>
+        <div class="dropdown-content">
+          <div class="dropdown-item" @click="handleModifica">
+            <CIcon icon="cil-pencil" class="me-2"/>
+            Modifica evento
+          </div>
+          <div class="dropdown-item dropdown-item--danger" @click="handleElimina">
+            <CIcon icon="cil-trash" class="me-2"/>
+            Elimina evento
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Indicatore stato laterale -->
-    <div class="event-indicator" :class="`event-indicator--${evento.stato}`"></div>
+    <!-- ⭐ NUOVO - Modal per cancellazione eventi (ricorrenti e singoli) -->
+    <DeleteRecurringEventModal
+      :visible="showDeleteModal"
+      :evento="evento"
+      @close="handleDeleteModalClosed"
+      @deleted="handleDeleted"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useCalendario } from '@/composables/useCalendario'
+import { useDeleteRecurringEvent } from '@/composables/useDeleteRecurringEvent'
+import DeleteRecurringEventModal from './DeleteRecurringEventModal.vue'
 // CIcon è registrato globalmente in main.js, non serve importarlo
 
 const props = defineProps({
@@ -58,8 +96,22 @@ const props = defineProps({
   small: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['click'])
+const emit = defineEmits(['click', 'deleted'])
 const { formatTime, formatDuration } = useCalendario()
+
+// ⭐ NUOVO - Composable per gestione cancellazione eventi ricorrenti
+const {
+  checkIsEventoRicorrente
+} = useDeleteRecurringEvent()
+
+// ⭐ NUOVO - Stato per dropdown menu e modal
+const showDropdownMenu = ref(false)
+const showDeleteModal = ref(false)
+
+// ⭐ NUOVO - Computed per verificare se è evento ricorrente
+const isEventoRicorrente = computed(() => {
+  return checkIsEventoRicorrente(props.evento)
+})
 
 // Funzione per ottenere il colore di sfondo dell'evento
 const getEventBackgroundColor = () => {
@@ -181,6 +233,38 @@ const getStatoClass = (stato) => {
   }
   return classes[stato] || 'text-muted'
 }
+
+// ⭐ NUOVO - Gestione azioni menu contestuale
+const handleModifica = () => {
+  showContextMenu.value = false
+  emit('click', props.evento)
+}
+
+const handleElimina = async () => {
+  showContextMenu.value = false
+
+  try {
+    const risultato = await handleDeleteEvent(props.evento, (deletedData) => {
+      // Emetti evento di cancellazione al componente padre
+      emit('deleted', deletedData)
+    })
+
+    // Se è un evento singolo (ha restituito un risultato), già gestito nel callback
+    if (risultato) {
+      console.log('✅ [EventCard] Evento singolo eliminato:', risultato)
+    }
+    // Se è ricorrente, la modal si occuperà di tutto
+  } catch (error) {
+    console.error('❌ [EventCard] Errore eliminazione evento:', error)
+  }
+}
+
+// ⭐ NUOVO - Override degli handler per la modal ricorrente
+const handleRecurringDeletedLocal = (risultato) => {
+  handleRecurringDeleted(risultato)
+  // Emetti anche al componente padre
+  emit('deleted', risultato)
+}
 </script>
 
 <style scoped>
@@ -188,6 +272,11 @@ const getStatoClass = (stato) => {
  * Stili EventCard con supporto completo per dark mode
  * Utilizza le variabili CSS di CoreUI per compatibilità totale
  */
+
+.event-card-container {
+  position: relative;
+  height: 100%;
+}
 
 .event-card {
   position: relative;
@@ -328,6 +417,90 @@ const getStatoClass = (stato) => {
   opacity: 0.8;
 }
 
+/* ⭐ NUOVO - Indicatore eventi ricorrenti */
+.recurring-indicator {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  background: var(--cui-warning);
+  color: var(--cui-warning-text-emphasis);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  z-index: 10;
+  opacity: 0.9;
+}
+
+.event-card--small .recurring-indicator {
+  width: 16px;
+  height: 16px;
+  font-size: 0.6rem;
+  top: 0.2rem;
+  right: 0.2rem;
+}
+
+/* ⭐ NUOVO - Menu contestuale */
+.context-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1050;
+  pointer-events: auto;
+}
+
+.context-menu-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+}
+
+.context-menu-content {
+  position: absolute;
+  background: var(--cui-body-bg);
+  border: 1px solid var(--cui-border-color);
+  border-radius: 8px;
+  box-shadow: var(--cui-box-shadow-lg);
+  padding: 0.5rem 0;
+  min-width: 180px;
+  z-index: 1051;
+
+  /* Posizionamento dinamico tramite JavaScript se necessario */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.context-menu-item {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  color: var(--cui-body-color);
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+}
+
+.context-menu-item:hover {
+  background-color: var(--cui-gray-100);
+}
+
+.context-menu-item--danger {
+  color: var(--cui-danger);
+}
+
+.context-menu-item--danger:hover {
+  background-color: rgba(var(--cui-danger-rgb), 0.1);
+}
+
 /* Indicatori stato con gradienti che si adattano al tema */
 .event-indicator--confermato {
   background: linear-gradient(to bottom, var(--cui-success), var(--cui-success-text-emphasis));
@@ -361,6 +534,22 @@ const getStatoClass = (stato) => {
   }
 }
 
+/* Animazione menu contestuale */
+.context-menu-content {
+  animation: contextMenuSlideIn 0.2s ease-out;
+}
+
+@keyframes contextMenuSlideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
 /**
  * Miglioramenti specifici per dark mode
  */
@@ -385,6 +574,34 @@ const getStatoClass = (stato) => {
 
   .event-orario {
     color: var(--cui-body-color-muted);
+  }
+}
+
+[data-coreui-theme="dark"] .context-menu-content {
+  background: var(--cui-dark);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+[data-coreui-theme="dark"] .context-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .context-menu-content {
+    min-width: 160px;
+    font-size: 0.8rem;
+  }
+
+  .context-menu-item {
+    padding: 0.4rem 0.8rem;
+  }
+
+  .recurring-indicator {
+    width: 18px;
+    height: 18px;
+    font-size: 0.65rem;
   }
 }
 </style>

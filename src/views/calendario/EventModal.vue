@@ -1,5 +1,5 @@
 <template>
-  <CModal :visible="visible" @close="handleClose" size="lg" class="event-modal-simple">
+  <CModal :visible="visible" @close="handleClose" @update:visible="handleClose" size="lg" class="event-modal-simple">
     <CModalHeader class="border-0 pb-0">
       <CModalTitle class="h5 fw-bold">
         <CIcon :icon="isEdit ? 'cil-pencil' : 'cil-plus'" class="me-2 text-primary"/>
@@ -434,37 +434,34 @@
           color="light"
           variant="outline"
           @click="handleClose"
-          :disabled="submitting"
+          :disabled="submitting || deleting"
           class="flex-grow-1"
         >
+          <CIcon icon="cil-x" class="me-2"/>
           Annulla
-        </CButton>
-
-        <CButton
-          v-if="isEdit"
-          color="danger"
-          variant="outline"
-          @click="handleDelete"
-          :disabled="submitting"
-        >
-          <CSpinner v-if="deleting" size="sm" class="me-2"/>
-          <CIcon v-else icon="cil-trash" class="me-2"/>
-          Elimina
         </CButton>
 
         <CButton
           color="primary"
           @click="handleSubmit"
-          :disabled="submitting"
+          :disabled="submitting || deleting"
           class="flex-grow-1"
         >
-          <CSpinner v-if="submitting" size="sm" class="me-2"/>
+          <CSpinner v-if="submitting || deleting" size="sm" class="me-2"/>
           <CIcon v-else :icon="isEdit ? 'cil-save' : 'cil-plus'" class="me-2"/>
           {{ isEdit ? 'Salva' : 'Crea Appuntamento' }}
         </CButton>
       </div>
     </CModalFooter>
   </CModal>
+
+  <!-- ⭐ NUOVO - Modal per cancellazione eventi ricorrenti -->
+  <DeleteRecurringEventModal
+    :visible="showDeleteRecurringModal"
+    :evento="props.evento"
+    @close="handleRecurringDeleteClosed"
+    @deleted="handleRecurringDeleted"
+  />
 </template>
 
 <script setup>
@@ -479,6 +476,8 @@ import {
   getDirectionFromTipo,
   isEventoRicorrente as isEventoRicorrenteHelper
 } from '@/types/ricorrenza.types.ts'
+// ⭐ NUOVO - Import della modal di cancellazione eventi ricorrenti
+import DeleteRecurringEventModal from './DeleteRecurringEventModal.vue'
 
 const props = defineProps({
   visible: {type: Boolean, default: false},
@@ -593,8 +592,11 @@ const form = reactive({
 
 const errors = ref({})
 const submitting = ref(false)
-const deleting = ref(false)
+const deleting = ref(false) // ⭐ AGGIUNTO - Variabile mancante per lo stato eliminazione
 const submitError = ref('')
+
+// ⭐ NUOVO - Stato per la modal di cancellazione eventi ricorrenti
+const showDeleteRecurringModal = ref(false)
 
 // ⭐ NUOVO - Setup del form tracker per tracciare modifiche
 // RIMOSSO - Ora utilizziamo il sistema di tracking integrato nel composable useCalendario
@@ -1292,6 +1294,14 @@ const handleSubmit = async () => {
 const handleDelete = async () => {
   if (!props.evento?.id) return
 
+  // ⭐ NUOVO - Controlla se è un evento ricorrente
+  if (isEventoRicorrenteInModifica.value) {
+    // Per eventi ricorrenti, mostra la modal di scelta opzioni
+    showDeleteRecurringModal.value = true
+    return
+  }
+
+  // Per eventi singoli, elimina direttamente
   deleting.value = true
 
   try {
@@ -1307,10 +1317,52 @@ const handleDelete = async () => {
 }
 
 const handleClose = () => {
-  if (submitting.value || deleting.value) return
+  // ⭐ CORRETTO - Verifica più specifica per evitare blocchi indesiderati
+  if (submitting.value || deleting.value) {
+    console.log('⚠️ [EventModal] Chiusura bloccata - operazione in corso:', { submitting: submitting.value, deleting: deleting.value })
+    return
+  }
 
+  console.log('🔄 [EventModal] Chiusura modale in corso...')
   resetForm()
+
+  // ⭐ NUOVO - Chiudi anche la modal di cancellazione se aperta
+  showDeleteRecurringModal.value = false
+
   emit('close')
+}
+
+// ⭐ AGGIUNTO - Funzione per forzare la chiusura in caso di problemi
+const forceClose = () => {
+  console.log('🚨 [EventModal] Chiusura forzata modale')
+
+  // Reset degli stati di blocco
+  submitting.value = false
+  deleting.value = false
+
+  // Reset del form e chiusura
+  resetForm()
+  showDeleteRecurringModal.value = false
+  emit('close')
+}
+
+// ⭐ NUOVO - Gestione eventi dalla modal di cancellazione eventi ricorrenti
+const handleRecurringDeleted = (risultato) => {
+  console.log('✅ [EventModal] Eventi ricorrenti cancellati:', risultato)
+
+  // Chiudi la modal di cancellazione
+  showDeleteRecurringModal.value = false
+
+  // Emetti l'evento di cancellazione con i dettagli
+  emit('deleted', risultato)
+
+  // Chiudi la modal principale
+  handleClose()
+}
+
+const handleRecurringDeleteClosed = () => {
+  console.log('🔄 [EventModal] Modal cancellazione eventi ricorrenti chiusa')
+  showDeleteRecurringModal.value = false
 }
 
 const formatTipoTerapia = (tipoTerapia) => {
