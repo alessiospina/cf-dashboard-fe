@@ -139,7 +139,7 @@ const { eliminaEvento, eliminaEventiRicorrenti, isEventoRicorrente, Direction } 
 
 // Stato del componente
 const loading = ref(false)
-const opzioneEliminazione = ref('THIS') // Opzione selezionata per eventi ricorrenti
+const opzioneEliminazione = ref('THIS_ONLY') // Opzione selezionata per eventi ricorrenti
 const eventoSalvato = ref(null) // Copia locale dell'evento per evitare perdite
 
 // Computed per verificare se l'evento è ricorrente
@@ -158,17 +158,17 @@ const eventoCorrente = computed(() => {
 // Opzioni per la selezione di eliminazione eventi ricorrenti
 const opzioniEliminazione = [
   {
-    value: 'THIS',
+    value: 'THIS_ONLY', // ✅ Valore custom per solo questo evento
     label: 'Solo questo evento',
     description: 'Elimina solo l\'evento selezionato'
   },
   {
-    value: 'THIS_AND_FOLLOWING',
+    value: Direction.FORWARD,
     label: 'Questo e tutti i futuri',
     description: 'Elimina questo evento e tutti quelli successivi della serie'
   },
   {
-    value: 'ALL',
+    value: Direction.ALL,
     label: 'Tutti gli eventi della serie',
     description: 'Elimina completamente la serie ricorrente'
   }
@@ -179,7 +179,7 @@ const handleClose = () => {
   if (loading.value) return // Blocca chiusura durante operazioni
 
   // Reset stato quando si chiude
-  opzioneEliminazione.value = 'THIS'
+  opzioneEliminazione.value = 'THIS_ONLY'
   eventoSalvato.value = null // Pulisci evento salvato
   emit('close')
 }
@@ -211,15 +211,16 @@ const handleElimina = async () => {
       // Evento ricorrente - usa l'opzione selezionata
       console.log('📅 [ConfirmDeleteModal] Eliminazione evento ricorrente, opzione:', opzioneEliminazione.value)
 
-      // Mappa l'opzione ALL a una logica specifica (da implementare se necessaria)
-      let direction = opzioneEliminazione.value
-      if (direction === 'ALL') {
-        // Per ora usa THIS per tutti - potrai implementare la logica completa dopo
-        direction = Direction.THIS
-        console.log('⚠️ [ConfirmDeleteModal] Opzione ALL non ancora implementata, uso THIS')
+      if (opzioneEliminazione.value === 'THIS_ONLY') {
+        // Per "solo questo evento" usa eliminaEvento normale
+        console.log('📄 [ConfirmDeleteModal] Eliminazione singolo evento ricorrente')
+        await eliminaEvento(evento.id)
+      } else {
+        // Per altre opzioni usa eliminaEventiRicorrenti con direction
+        console.log('📅 [ConfirmDeleteModal] Eliminazione multipla eventi ricorrenti')
+        await eliminaEventiRicorrenti(evento.id, opzioneEliminazione.value)
       }
 
-      await eliminaEventiRicorrenti(evento.id, direction)
       console.log('✅ [ConfirmDeleteModal] Eventi ricorrenti eliminati con successo')
 
     } else {
