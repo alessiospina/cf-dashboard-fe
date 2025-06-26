@@ -126,6 +126,15 @@
       @updated="handleEventoAggiornato"
       @deleted="handleEventoEliminato"
     />
+
+    <!-- Modal Azione Evento -->
+    <EventActionModal
+      :visible="showEventActionModal"
+      :evento="eventoSelezionato"
+      @close="chiudiModalAzione"
+      @modifica="handleModificaEvento"
+      @cancella="handleCancellaEvento"
+    />
   </div>
 </template>
 
@@ -146,6 +155,7 @@ import CalendarioFilters from './CalendarioFilters.vue'
 import TimelineView from './TimelineView.vue'
 import ListaView from './ListaView.vue'
 import EventModal from './EventModal.vue'
+import EventActionModal from './EventActionModal.vue'
 
 // Composable per la logica del calendario
 const {
@@ -180,6 +190,7 @@ const tipoTerapiaSelezionato = ref('')
 
 // Stato modal
 const showEventModal = ref(false)
+const showEventActionModal = ref(false) // Nuova modal per scegliere azione
 const eventoSelezionato = ref(null)
 
 // Computed per eventi filtrati
@@ -228,13 +239,38 @@ const apriModalNuovoEventoInSlot = (slotData) => {
 }
 
 const apriModalModificaEvento = (evento) => {
+  // Ora apre prima la modal di scelta azione anziché direttamente quella di modifica
   eventoSelezionato.value = evento
-  showEventModal.value = true
+  showEventActionModal.value = true
 }
 
 const chiudiModalEvento = () => {
   showEventModal.value = false
   eventoSelezionato.value = null
+}
+
+// Nuove funzioni per gestire la modal di azione
+const chiudiModalAzione = () => {
+  showEventActionModal.value = false
+  eventoSelezionato.value = null
+}
+
+const handleModificaEvento = (evento) => {
+  // Chiude la modal di azione e apre quella di modifica
+  showEventActionModal.value = false
+  eventoSelezionato.value = evento
+  showEventModal.value = true
+}
+
+const handleCancellaEvento = async (eventoId) => {
+  console.log('🗑️ [CalendarioView] Evento cancellato:', eventoId)
+
+  // Chiude la modal di azione
+  showEventActionModal.value = false
+  eventoSelezionato.value = null
+
+  // Ricarica gli eventi per aggiornare la vista
+  await caricaEventi(dataSelezionata.value)
 }
 
 // Gestione eventi modal
