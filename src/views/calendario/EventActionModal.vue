@@ -11,11 +11,11 @@
     - modifica: apre la modal di modifica
     - cancella: cancella l'evento
   -->
-  <CModal 
-    :visible="visible" 
-    @close="handleClose" 
-    @update:visible="handleClose" 
-    size="sm" 
+  <CModal
+    :visible="visible && !showConfirmDeleteModal"
+    @close="handleClose"
+    @update:visible="handleClose"
+    size="sm"
     class="event-action-modal"
   >
     <CModalHeader class="border-0 pb-2">
@@ -27,28 +27,28 @@
 
     <CModalBody class="pt-0 pb-2">
       <!-- Preview dell'evento - dati essenziali -->
-      <div v-if="evento" class="evento-preview mb-4">
+      <div v-if="props.evento" class="evento-preview mb-4">
         <div class="preview-header">
-          <h6 class="mb-2 fw-bold text-truncate">{{ evento.titolo || 'Evento senza titolo' }}</h6>
+          <h6 class="mb-2 fw-bold text-truncate">{{ props.evento.titolo || 'Evento senza titolo' }}</h6>
         </div>
-        
+
         <div class="preview-details">
           <!-- Specialista -->
           <div v-if="nomeSpecialista" class="detail-item">
             <CIcon icon="cil-user" class="detail-icon text-primary"/>
             <span class="detail-text">{{ nomeSpecialista }}</span>
           </div>
-          
+
           <!-- Data e Orario -->
           <div class="detail-item">
             <CIcon icon="cil-clock" class="detail-icon text-info"/>
             <span class="detail-text">{{ dataOraFormattata }}</span>
           </div>
-          
+
           <!-- Stanza -->
-          <div v-if="evento.stanza || evento.sala" class="detail-item">
+          <div v-if="props.evento.stanza || props.evento.sala" class="detail-item">
             <CIcon icon="cil-room" class="detail-icon text-success"/>
-            <span class="detail-text">{{ evento.stanza || evento.sala }}</span>
+            <span class="detail-text">{{ props.evento.stanza || props.evento.sala }}</span>
           </div>
         </div>
       </div>
@@ -103,18 +103,27 @@
       </div>
     </CModalFooter>
   </CModal>
+
+  <!-- Modale di conferma eliminazione -->
+  <ConfirmDeleteModal
+    :visible="showConfirmDeleteModal"
+    :evento="props.evento"
+    @close="handleCloseConfirmDelete"
+    @deleted="handleEventoEliminato"
+  />
 </template>
 
 <script setup>
 /**
  * Modal per scegliere l'azione da eseguire su un evento
- * 
+ *
  * Fornisce opzioni per modificare o cancellare un evento selezionato,
  * mostrando un preview con i dati essenziali dell'evento.
  */
 
 import { ref, computed } from 'vue'
 import { useCalendario } from '@/composables/useCalendario'
+import ConfirmDeleteModal from './ConfirmDeleteModal.vue'
 
 // Props del componente
 const props = defineProps({
@@ -136,11 +145,12 @@ const { eliminaEvento } = useCalendario()
 
 // Stato del componente
 const loading = ref(false)
+const showConfirmDeleteModal = ref(false) // Stato per la modale di conferma eliminazione
 
 // Computed per il nome dello specialista
 const nomeSpecialista = computed(() => {
   if (!props.evento) return ''
-  
+
   // Gestisce sia la struttura con oggetto specialista che quella con stringa
   if (props.evento.specialista) {
     if (typeof props.evento.specialista === 'object') {
@@ -151,7 +161,7 @@ const nomeSpecialista = computed(() => {
       return props.evento.specialista
     }
   }
-  
+
   // Fallback per campo professionista
   return props.evento.professionista || ''
 })
@@ -159,10 +169,10 @@ const nomeSpecialista = computed(() => {
 // Computed per data e ora formattata
 const dataOraFormattata = computed(() => {
   if (!props.evento) return ''
-  
+
   try {
     let data, oraInizio, oraFine
-    
+
     // Gestione nuova struttura (date, timeStart, timeEnd)
     if (props.evento.date && props.evento.timeStart && props.evento.timeEnd) {
       data = props.evento.date
@@ -173,7 +183,7 @@ const dataOraFormattata = computed(() => {
     else if (props.evento.dataInizio && props.evento.dataFine) {
       const dataInizio = new Date(props.evento.dataInizio)
       const dataFineDate = new Date(props.evento.dataFine)
-      
+
       data = dataInizio.toISOString().split('T')[0]
       oraInizio = dataInizio.toTimeString().slice(0, 5)
       oraFine = dataFineDate.toTimeString().slice(0, 5)
@@ -181,7 +191,7 @@ const dataOraFormattata = computed(() => {
     else {
       return 'Data non disponibile'
     }
-    
+
     // Formatta la data in formato italiano
     const dataObj = new Date(data)
     const dataFormattata = dataObj.toLocaleDateString('it-IT', {
@@ -189,13 +199,13 @@ const dataOraFormattata = computed(() => {
       day: 'numeric',
       month: 'short'
     })
-    
+
     // Normalizza gli orari (rimuove i secondi se presenti)
     const oraInizioFormatted = oraInizio.length > 5 ? oraInizio.slice(0, 5) : oraInizio
     const oraFineFormatted = oraFine.length > 5 ? oraFine.slice(0, 5) : oraFine
-    
+
     return `${dataFormattata} • ${oraInizioFormatted} - ${oraFineFormatted}`
-    
+
   } catch (error) {
     console.error('Errore nella formattazione data/ora:', error)
     return 'Data non valida'
@@ -214,32 +224,41 @@ const handleModifica = () => {
   emit('modifica', props.evento)
 }
 
-// Gestione cancellazione evento
-const handleCancella = async () => {
-  if (!props.evento?.id || loading.value) return
-  
-  loading.value = true
-  
-  try {
-    console.log('🗑️ [EventActionModal] Cancellazione evento:', props.evento.id)
-    
-    // Chiama la funzione di eliminazione dal composable
-    await eliminaEvento(props.evento.id)
-    
-    console.log('✅ [EventActionModal] Evento cancellato con successo')
-    
-    // Emetti evento di cancellazione con l'ID dell'evento
-    emit('cancella', props.evento.id)
-    
-  } catch (error) {
-    console.error('❌ [EventActionModal] Errore nella cancellazione:', error)
-    
-    // TODO: Qui potresti aggiungere una notifica di errore
-    // Per ora logghiamo l'errore, il parent gestirà gli errori
-    
-  } finally {
-    loading.value = false
-  }
+// Gestione cancellazione evento - ora apre la modale di conferma
+const handleCancella = () => {
+  if (loading.value) return
+
+  console.log('🗑️ [EventActionModal] Apertura modale di conferma eliminazione')
+  console.log('🔍 [EventActionModal] Evento da passare:', props.evento)
+
+  // Apre la modale di conferma eliminazione
+  showConfirmDeleteModal.value = true
+
+  // NON chiudere immediatamente la modale principale
+  // La chiuderemo quando ConfirmDeleteModal si chiude
+}
+
+// Gestione chiusura modale di conferma eliminazione
+const handleCloseConfirmDelete = () => {
+  console.log('❌ [EventActionModal] Chiusura modale di conferma eliminazione')
+  showConfirmDeleteModal.value = false
+
+  // Ora chiudi anche la modale principale
+  emit('close')
+}
+
+// Gestione successo eliminazione evento
+const handleEventoEliminato = (eventoId) => {
+  console.log('✅ [EventActionModal] Evento eliminato con successo:', eventoId)
+
+  // Chiudi entrambe le modali
+  showConfirmDeleteModal.value = false
+
+  // Emetti evento di cancellazione al componente padre
+  emit('cancella', eventoId)
+
+  // Chiudi anche la modale principale
+  emit('close')
 }
 </script>
 
@@ -384,22 +403,22 @@ const handleCancella = async () => {
   .event-action-modal :deep(.modal-dialog) {
     margin: 1rem;
   }
-  
+
   .event-action-modal :deep(.modal-header),
   .event-action-modal :deep(.modal-body),
   .event-action-modal :deep(.modal-footer) {
     padding-left: 1rem;
     padding-right: 1rem;
   }
-  
+
   .preview-details {
     gap: 0.375rem;
   }
-  
+
   .detail-text {
     font-size: 0.8rem;
   }
-  
+
   .event-action-modal .btn {
     padding: 0.625rem 0.75rem;
     font-size: 0.8rem;
