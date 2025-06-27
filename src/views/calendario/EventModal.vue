@@ -64,9 +64,14 @@
                         @click="selezionaSpecialista(specialista)"
                       >
                         <div class="d-flex justify-content-between align-items-center">
-                          <div>
+                          <div class="flex-grow-1">
                             <div class="fw-medium">{{ getFullNameSpecialista(specialista) }}</div>
                             <small class="text-muted">{{ specialista.email }}</small>
+                            <!-- 🆕 NUOVO - Mostra il prezzo della prestazione nel dropdown -->
+                            <div v-if="specialista.prestazione?.prezzo" class="text-success small mt-1">
+                              <CIcon icon="cil-euro" size="sm" class="me-1"/>
+                              {{ formatPrezzoInDropdown(specialista.prestazione.prezzo) }}
+                            </div>
                           </div>
                           <CBadge
                             v-if="specialista.prestazione?.tipologia"
@@ -205,6 +210,14 @@
                     />
                   </div>
                   <CFormFeedback v-if="errors.prezzo" invalid>{{ errors.prezzo }}</CFormFeedback>
+                  <!-- 🆕 NUOVO - Indicatore prezzo auto-compilato -->
+                  <small
+                    v-if="form.prezzo && form.specialistaSelezionato?.prestazione?.prezzo"
+                    class="text-muted mt-1"
+                  >
+                    <CIcon icon="cil-info" class="me-1" size="sm"/>
+                    Prezzo da {{ formatPrestazione(form.specialistaSelezionato.prestazione.tipologia) }}
+                  </small>
                 </div>
               </div>
             </CCol>
@@ -664,6 +677,14 @@ const selezionaSpecialista = (specialista) => {
     }
   }
 
+  // 🆕 NUOVO - Auto-compila il prezzo se disponibile dalla prestazione
+  if (specialista.prestazione?.prezzo !== null && specialista.prestazione?.prezzo !== undefined) {
+    // Formatta il prezzo con 2 decimali
+    const prezzoFormattato = parseFloat(specialista.prestazione.prezzo).toFixed(2)
+    form.prezzo = prezzoFormattato
+    console.log('💰 [EventModal] Auto-compilato prezzo da prestazione:', prezzoFormattato)
+  }
+
   // Chiudi immediatamente la dropdown e pulisci i suggerimenti
   showSpecialistiDropdown.value = false
   specialistiFiltrati.value = []
@@ -727,6 +748,17 @@ const formatPrestazione = (tipologia) => {
     'COLLOQUIO_CONOSCITIVO': 'Colloquio'
   }
   return labels[tipologia] || tipologia
+}
+
+// 🆕 NUOVO - Funzione per formattare il prezzo nel dropdown specialisti
+const formatPrezzoInDropdown = (prezzo) => {
+  if (prezzo === null || prezzo === undefined) return ''
+
+  const prezzoNumero = typeof prezzo === 'string' ? parseFloat(prezzo) : prezzo
+
+  if (isNaN(prezzoNumero)) return ''
+
+  return '€ ' + prezzoNumero.toFixed(2)
 }
 
 // Computed per gestire i colori dei badge in modo pulito
@@ -1048,6 +1080,17 @@ const populateForm = (evento) => {
       if (specialistaTrovato) {
         form.specialistaSelezionato = specialistaTrovato
         console.log('🔄 [EventModal] Specialista trovato e selezionato:', specialistaTrovato)
+
+        // 🆕 NUOVO - Se il prezzo dell'evento non è definito ma lo specialista ha una prestazione con prezzo
+        // auto-compila il prezzo dalla prestazione (solo se il prezzo dell'evento non è già impostato)
+        if ((!form.prezzo || form.prezzo === '') &&
+            specialistaTrovato.prestazione?.prezzo !== null &&
+            specialistaTrovato.prestazione?.prezzo !== undefined) {
+
+          const prezzoFormattato = parseFloat(specialistaTrovato.prestazione.prezzo).toFixed(2)
+          form.prezzo = prezzoFormattato
+          console.log('💰 [EventModal] Auto-compilato prezzo da prestazione specialista in modifica:', prezzoFormattato)
+        }
       }
     }
 
@@ -1438,6 +1481,18 @@ watch(() => form.specialistaSelezionato?.prestazione?.tipologia, (newTipologia) 
   }
 })
 
+// 🆕 NUOVO - Auto-popolamento del prezzo quando cambia lo specialista selezionato
+watch(() => form.specialistaSelezionato?.prestazione?.prezzo, (newPrezzo) => {
+  // Auto-compila il prezzo solo se:
+  // 1. Il nuovo specialista ha una prestazione con prezzo definito
+  // 2. Il campo prezzo è vuoto o l'utente non ha ancora inserito un prezzo personalizzato
+  if (newPrezzo !== null && newPrezzo !== undefined && (!form.prezzo || form.prezzo === '')) {
+    const prezzoFormattato = parseFloat(newPrezzo).toFixed(2)
+    form.prezzo = prezzoFormattato
+    console.log('💰 [EventModal] Auto-aggiornato prezzo da cambio specialista:', prezzoFormattato)
+  }
+}, { immediate: false }) // Non eseguire immediatamente per evitare conflitti con populateForm
+
 // Watcher per reset paziente quando si cambia input manualmente
 watch(() => form.pazienteInput, (newValue) => {
   if (!newValue) {
@@ -1612,6 +1667,13 @@ watch(() => props.visible, (newVisible) => {
 
 .suggestion-item-clean:last-child {
   border-bottom: none;
+}
+
+/* 🆕 NUOVO - Stile per il prezzo nel dropdown specialisti */
+.suggestion-item-clean .text-success.small {
+  font-weight: 500;
+  display: flex;
+  align-items: center;
 }
 
 /* Input group con icone - allineamento flexbox responsive */
