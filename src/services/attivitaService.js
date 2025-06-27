@@ -109,6 +109,12 @@ export class AttivitaService {
    * @returns {Object} - Attività nel formato frontend ottimizzato per la tabella
    */
   static mapBackendToFrontend(attivitaBackend) {
+    // Debug per vedere la struttura del backend
+    console.log('AttivitaService - Dati backend originali:', attivitaBackend)
+    console.log('AttivitaService - Campo date:', attivitaBackend.date)
+    console.log('AttivitaService - Campo dataInizio:', attivitaBackend.dataInizio)
+    console.log('AttivitaService - Campo dataFine:', attivitaBackend.dataFine)
+
     return {
       // ID dell'evento
       id: attivitaBackend.id,
@@ -130,11 +136,12 @@ export class AttivitaService {
         id: attivitaBackend.id,
         titolo: attivitaBackend.titolo,
         stanza: attivitaBackend.stanza,
-        dataInizio: attivitaBackend.dataInizio,
-        dataFine: attivitaBackend.dataFine,
-        // Estrae solo la data (senza orario) da dataInizio
-        dataEvento: attivitaBackend.dataInizio ?
-          new Date(attivitaBackend.dataInizio).toISOString().split('T')[0] : null
+        // Il backend potrebbe usare 'date' o 'dataInizio/dataFine'
+        dataInizio: attivitaBackend.dataInizio || attivitaBackend.date,
+        dataFine: attivitaBackend.dataFine || attivitaBackend.date,
+        // Estrae solo la data (senza orario) dal campo disponibile
+        dataEvento: (attivitaBackend.dataInizio || attivitaBackend.date) ?
+          new Date(attivitaBackend.dataInizio || attivitaBackend.date).toISOString().split('T')[0] : null
       },
 
       // Informazioni dello specialista e prestazione

@@ -6,7 +6,7 @@
  * Si basa su AttivitaService per le chiamate API.
  */
 
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, watch } from 'vue'
 import AttivitaService from '@/services/attivitaService'
 
 export function useAttivita() {
@@ -19,6 +19,10 @@ export function useAttivita() {
   const notification = ref(null)     // Notifiche all'utente
   const searchTerm = ref('')         // Termine di ricerca
 
+  // Stati per la paginazione
+  const currentPage = ref(1)         // Pagina corrente
+  const itemsPerPage = ref(20)       // Numero di elementi per pagina
+
   // Filtri reattivi
   const filtri = reactive({
     prestazioneId: null,
@@ -28,8 +32,8 @@ export function useAttivita() {
   })
 
   /**
-   * Computed property per le attività filtrate
-   * Applica filtri e ricerca ai dati caricati
+   * Computed property per le attività filtrate e ordinate
+   * Applica filtri, ricerca e ordinamento ai dati caricati
    */
   const filteredAttivita = computed(() => {
     let result = [...attivita.value]
@@ -60,6 +64,15 @@ export function useAttivita() {
         return pazienteMatch || specialistaMatch || prestazioneMatch || eventoMatch
       })
     }
+
+    // Ordinamento per data - più recenti prima
+    result.sort((a, b) => {
+      const dataA = new Date(a.evento?.dataInizio || a.evento?.date || 0)
+      const dataB = new Date(b.evento?.dataInizio || b.evento?.date || 0)
+
+      // Ordinamento decrescente (più recenti prima)
+      return dataB.getTime() - dataA.getTime()
+    })
 
     return result
   })
@@ -110,6 +123,36 @@ export function useAttivita() {
       totaleAttivita: totalAttivita,
       pazientiUnici,
       specialistiUnichi: specialistiUnici
+    }
+  })
+
+  /**
+   * Computed property per la paginazione
+   */
+  const paginatedAttivita = computed(() => {
+    const start = (currentPage.value - 1) * itemsPerPage.value
+    const end = start + itemsPerPage.value
+    return filteredAttivita.value.slice(start, end)
+  })
+
+  /**
+   * Computed property per le informazioni di paginazione
+   */
+  const paginationInfo = computed(() => {
+    const total = filteredAttivita.value.length
+    const totalPages = Math.ceil(total / itemsPerPage.value)
+    const start = total > 0 ? (currentPage.value - 1) * itemsPerPage.value + 1 : 0
+    const end = Math.min(currentPage.value * itemsPerPage.value, total)
+
+    return {
+      currentPage: currentPage.value,
+      totalPages,
+      totalItems: total,
+      itemsPerPage: itemsPerPage.value,
+      start,
+      end,
+      hasNext: currentPage.value < totalPages,
+      hasPrev: currentPage.value > 1
     }
   })
 
@@ -171,8 +214,35 @@ export function useAttivita() {
     filtri.dataInizio = null
     filtri.dataFine = null
     searchTerm.value = ''
+    currentPage.value = 1 // Reset anche la pagina corrente
 
     showNotification('info', 'Filtri reimpostati')
+  }
+
+  /**
+   * Funzioni per la paginazione
+   */
+  const goToPage = (page) => {
+    if (page >= 1 && page <= paginationInfo.value.totalPages) {
+      currentPage.value = page
+    }
+  }
+
+  const nextPage = () => {
+    if (paginationInfo.value.hasNext) {
+      currentPage.value++
+    }
+  }
+
+  const prevPage = () => {
+    if (paginationInfo.value.hasPrev) {
+      currentPage.value--
+    }
+  }
+
+  const changeItemsPerPage = (newItemsPerPage) => {
+    itemsPerPage.value = newItemsPerPage
+    currentPage.value = 1 // Reset alla prima pagina quando cambia il numero di elementi
   }
 
   /**
@@ -265,6 +335,11 @@ export function useAttivita() {
     }
   }
 
+  // Watch per resettare la paginazione quando cambiano filtri o ricerca
+  watch([searchTerm, () => filtri.prestazioneId, () => filtri.specialistaId, () => filtri.dataInizio, () => filtri.dataFine], () => {
+    currentPage.value = 1
+  })
+
   // Esportiamo tutto ciò che serve ai componenti
   return {
     // Stati
@@ -276,9 +351,13 @@ export function useAttivita() {
     notification,
     searchTerm,
     filtri,
+    currentPage,
+    itemsPerPage,
 
     // Computed
     filteredAttivita,
+    paginatedAttivita,
+    paginationInfo,
     prestazioniOptions,
     specialistiOptions,
     statistiche,
@@ -291,6 +370,11 @@ export function useAttivita() {
     clearNotification,
     formatDate,
     formatDateTime,
-    caricaAttivitaRange
+    caricaAttivitaRange,
+    // Metodi paginazione
+    goToPage,
+    nextPage,
+    prevPage,
+    changeItemsPerPage
   }
 }
