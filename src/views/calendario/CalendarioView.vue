@@ -149,7 +149,7 @@
  * - Coordinamento tra componenti
  */
 
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useCalendario } from '@/composables/useCalendario'
 import CalendarioFilters from './CalendarioFilters.vue'
 import TimelineView from './TimelineView.vue'
@@ -182,8 +182,144 @@ const {
   clearError
 } = useCalendario()
 
+/**
+ * Composable per gestione vista mobile-responsive
+ */
+const useResponsiveView = () => {
+  // Chiavi localStorage per persistenza preferenze
+  const VISTA_PREFERENCE_KEY = 'calendario_vista_preference'
+  const MOBILE_OVERRIDE_KEY = 'calendario_mobile_override'
+
+  // Stato reattivo per il rilevamento mobile
+  const isMobile = ref(false)
+  const isTablet = ref(false)
+  const userHasSetPreference = ref(false)
+
+  /**
+   * Rileva se il dispositivo è mobile basandosi su:
+   * - User agent
+   * - Dimensioni viewport
+   * - Touch capabilities
+   */
+  const detectMobileDevice = () => {
+    // User Agent detection per dispositivi mobili
+    const userAgent = navigator.userAgent.toLowerCase()
+    const mobileKeywords = [
+      'mobile', 'android', 'iphone', 'ipod', 'blackberry',
+      'windows phone', 'opera mini', 'iemobile'
+    ]
+    const isUserAgentMobile = mobileKeywords.some(keyword => userAgent.includes(keyword))
+
+    // Dimensioni viewport (consideriamo mobile sotto 768px)
+    const isViewportMobile = window.innerWidth < 768
+
+    // Tablet detection (768px - 1024px)
+    const isViewportTablet = window.innerWidth >= 768 && window.innerWidth <= 1024
+
+    // Touch capability
+    const hasTouchSupport = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+
+    // Combinazione di fattori per determinare se è mobile
+    const mobileDetected = isUserAgentMobile || (isViewportMobile && hasTouchSupport)
+    const tabletDetected = isViewportTablet && hasTouchSupport && !isUserAgentMobile
+
+    console.log('📱 [Device Detection]', {
+      userAgent: isUserAgentMobile,
+      viewport: isViewportMobile,
+      viewportTablet: isViewportTablet,
+      touch: hasTouchSupport,
+      mobile: mobileDetected,
+      tablet: tabletDetected
+    })
+
+    return { mobile: mobileDetected, tablet: tabletDetected }
+  }
+
+  /**
+   * Determina la vista di default basandosi sul dispositivo
+   */
+  const getDefaultView = () => {
+    // Controlla se l'utente ha già impostato una preferenza manualmente
+    const savedPreference = localStorage.getItem(VISTA_PREFERENCE_KEY)
+    const hasMobileOverride = localStorage.getItem(MOBILE_OVERRIDE_KEY) === 'true'
+
+    console.log('🎯 [Vista Default]', {
+      savedPreference,
+      hasMobileOverride,
+      isMobile: isMobile.value,
+      isTablet: isTablet.value
+    })
+
+    // Se l'utente ha già una preferenza salvata, rispettala
+    if (savedPreference && hasMobileOverride) {
+      console.log('✅ [Vista Default] Usando preferenza utente:', savedPreference)
+      return savedPreference
+    }
+
+    // Altrimenti usa la logica mobile-first
+    if (isMobile.value) {
+      console.log('📱 [Vista Default] Mobile rilevato, usando vista lista')
+      return 'lista'
+    } else if (isTablet.value) {
+      console.log('📟 [Vista Default] Tablet rilevato, usando vista lista')
+      return 'lista'
+    } else {
+      console.log('💻 [Vista Default] Desktop rilevato, usando vista timeline')
+      return 'timeline'
+    }
+  }
+
+  /**
+   * Salva la preferenza dell'utente quando cambia vista manualmente
+   */
+  const saveUserPreference = (vista) => {
+    localStorage.setItem(VISTA_PREFERENCE_KEY, vista)
+    localStorage.setItem(MOBILE_OVERRIDE_KEY, 'true')
+    userHasSetPreference.value = true
+    console.log('💾 [Preferenza] Salvata preferenza utente:', vista)
+  }
+
+  /**
+   * Listener per resize window per aggiornare detection
+   */
+  const handleResize = () => {
+    const detection = detectMobileDevice()
+    isMobile.value = detection.mobile
+    isTablet.value = detection.tablet
+
+    // Se l'utente non ha impostato preferenze, aggiorna la vista automaticamente
+    if (!userHasSetPreference.value) {
+      const newDefaultView = getDefaultView()
+      console.log('🔄 [Resize] Aggiornamento vista automatico:', newDefaultView)
+      return newDefaultView
+    }
+    return null
+  }
+
+  return {
+    isMobile,
+    isTablet,
+    userHasSetPreference,
+    detectMobileDevice,
+    getDefaultView,
+    saveUserPreference,
+    handleResize
+  }
+}
+
+// Utilizzo del composable responsive
+const {
+  isMobile,
+  isTablet,
+  userHasSetPreference,
+  detectMobileDevice,
+  getDefaultView,
+  saveUserPreference,
+  handleResize
+} = useResponsiveView()
+
 // Stato locale della vista
-const vistaAttiva = ref('timeline')
+const vistaAttiva = ref('timeline') // Inizializziamo con default, verrà aggiornato in onMounted
 const dataSelezionata = ref(new Date().toISOString().split('T')[0])
 const specialistaSelezionato = ref('')
 const tipoTerapiaSelezionato = ref('')
@@ -324,13 +460,58 @@ watch(dataSelezionata, async (nuovaData, vecchiaData) => {
 
 // Caricamento iniziale - Inizializza tutto il calendario una sola volta
 onMounted(async () => {
-  console.log('Inizializzazione pagina calendario...')
+  console.log('🚀 [Inizializzazione] Avvio calendario con rilevamento mobile...')
+
   try {
-    // Inizializza il calendario con la data selezionata inizialmente
+    // 1. Rileva il tipo di dispositivo
+    const detection = detectMobileDevice()
+    isMobile.value = detection.mobile
+    isTablet.value = detection.tablet
+
+    // 2. Imposta la vista di default basata sul dispositivo
+    const defaultView = getDefaultView()
+    vistaAttiva.value = defaultView
+
+    console.log('📱 [Inizializzazione] Configurazione:', {
+      mobile: isMobile.value,
+      tablet: isTablet.value,
+      vistaDefault: defaultView
+    })
+
+    // 3. Inizializza il calendario con la data selezionata inizialmente
     await inizializzaCalendario(dataSelezionata.value)
-    console.log('Pagina calendario pronta')
+
+    // 4. Aggiungi listener per resize
+    window.addEventListener('resize', onWindowResize)
+
+    console.log('✅ [Inizializzazione] Calendario pronto con vista:', vistaAttiva.value)
   } catch (err) {
-    console.error('Errore nell\'inizializzazione calendario:', err)
+    console.error('❌ [Inizializzazione] Errore:', err)
+  }
+})
+
+// Cleanup e listener per resize
+onUnmounted(() => {
+  window.removeEventListener('resize', onWindowResize)
+})
+
+// Handler per resize window
+const onWindowResize = () => {
+  const newView = handleResize()
+  if (newView && newView !== vistaAttiva.value) {
+    vistaAttiva.value = newView
+    console.log('🔄 [Resize] Vista aggiornata automaticamente:', newView)
+  }
+}
+
+// Watcher per cambiamenti di vista - salva preferenza se cambiata manualmente
+watch(vistaAttiva, (nuovaVista, vecchiaVista) => {
+  if (vecchiaVista && nuovaVista !== vecchiaVista) {
+    // Salva la preferenza solo se il cambiamento non è dovuto all'inizializzazione
+    if (vecchiaVista !== 'timeline' || nuovaVista !== getDefaultView()) {
+      saveUserPreference(nuovaVista)
+      console.log('👤 [Preferenza] Vista cambiata manualmente:', nuovaVista)
+    }
   }
 })
 </script>

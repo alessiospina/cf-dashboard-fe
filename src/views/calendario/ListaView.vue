@@ -16,7 +16,8 @@
       >
         <CCard v-if="evento" class="evento-card">
           <CCardBody>
-            <CRow class="align-items-center">
+            <!-- Layout Desktop -->
+            <CRow class="align-items-center d-none d-md-flex">
               <!-- Orario -->
               <CCol md="2">
                 <div class="evento-orario">
@@ -65,7 +66,72 @@
                   <small>Sala non specificata</small>
                 </div>
               </CCol>
+
+              <!-- Azioni rapide (opzionale per desktop) -->
+              <CCol md="3" class="text-end">
+                <CButton
+                  variant="ghost"
+                  color="primary"
+                  size="sm"
+                  @click.stop="$emit('eventoClick', evento)"
+                >
+                  <CIcon icon="cil-pencil" />
+                </CButton>
+              </CCol>
             </CRow>
+
+            <!-- Layout Mobile -->
+            <div class="d-block d-md-none mobile-layout">
+              <!-- Riga superiore: Orario e Badge -->
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="evento-orario-mobile">
+                  <div class="ora-range">
+                    {{ formatTime(evento.dataInizio) }} - {{ formatTime(evento.dataFine) }}
+                  </div>
+                  <div class="durata-mobile">
+                    {{ formatDuration(evento.dataInizio, evento.dataFine) }}
+                  </div>
+                </div>
+                <CBadge
+                  v-if="getTipoTerapia(evento)"
+                  :color="getBadgeColorTerapia(evento)"
+                  :style="{
+                    backgroundColor: evento?.specialista?.prestazione?.color || undefined,
+                    color: getContrastColor(evento?.specialista?.prestazione?.color || '#6c757d'),
+                    border: 'none'
+                  }"
+                  size="sm"
+                  class="flex-shrink-0"
+                >
+                  {{ formatTipoTerapia(getTipoTerapia(evento)) }}
+                </CBadge>
+              </div>
+
+              <!-- Titolo evento -->
+              <h6 class="evento-titolo-mobile mb-2">
+                {{ evento.titolo || 'Evento senza titolo' }}
+              </h6>
+
+              <!-- Informazioni principali compatte -->
+              <div class="evento-info-mobile">
+                <div class="d-flex align-items-center mb-1">
+                  <CIcon icon="cil-user" class="me-2 text-muted icon-mobile" />
+                  <span class="evento-paziente-mobile">
+                    {{ getNomePaziente(evento) || 'Paziente non specificato' }}
+                  </span>
+                </div>
+                <div class="d-flex align-items-center mb-1">
+                  <CIcon icon="cil-medical-cross" class="me-2 text-muted icon-mobile" />
+                  <span class="evento-professionista-mobile">
+                    {{ getNomeSpecialista(evento) || 'Professionista non specificato' }}
+                  </span>
+                </div>
+                <div v-if="evento.stanza" class="d-flex align-items-center">
+                  <CIcon icon="cil-location-pin" class="me-2 text-muted icon-mobile" />
+                  <span class="evento-sala-mobile">{{ evento.stanza }}</span>
+                </div>
+              </div>
+            </div>
           </CCardBody>
         </CCard>
       </div>
@@ -269,16 +335,255 @@ const formatStato = (stato) => {
 </script>
 
 <style scoped>
-.lista-view { padding: 1rem; }
-.eventi-lista { display: flex; flex-direction: column; gap: 1rem; }
-.evento-lista-item { cursor: pointer; transition: transform 0.2s; }
-.evento-lista-item:hover { transform: translateY(-2px); }
-.evento-card { border-left: 4px solid #0d6efd; }
-.evento-orario { text-align: center; }
-.ora-inizio { font-weight: 600; font-size: 1.1rem; }
-.ora-fine { color: var(--cui-text-muted); font-size: 0.9rem; }
-.durata { font-size: 0.8rem; color: var(--cui-text-muted); margin-top: 0.25rem; }
-.evento-titolo { color: var(--cui-body-color); margin-bottom: 0.5rem; }
-.evento-paziente, .evento-professionista { font-size: 0.9rem; color: var(--cui-text-muted); margin-bottom: 0.25rem; }
-.evento-sala { font-size: 0.9rem; color: var(--cui-text-muted); }
+/**
+ * Stili per ListaView - Responsive ottimizzato
+ */
+
+.lista-view {
+  padding: 1rem;
+}
+
+.eventi-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.evento-lista-item {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.evento-lista-item:hover {
+  transform: translateY(-2px);
+}
+
+.evento-card {
+  border-left: 4px solid #0d6efd;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s ease;
+}
+
+.evento-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* Stili Desktop */
+.evento-orario {
+  text-align: center;
+}
+
+.ora-inizio {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #495057;
+}
+
+.ora-fine {
+  color: var(--cui-text-muted);
+  font-size: 0.9rem;
+}
+
+.durata {
+  font-size: 0.8rem;
+  color: var(--cui-text-muted);
+  margin-top: 0.25rem;
+  padding: 0.1rem 0.5rem;
+  background-color: #f8f9fa;
+  border-radius: 0.375rem;
+  display: inline-block;
+}
+
+.evento-titolo {
+  color: var(--cui-body-color);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.evento-paziente,
+.evento-professionista {
+  font-size: 0.9rem;
+  color: var(--cui-text-muted);
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+}
+
+.evento-sala {
+  font-size: 0.9rem;
+  color: var(--cui-text-muted);
+  display: flex;
+  align-items: center;
+}
+
+/* Stili Mobile */
+.mobile-layout {
+  padding: 0.5rem 0;
+}
+
+.evento-orario-mobile {
+  flex-shrink: 0;
+}
+
+.ora-range {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #495057;
+  line-height: 1.2;
+}
+
+.durata-mobile {
+  font-size: 0.75rem;
+  color: var(--cui-text-muted);
+  margin-top: 0.15rem;
+  padding: 0.1rem 0.4rem;
+  background-color: #f8f9fa;
+  border-radius: 0.25rem;
+  display: inline-block;
+}
+
+.evento-titolo-mobile {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--cui-body-color);
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.evento-info-mobile {
+  font-size: 0.85rem;
+}
+
+.icon-mobile {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.evento-paziente-mobile,
+.evento-professionista-mobile,
+.evento-sala-mobile {
+  color: #6c757d;
+  line-height: 1.4;
+}
+
+/* Responsive breakpoints specifici */
+@media (max-width: 991px) {
+  .lista-view {
+    padding: 0.75rem;
+  }
+
+  .eventi-lista {
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .lista-view {
+    padding: 0.5rem;
+  }
+
+  .eventi-lista {
+    gap: 0.5rem;
+  }
+
+  .evento-card .card-body {
+    padding: 0.75rem;
+  }
+
+  .mobile-layout {
+    padding: 0;
+  }
+
+  /* Ottimizzazione per schermi molto piccoli */
+  @media (max-width: 576px) {
+    .ora-range {
+      font-size: 0.9rem;
+    }
+
+    .evento-titolo-mobile {
+      font-size: 0.95rem;
+    }
+
+    .evento-info-mobile {
+      font-size: 0.8rem;
+    }
+
+    .durata-mobile {
+      font-size: 0.7rem;
+    }
+  }
+}
+
+/* Miglioramenti per accessibilità e UX */
+.evento-lista-item:focus {
+  outline: 2px solid #5856d6;
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+.evento-card {
+  transition: all 0.2s ease;
+}
+
+/* Stili per stato loading */
+.text-center.py-4 {
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Stili per stato vuoto responsive */
+@media (max-width: 767px) {
+  .text-center.py-5 {
+    padding: 2rem 1rem !important;
+  }
+
+  .text-center.py-5 h5 {
+    font-size: 1.1rem;
+  }
+
+  .text-center.py-5 p {
+    font-size: 0.9rem;
+  }
+}
+
+/* Badge responsive */
+.badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+}
+
+@media (max-width: 767px) {
+  .badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+  }
+}
+
+/* Hover states per mobile */
+@media (hover: hover) {
+  .evento-lista-item:hover .evento-card {
+    border-left-color: #5856d6;
+  }
+}
+
+/* Dark mode support */
+[data-coreui-theme="dark"] .durata,
+[data-coreui-theme="dark"] .durata-mobile {
+  background-color: #374151;
+  color: #d1d5db;
+}
+
+[data-coreui-theme="dark"] .evento-card {
+  background-color: #1f2937;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-coreui-theme="dark"] .ora-inizio,
+[data-coreui-theme="dark"] .ora-range {
+  color: #f9fafb;
+}
 </style>
