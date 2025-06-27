@@ -114,6 +114,12 @@
             <CCardBody>
               <!-- Informazioni prestazione -->
               <div class="mb-3">
+                <!-- Prezzo della prestazione -->
+                <div class="d-flex align-items-center mb-2">
+                  <strong class="me-2">Prezzo:</strong>
+                  <span class="prezzo-text fw-bold text-success">{{ formatPrezzo(prestazione.prezzo) }}</span>
+                </div>
+
                 <!-- Colore con preview -->
                 <div class="d-flex align-items-center mb-2">
                   <strong class="me-2">Colore:</strong>
@@ -218,6 +224,20 @@ const formatDate = (dateString) => {
     return dateString
   }
 }
+
+const formatPrezzo = (prezzo) => {
+  // Se il prezzo non è definito o è null
+  if (prezzo === null || prezzo === undefined) return '-'
+
+  // Converte il prezzo in numero se è una stringa
+  const prezzoNumero = typeof prezzo === 'string' ? parseFloat(prezzo) : prezzo
+
+  // Se non è un numero valido
+  if (isNaN(prezzoNumero)) return '-'
+
+  // Formatta il prezzo in Euro con punto come separatore decimale
+  return '€ ' + prezzoNumero.toFixed(2)
+}
 </script>
 
 <style scoped>
@@ -254,6 +274,12 @@ const formatDate = (dateString) => {
   border-radius: 4px;
   border: 2px solid #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Stile per il prezzo */
+.prezzo-text {
+  font-size: 1.1rem;
+  color: #28a745 !important;
 }
 
 /* Dropdown nel header */

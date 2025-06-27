@@ -253,11 +253,11 @@ export function useAttivita() {
   const showNotification = (type, message) => {
     notification.value = { type, message }
 
-    // Auto-hide dopo 5 secondi per i messaggi di successo
+    // Auto-hide dopo 2 secondi per i messaggi di successo e info
     if (type === 'success' || type === 'info') {
       setTimeout(() => {
         notification.value = null
-      }, 5000)
+      }, 2000)
     }
   }
 
