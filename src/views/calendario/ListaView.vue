@@ -214,43 +214,25 @@ const getTipoTerapia = (evento) => {
   }
 }
 
+// ✅ AGGIORNATO - Formattazione semplificata per tipologie prestazioni dinamiche
 const formatTipoTerapia = (tipologia) => {
-  if (!tipologia) return ''
-
-  const labels = {
-    'LOGOPEDIA': 'Logopedia',
-    'NEUROPSICHIATRIA_INFANTILE': 'Neuropsichiatria',
-    'NEUROPSICOMOTRICITÀ': 'Neuropsicomotricità',
-    'TERAPIA_ABA': 'Terapia ABA',
-    'PSICOLOGA': 'Psicologa',
-    'COLLOQUIO_CONOSCITIVO': 'Colloquio'
-  }
-  return labels[tipologia] || tipologia
+  // Restituisce direttamente la tipologia dal backend (già formattata correttamente)
+  return tipologia || ''
 }
 
+// ✅ AGGIORNATO - Ottiene colore dinamico dalle prestazioni del backend
 const getBadgeColorTerapia = (evento) => {
   try {
-    // Usa il colore dalla prestazione nel database se disponibile
+    // ✅ PRIORITÀ 1: Usa il colore dalla prestazione nel database (dinamico)
     if (evento?.specialista?.prestazione?.color) {
       return evento.specialista.prestazione.color
     }
 
-    // Fallback ai colori predefiniti solo se non c'è colore nel DB
-    if (!evento || !evento.specialista?.prestazione?.tipologia) return 'secondary'
-
-    const tipologia = evento.specialista.prestazione.tipologia
-    const colors = {
-      'LOGOPEDIA': 'primary',
-      'NEUROPSICHIATRIA_INFANTILE': 'success',
-      'NEUROPSICOMOTRICITÀ': 'info',
-      'TERAPIA_ABA': 'warning',
-      'PSICOLOGA': 'secondary',
-      'COLLOQUIO_CONOSCITIVO': 'dark'
-    }
-    return colors[tipologia] || 'light'
+    // ✅ FALLBACK: Colore neutro se non definito dal backend
+    return '#6c757d' // Grigio neutro
   } catch (error) {
-    console.warn('Errore nel recupero colore terapia:', error)
-    return 'secondary'
+    console.warn('Errore nel recupero colore prestazione:', error)
+    return '#6c757d'
   }
 }
 

@@ -272,7 +272,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['eventoClick', 'creaEvento'])
-const { formatTime, COLORI_TERAPIA } = useCalendario()
+// ✅ AGGIORNATO - Importa utility per prestazioni dinamiche
+const { formatTime, getColorePrestazione } = useCalendario()
 
 // Costanti per la timeline
 const ORARIO_INIZIO = 0
@@ -589,40 +590,24 @@ const creaEventoInSlot = (professionista, oraSlot) => {
   }
 }
 
-// Formatta il tipo di terapia per la visualizzazione
+// ✅ AGGIORNATO - Utilizza prestazioni dinamiche dal backend
 const formatTipoTerapia = (tipoTerapia) => {
   // Se non c'è il tipo di terapia, restituiamo un valore generico
   if (!tipoTerapia) return 'Prestazione Generica'
 
-  const labels = {
-    'LOGOPEDIA': 'Logopedia',
-    'NEUROPSICHIATRIA_INFANTILE': 'Neuropsichiatria',
-    'NEUROPSICOMOTRICITÀ': 'Neuropsicomotricità',
-    'TERAPIA_ABA': 'Terapia ABA',
-    'PSICOLOGA': 'Psicologa',
-    'COLLOQUIO_CONOSCITIVO': 'Colloquio'
-  }
-
-  // Se il tipo non è nelle label, restituisci il valore formattato
-  return labels[tipoTerapia] || tipoTerapia.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())
+  // Restituisce direttamente la tipologia così come arriva dal backend
+  // Le prestazioni sono già caricate dinamicamente e formattate correttamente
+  return tipoTerapia
 }
 
-// Ottiene il colore del badge per tipo terapia (manteniamo per fallback)
-const getBadgeColorTerapia = (tipoTerapia) => {
-  const colors = {
-    'LOGOPEDIA': 'primary',
-    'NEUROPSICHIATRIA_INFANTILE': 'success',
-    'NEUROPSICOMOTRICITÀ': 'info',
-    'TERAPIA_ABA': 'warning',
-    'PSICOLOGA': 'secondary',
-    'COLLOQUIO_CONOSCITIVO': 'dark'
-  }
-  return colors[tipoTerapia] || 'light'
-}
+// ✅ RIMOSSO - Funzione obsoleta sostituita da getBadgeStyleTerapia
+// const getBadgeColorTerapia = (tipoTerapia) => {
+//   // Era una mappatura statica, ora sostituita da colori dinamici
+// }
 
-// Nuovo metodo per ottenere lo stile dinamico del badge prestazione
+// ✅ AGGIORNATO - Ottiene lo stile dinamico del badge utilizzando prestazioni dal backend
 const getBadgeStyleTerapia = (prestazione) => {
-  // Se la prestazione ha un colore definito, lo utilizziamo
+  // Se la prestazione ha un colore definito dal backend, lo utilizziamo
   if (prestazione?.color) {
     return {
       backgroundColor: prestazione.color,
@@ -631,7 +616,17 @@ const getBadgeStyleTerapia = (prestazione) => {
     }
   }
 
-  // Fallback ai colori statici se non disponibile il colore dinamico
+  // ✅ FALLBACK - Se non c'è colore dalla prestazione, usa quello dal composable
+  const coloreDinamico = getColorePrestazione(prestazione?.tipologia)
+  if (coloreDinamico && coloreDinamico !== '#6c757d') {
+    return {
+      backgroundColor: coloreDinamico,
+      color: getContrastColor(coloreDinamico),
+      border: `1px solid ${coloreDinamico}`
+    }
+  }
+
+  // Ultimo fallback per prestazioni senza colore
   return {}
 }
 

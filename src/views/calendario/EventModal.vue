@@ -739,15 +739,9 @@ const getFullNameSpecialista = (specialista) => {
 }
 
 const formatPrestazione = (tipologia) => {
-  const labels = {
-    'LOGOPEDIA': 'Logopedia',
-    'NEUROPSICHIATRIA_INFANTILE': 'Neuropsichiatria',
-    'NEUROPSICOMOTRICITÀ': 'Neuropsicomotricità',
-    'TERAPIA_ABA': 'Terapia ABA',
-    'PSICOLOGA': 'Psicologa',
-    'COLLOQUIO_CONOSCITIVO': 'Colloquio'
-  }
-  return labels[tipologia] || tipologia
+  // Restituisce direttamente la tipologia così come arriva dal backend
+  // Il backend dovrebbe già fornire le prestazioni nel formato corretto
+  return tipologia || ''
 }
 
 // 🆕 NUOVO - Funzione per formattare il prezzo nel dropdown specialisti
@@ -798,21 +792,9 @@ const getBadgeColorPrestazione = (prestazione) => {
     }
   }
 
-  // Se ricevo solo la tipologia (backward compatibility), usa la mappatura fallback
-  const tipologia = typeof prestazione === 'string' ? prestazione : prestazione?.tipologia
-
-  const colorsFallback = {
-    'LOGOPEDIA': 'primary',
-    'NEUROPSICHIATRIA_INFANTILE': 'success',
-    'NEUROPSICOMOTRICITÀ': 'info',
-    'TERAPIA_ABA': 'warning',
-    'PSICOLOGA': 'secondary',
-    'COLLOQUIO_CONOSCITIVO': 'dark'
-  }
-
-  const coloreFallback = colorsFallback[tipologia] || 'light'
-  console.log('⚠️ [EventModal] Usando colore fallback per tipologia', tipologia, ':', coloreFallback)
-  return {isHex: false, color: coloreFallback}
+  // Se non c'è colore dalla prestazione, usa un colore neutro di default
+  console.log('⚠️ [EventModal] Nessun colore disponibile dalla prestazione, uso default')
+  return {isHex: false, color: 'light'}
 }
 
 // Gestione ricerca e selezione pazienti (utilizzo diretto props - min 2 caratteri)
@@ -1408,28 +1390,27 @@ const handleRecurringDeleteClosed = () => {
   showDeleteRecurringModal.value = false
 }
 
+// ✅ AGGIORNATO - Usa prestazioni dinamiche invece di enum statici
 const formatTipoTerapia = (tipoTerapia) => {
-  const labels = {
-    'LOGOPEDIA': 'Logopedia',
-    'NEUROPSICHIATRIA_INFANTILE': 'Neuropsichiatria Infantile',
-    'NEUROPSICOMOTRICITÀ': 'Neuropsicomotricità',
-    'TERAPIA_ABA': 'Terapia ABA',
-    'PSICOLOGA': 'Psicologa',
-    'COLLOQUIO_CONOSCITIVO': 'Colloquio Conoscitivo'
-  }
-  return labels[tipoTerapia] || tipoTerapia
+  // Restituisce direttamente il tipo terapia così come arriva dal backend
+  // Le prestazioni sono già caricate dinamicamente dal backend
+  return tipoTerapia || ''
 }
 
+// ✅ AGGIORNATO - Usa colori dinamici dalle prestazioni invece di mappature statiche
 const getBadgeColorTerapia = (tipoTerapia) => {
-  const colors = {
-    'LOGOPEDIA': 'primary',
-    'NEUROPSICHIATRIA_INFANTILE': 'success',
-    'NEUROPSICOMOTRICITÀ': 'info',
-    'TERAPIA_ABA': 'warning',
-    'PSICOLOGA': 'secondary',
-    'COLLOQUIO_CONOSCITIVO': 'dark'
+  // Ora i colori vengono gestiti dinamicamente dal backend tramite le prestazioni
+  // Utilizza la funzione del composable per ottenere il colore
+  const { getColorePrestazione } = useCalendario()
+  const colore = getColorePrestazione(tipoTerapia)
+
+  // Se il colore inizia con #, è un hex
+  if (colore && colore.startsWith('#')) {
+    return { isHex: true, color: colore }
+  } else {
+    // Se non è hex o non esiste, usa un colore di default
+    return { isHex: false, color: 'light' }
   }
-  return colors[tipoTerapia] || 'light'
 }
 
 // Watcher per auto-popolamento quando si seleziona un paziente

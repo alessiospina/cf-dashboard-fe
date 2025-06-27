@@ -16,9 +16,7 @@ import {
   EventoValidator,
   FrequenzaEvento,
   FREQUENZA_EVENTO_OPTIONS,
-  TipoTerapia,
-  TIPI_TERAPIA_OPTIONS,
-  COLORI_TERAPIA,
+  // ✅ RIMOSSO: TipoTerapia, TIPI_TERAPIA_OPTIONS, COLORI_TERAPIA - ora dinamici dal backend
   // ⭐ NUOVO - Import per la ricorrenza
   TipoRicorrenza,
   TIPO_RICORRENZA_OPTIONS,
@@ -27,10 +25,11 @@ import {
   RicorrenzaUtils
 } from '@/types/backend.types'
 
-// Import dei service per specialisti, pazienti ed eventi
+// Import dei service per specialisti, pazienti, eventi e prestazioni
 import {SpecialistaService} from '@/services/specialistaService'
 import {PazienteService} from '@/services/pazienteService'
 import {EventoService} from '@/services/calendarioService'
+import {PrestazioneService} from '@/services/prestazioneService'
 
 
 
@@ -50,9 +49,11 @@ export function useCalendario() {
   const eventi = ref([])
   const specialisti = ref([]) // Lista specialisti dal backend
   const pazienti = ref([]) // Lista pazienti dal backend
+  const prestazioni = ref([]) // ✅ NUOVO - Lista prestazioni caricate dinamicamente
   const loading = ref(false)
   const loadingSpecialisti = ref(false) // Loading specifico per specialisti
   const loadingPazienti = ref(false) // Loading specifico per pazienti
+  const loadingPrestazioni = ref(false) // ✅ NUOVO - Loading specifico per prestazioni
   const error = ref('')
 
   // ⭐ NUOVO - Stato reattivo per la gestione della ricorrenza
@@ -71,6 +72,30 @@ export function useCalendario() {
     ricorrenzaError.value = ''
   }
 
+
+  // Funzione per caricare prestazioni dal backend (una sola volta)
+  const caricaPrestazioni = async () => {
+    // Se già caricate, non rifare la chiamata
+    if (prestazioni.value.length > 0) {
+      console.log('✅ [useCalendario] Prestazioni già caricate, utilizzo cache')
+      return prestazioni.value
+    }
+
+    loadingPrestazioni.value = true
+    try {
+      console.log('🔄 [useCalendario] Caricamento prestazioni dal backend...')
+      prestazioni.value = await PrestazioneService.getAllPrestazioni()
+      console.log(`✅ [useCalendario] Caricate ${prestazioni.value.length} prestazioni`)
+      return prestazioni.value
+    } catch (err) {
+      error.value = 'Errore nel caricamento delle prestazioni dal backend'
+      console.error('❌ [useCalendario] Errore caricamento prestazioni:', err)
+      prestazioni.value = [] // Array vuoto in caso di errore
+      return []
+    } finally {
+      loadingPrestazioni.value = false
+    }
+  }
 
   // Funzione per caricare specialisti dal backend (una sola volta)
   const caricaSpecialisti = async () => {
@@ -163,8 +188,9 @@ export function useCalendario() {
     try {
       await Promise.all([
         caricaEventi(dataIniziale), // Carica eventi per la data specificata
-        caricaSpecialisti(), // Corretto: non duplicato
-        caricaPazienti()
+        caricaSpecialisti(), // Carica specialisti
+        caricaPazienti(), // Carica pazienti
+        caricaPrestazioni() // ✅ NUOVO - Carica prestazioni dinamicamente
       ])
       console.log('Calendario inizializzato con successo')
     } catch (err) {
@@ -668,6 +694,56 @@ export function useCalendario() {
     }
   })
 
+  // ✅ NUOVO - Utility per prestazioni dinamiche
+
+  /**
+   * Ottiene tutte le tipologie di prestazione disponibili per select/filtri
+   * @returns {Array} - Array di opzioni {value, label} per select
+   */
+  const getOpzioniTipologiePrestazioni = computed(() => {
+    if (!prestazioni.value || prestazioni.value.length === 0) {
+      return []
+    }
+
+    return prestazioni.value.map(prestazione => ({
+      value: prestazione.tipologia,
+      label: prestazione.tipologia,
+      color: prestazione.color,
+      id: prestazione.id
+    }))
+  })
+
+  /**
+   * Ottiene il colore di una prestazione data la tipologia
+   * @param {string} tipologia - Tipologia della prestazione
+   * @returns {string} - Colore hex della prestazione o grigio di default
+   */
+  const getColorePrestazione = (tipologia) => {
+    if (!tipologia || !prestazioni.value || prestazioni.value.length === 0) {
+      return '#6c757d' // Grigio di default
+    }
+
+    const prestazione = prestazioni.value.find(p => p.tipologia === tipologia)
+    return prestazione?.color || '#6c757d'
+  }
+
+  /**
+   * Cerca prestazioni per tipologia
+   * @param {string} query - Termine di ricerca
+   * @returns {Array} - Prestazioni filtrate
+   */
+  const cercaPrestazioni = (query = '') => {
+    if (!query || query.trim() === '') {
+      return prestazioni.value
+    }
+
+    const queryLower = query.toLowerCase()
+    return prestazioni.value.filter(prestazione => {
+      const tipologia = prestazione.tipologia || ''
+      return tipologia.toLowerCase().includes(queryLower)
+    })
+  }
+
   // Utilità per filtri
   const filtraEventi = (listaEventi, filtri) => {
     try {
@@ -1007,9 +1083,11 @@ export function useCalendario() {
     specialisti, // Lista specialisti dal backend
     specialistiDaEventi, // Lista specialisti estratti dagli eventi (computed)
     pazienti, // Lista pazienti dal backend
+    prestazioni, // ✅ NUOVO - Lista prestazioni dal backend
     loading,
     loadingSpecialisti, // Loading specifico per specialisti
     loadingPazienti, // Loading specifico per pazienti
+    loadingPrestazioni, // ✅ NUOVO - Loading specifico per prestazioni
     error,
     // ⭐ NUOVO - Stato ricorrenza
     loadingRicorrenza, // Loading specifico per operazioni ricorrenza
@@ -1020,8 +1098,10 @@ export function useCalendario() {
     caricaEventiIntervallo, // Carica eventi per un intervallo di date
     caricaSpecialisti, // Carica specialisti una sola volta
     caricaPazienti, // Carica pazienti una sola volta
+    caricaPrestazioni, // ✅ NUOVO - Carica prestazioni una sola volta
     cercaSpecialisti, // Cerca specialisti in cache
     cercaPazienti, // Cerca pazienti in cache
+    cercaPrestazioni, // ✅ NUOVO - Cerca prestazioni per tipologia
     inizializzaCalendario, // Inizializza tutto il calendario con data specifica
     creaEvento,
     aggiornaEvento,
@@ -1031,6 +1111,10 @@ export function useCalendario() {
     creaEventoConRicorrenza, // Crea evento con ricorrenza
     aggiornaEventiRicorrenti, // Aggiorna eventi ricorrenti con direction
     eliminaEventiRicorrenti, // Elimina eventi ricorrenti con direction
+
+    // ✅ NUOVO - Utility prestazioni dinamiche
+    getOpzioniTipologiePrestazioni, // Computed per opzioni select tipologie
+    getColorePrestazione, // Ottiene colore prestazione da tipologia
 
 
 
@@ -1052,9 +1136,11 @@ export function useCalendario() {
     validaRicorrenza, // Valida dati ricorrenza
 
     // Costanti
-    TipoTerapia,
-    TIPI_TERAPIA_OPTIONS,
-    COLORI_TERAPIA,
+    // ✅ RIMOSSO: TipoTerapia, TIPI_TERAPIA_OPTIONS, COLORI_TERAPIA - ora caricati dinamicamente
+    // Le prestazioni e i loro colori sono disponibili tramite:
+    // - prestazioni (array reattivo)
+    // - getOpzioniTipologiePrestazioni (computed per select)
+    // - getColorePrestazione(tipologia) (funzione per ottenere colori)
     FrequenzaEvento,
     FREQUENZA_EVENTO_OPTIONS,
     EventoMapper,
