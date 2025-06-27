@@ -9,26 +9,34 @@
       </p>
     </div>
 
-    <!-- Notifiche -->
-    <div v-if="notification" class="alert-container">
-      <div
-        :class="[
-          'alert',
-          'alert-dismissible',
-          'fade',
-          'show',
-          `alert-${getAlertClass(notification.type)}`
-        ]"
-      >
-        {{ notification.message }}
-        <button
-          type="button"
-          class="btn-close"
-          @click="clearNotification"
-          aria-label="Close"
-        ></button>
+    <!-- Notifiche con transizioni -->
+    <Transition
+      name="notification"
+      enter-active-class="notification-enter-active"
+      leave-active-class="notification-leave-active"
+      enter-from-class="notification-enter-from"
+      leave-to-class="notification-leave-to"
+    >
+      <div v-if="notification" class="alert-container">
+        <div
+          :class="[
+            'alert',
+            'alert-dismissible',
+            'fade',
+            'show',
+            `alert-${getAlertClass(notification.type)}`
+          ]"
+        >
+          {{ notification.message }}
+          <button
+            type="button"
+            class="btn-close"
+            @click="clearNotification"
+            aria-label="Close"
+          ></button>
+        </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- Sezione filtri di ricerca -->
     <div class="filters-section">
@@ -316,6 +324,25 @@ export default {
 .alert-container {
   /* Container per le notifiche */
   margin-bottom: 24px;
+}
+
+/* Transizioni per le notifiche */
+.notification-enter-active {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.notification-leave-active {
+  transition: all 0.3s cubic-bezier(0.55, 0.085, 0.68, 0.53);
+}
+
+.notification-enter-from {
+  opacity: 0;
+  transform: translateY(-30px) scale(0.95);
+}
+
+.notification-leave-to {
+  opacity: 0;
+  transform: translateY(-20px) scale(0.98);
 }
 
 .filters-section {

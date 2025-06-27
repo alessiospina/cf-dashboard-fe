@@ -25,8 +25,8 @@ export function useAttivita() {
 
   // Filtri reattivi
   const filtri = reactive({
-    prestazioneId: null,
-    specialistaId: null,
+    prestazioneId: '',  // Cambiato da null a stringa vuota per allineare con option value=""
+    specialistaId: '',  // Cambiato da null a stringa vuota per allineare con option value=""
     dataInizio: null,
     dataFine: null
   })
@@ -209,8 +209,8 @@ export function useAttivita() {
    * Reset di tutti i filtri
    */
   const resetFiltri = () => {
-    filtri.prestazioneId = null
-    filtri.specialistaId = null
+    filtri.prestazioneId = ''     // Cambiato da null a stringa vuota
+    filtri.specialistaId = ''     // Cambiato da null a stringa vuota
     filtri.dataInizio = null
     filtri.dataFine = null
     searchTerm.value = ''

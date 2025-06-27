@@ -185,13 +185,13 @@ export class AttivitaService {
       }
 
       // Filtro per prestazione
-      if (filtri.prestazioneId &&
+      if (filtri.prestazioneId && filtri.prestazioneId !== '' &&
           attivita.prestazione?.id !== parseInt(filtri.prestazioneId)) {
         return false
       }
 
       // Filtro per specialista
-      if (filtri.specialistaId &&
+      if (filtri.specialistaId && filtri.specialistaId !== '' &&
           attivita.specialista?.id !== parseInt(filtri.specialistaId)) {
         return false
       }
