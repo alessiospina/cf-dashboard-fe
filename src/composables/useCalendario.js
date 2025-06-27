@@ -359,18 +359,25 @@ export function useCalendario() {
 
   const eliminaEvento = async (eventoId) => {
     try {
-      console.log('Eliminazione evento ID:', eventoId)
+      // ⭐ CORREZIONE - Assicurati che l'ID sia preservato come stringa/numero originale
+      console.log('🗑️ [useCalendario] Eliminazione evento ID (tipo originale):', eventoId, typeof eventoId)
 
       // Usa il service del backend per eliminare l'evento
       await EventoService.deleteEvento(eventoId)
 
-      // Rimuovi dalla lista locale
-      eventi.value = eventi.value.filter(e => e.id !== eventoId)
+      // ⭐ CORREZIONE - Confronto sicuro degli ID per rimozione dalla lista locale
+      eventi.value = eventi.value.filter(e => {
+        // Confronta come stringhe per evitare problemi di tipo
+        const eventoIdStr = e.id?.toString()
+        const eliminatoIdStr = eventoId?.toString()
+        console.log(`🔍 [useCalendario] Confronto ID per rimozione: evento.id="${eventoIdStr}" vs eliminato="${eliminatoIdStr}"`)
+        return eventoIdStr !== eliminatoIdStr
+      })
 
-      console.log('Evento eliminato con successo')
+      console.log('✅ [useCalendario] Evento eliminato con successo')
     } catch (err) {
       error.value = 'Errore nell\'eliminazione dell\'evento'
-      console.error('Errore eliminazione evento:', err)
+      console.error('❌ [useCalendario] Errore eliminazione evento:', err)
       throw err
     }
   }

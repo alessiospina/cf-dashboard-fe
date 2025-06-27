@@ -14,7 +14,6 @@
     :visible="visible"
     @close="handleClose"
     @update:visible="handleClose"
-    size="md"
     class="confirm-delete-modal"
   >
     <CModalHeader class="border-0 pb-2">
@@ -116,7 +115,7 @@
  * Per eventi ricorrenti mostra opzioni di cancellazione specifiche.
  */
 
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { useCalendario } from '@/composables/useCalendario'
 
 // Props del componente
@@ -140,19 +139,22 @@ const { eliminaEvento, eliminaEventiRicorrenti, isEventoRicorrente, Direction } 
 // Stato del componente
 const loading = ref(false)
 const opzioneEliminazione = ref('THIS_ONLY') // Opzione selezionata per eventi ricorrenti
-const eventoSalvato = ref(null) // Copia locale dell'evento per evitare perdite
+// ⭐ RIMOSSO - eventoSalvato che causava problemi di cache
 
-// Computed per verificare se l'evento è ricorrente
+// Computed per verificare se l'evento è ricorrente - VERSIONE SEMPLIFICATA
 const isRicorrente = computed(() => {
-  const evento = eventoSalvato.value || props.evento
-  console.log('🔍 [ConfirmDeleteModal] Debug evento ricevuto:', evento)
-  console.log('🔍 [ConfirmDeleteModal] isEventoRicorrente result:', evento && isEventoRicorrente(evento))
-  return evento && isEventoRicorrente(evento)
+  console.log('🔍 [ConfirmDeleteModal] Debug evento ricevuto:', props.evento)
+  console.log('🔍 [ConfirmDeleteModal] isEventoRicorrente result:', props.evento && isEventoRicorrente(props.evento))
+  return props.evento && isEventoRicorrente(props.evento)
 })
 
-// Computed per ottenere l'evento corrente (props o salvato)
+// Computed per ottenere l'evento corrente - VERSIONE SEMPLIFICATA
 const eventoCorrente = computed(() => {
-  return eventoSalvato.value || props.evento
+  console.log('🔍 [ConfirmDeleteModal] Usando direttamente props.evento:', {
+    id: props.evento?.id,
+    titolo: props.evento?.titolo
+  })
+  return props.evento // Usa sempre i props più aggiornati
 })
 
 // Opzioni per la selezione di eliminazione eventi ricorrenti
@@ -174,28 +176,16 @@ const opzioniEliminazione = [
   }
 ]
 
-// Gestione chiusura modal
+// Gestione chiusura modal - VERSIONE SEMPLIFICATA
 const handleClose = () => {
   if (loading.value) return // Blocca chiusura durante operazioni
 
-  // Reset stato quando si chiude
+  console.log('🚪 [ConfirmDeleteModal] Chiusura modal - reset stato')
+
+  // Reset solo lo stato dell'opzione
   opzioneEliminazione.value = 'THIS_ONLY'
-  eventoSalvato.value = null // Pulisci evento salvato
   emit('close')
 }
-
-// Salva l'evento quando la modale si apre
-const salvaEvento = () => {
-  if (props.visible && props.evento && !eventoSalvato.value) {
-    console.log('💾 [ConfirmDeleteModal] Salvataggio evento:', props.evento)
-    eventoSalvato.value = { ...props.evento } // Copia profonda
-  }
-}
-
-// Watch per salvare l'evento quando la modale si apre
-watch([() => props.visible, () => props.evento], () => {
-  salvaEvento()
-}, { immediate: true })
 
 // Gestione eliminazione evento
 const handleElimina = async () => {
@@ -205,7 +195,11 @@ const handleElimina = async () => {
   loading.value = true
 
   try {
-    console.log('🗑️ [ConfirmDeleteModal] Inizio eliminazione evento:', evento.id)
+    console.log('🗑️ [ConfirmDeleteModal] Inizio eliminazione evento:', {
+      id: evento.id,
+      tipo: typeof evento.id,
+      titolo: evento.titolo
+    })
 
     if (isRicorrente.value) {
       // Evento ricorrente - usa l'opzione selezionata
@@ -213,7 +207,7 @@ const handleElimina = async () => {
 
       if (opzioneEliminazione.value === 'THIS_ONLY') {
         // Per "solo questo evento" usa eliminaEvento normale
-        console.log('📄 [ConfirmDeleteModal] Eliminazione singolo evento ricorrente')
+        console.log('📄 [ConfirmDeleteModal] Eliminazione singolo evento ricorrente con ID:', evento.id)
         await eliminaEvento(evento.id)
       } else {
         // Per altre opzioni usa eliminaEventiRicorrenti con direction
@@ -225,7 +219,7 @@ const handleElimina = async () => {
 
     } else {
       // Evento singolo
-      console.log('📄 [ConfirmDeleteModal] Eliminazione evento singolo')
+      console.log('📄 [ConfirmDeleteModal] Eliminazione evento singolo con ID:', evento.id)
       await eliminaEvento(evento.id)
       console.log('✅ [ConfirmDeleteModal] Evento singolo eliminato con successo')
     }

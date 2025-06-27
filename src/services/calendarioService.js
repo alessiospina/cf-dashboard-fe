@@ -182,14 +182,25 @@ export class EventoService {
 
   /**
    * Elimina un evento
-   * @param {number} eventoId - ID dell'evento da eliminare
+   * @param {number|string} eventoId - ID dell'evento da eliminare
    * @returns {Promise<void>}
    */
   static async deleteEvento(eventoId) {
     try {
-      await apiClient.delete(`/evento/${eventoId}`)
+      // ⭐ DEBUG - Verifica che l'ID arrivi correttamente
+      console.log('🗑️ [EventoService] Eliminazione evento ID:', eventoId, 'tipo:', typeof eventoId)
+
+      // ⭐ CORREZIONE - Assicurati che l'ID sia un numero valido se necessario
+      const idNumerico = parseInt(eventoId)
+      if (isNaN(idNumerico)) {
+        throw new Error(`ID evento non valido: ${eventoId}`)
+      }
+
+      console.log('📤 [EventoService] Chiamata DELETE per ID:', idNumerico)
+      await apiClient.delete(`/evento/${idNumerico}`)
+      console.log('✅ [EventoService] Evento eliminato con successo dal backend')
     } catch (error) {
-      console.error('Errore nell\'eliminazione evento:', error)
+      console.error('❌ [EventoService] Errore nell\'eliminazione evento:', error)
       throw error
     }
   }
