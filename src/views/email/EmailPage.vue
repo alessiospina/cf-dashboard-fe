@@ -1,11 +1,11 @@
 <template>
   <!--
-    Pagina principale per l'invio Email Reminder
+    Pagina principale per i Specialisti Reminder
 
     Questa pagina include:
     - Form per selezione data e specialisti
     - Validazione in tempo reale
-    - Invio email con feedback
+    - Invio reminder con feedback
     - Modal con risultati dettagliati
   -->
   <div class="email-page">
@@ -14,7 +14,7 @@
       <CCol>
         <h2 class="page-title">
           <CIcon icon="cil-envelope-closed" class="me-2" />
-          Invio Email Reminder
+          Specialisti Reminder
         </h2>
         <p class="text-muted">
           Invia promemoria via email agli specialisti per appuntamenti di una data specifica
@@ -46,7 +46,7 @@
       <CCardHeader class="bg-primary text-white">
         <h5 class="mb-0">
           <CIcon icon="cil-calendar" class="me-2" />
-          Configura Invio Email
+          Configura Specialisti Reminder
         </h5>
       </CCardHeader>
 
@@ -178,14 +178,6 @@
 
               <!-- Lista specialisti -->
               <div class="specialisti-list-container">
-                <!-- Debug info - rimuovere in produzione -->
-                <div v-if="availableSpecialisti.length > 0" class="debug-info mb-2">
-                  <small class="text-muted">
-                    Debug: {{ availableSpecialisti.length }} specialisti disponibili,
-                    {{ filteredSpecialisti.length }} dopo filtro
-                  </small>
-                </div>
-
                 <div
                   v-if="filteredSpecialisti.length === 0"
                   class="text-center py-4 text-muted"
@@ -266,7 +258,7 @@
                   >
                     <CSpinner v-if="emailLoading" size="sm" class="me-2" />
                     <CIcon v-else icon="cil-envelope-closed" class="me-2" />
-                    {{ emailLoading ? 'Invio in corso...' : 'Invia Email Reminder' }}
+                    {{ emailLoading ? 'Invio in corso...' : 'Invia Reminder' }}
                   </CButton>
 
                   <!-- Info invio -->
@@ -343,7 +335,7 @@
       <CModalHeader>
         <CModalTitle class="d-flex align-items-center">
           <CIcon icon="cil-chart-line" class="me-2" />
-          Risultati Invio Email
+          Risultati Invio Reminder
         </CModalTitle>
       </CModalHeader>
 
@@ -458,9 +450,9 @@
 
 <script setup>
 /**
- * Pagina Invio Email Reminder
+ * Pagina Specialisti Reminder
  *
- * Componente principale per la gestione dell'invio di email reminder agli specialisti.
+ * Componente principale per la gestione dell'invio di reminder via email agli specialisti.
  * Utilizza il composable useEmail per tutta la logica di stato e business.
  */
 
@@ -596,7 +588,7 @@ const clearNotificationWithTimer = () => {
 
 // Lifecycle hooks
 onMounted(() => {
-  console.log('🚀 [EmailPage] Pagina Email caricata')
+  console.log('🚀 [SpecialistiReminderPage] Pagina Specialisti Reminder caricata')
 })
 
 onUnmounted(() => {
@@ -817,23 +809,7 @@ onUnmounted(() => {
   }
 }
 
-/* Debug info */
-.debug-info {
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-  padding: 0.5rem;
-  font-family: monospace;
-}
-
-/* Debug info */
-.debug-info {
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-  padding: 0.5rem;
-  font-family: monospace;
-}
+/* Scrollbar personalizzata per lista specialisti */
 .specialisti-list-container::-webkit-scrollbar {
   width: 6px;
 }

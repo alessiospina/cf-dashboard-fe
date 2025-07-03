@@ -36,7 +36,7 @@ export default [
   },
   {
     component: 'CNavItem',
-    name: 'Email Reminder',
+    name: 'Specialisti Reminder',
     to: '/email',
     icon: 'cil-envelope-closed',
   },
