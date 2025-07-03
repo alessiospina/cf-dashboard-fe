@@ -34,4 +34,10 @@ export default [
     to: '/attivita',
     icon: 'cil-task',
   },
+  {
+    component: 'CNavItem',
+    name: 'Email Reminder',
+    to: '/email',
+    icon: 'cil-envelope-closed',
+  },
 ]

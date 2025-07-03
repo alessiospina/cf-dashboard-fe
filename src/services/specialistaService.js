@@ -267,6 +267,50 @@ export const SpecialistaService = {
     },
 
     /**
+     * Ottiene gli specialisti che hanno eventi in una data specifica
+     * Endpoint: GET /api/specialista/by/evento?date=YYYY-MM-DD
+     * @param {string} date - Data in formato YYYY-MM-DD
+     * @returns {Promise<SpecialistaDTO[]>} Lista degli specialisti con eventi nella data
+     */
+    async getSpecialistiByEvento(date) {
+        try {
+            console.log(`🌐 [SpecialistaService] Chiamata GET /api/specialista/by/evento?date=${date}`)
+
+            // Validazione formato data
+            if (!date || !this.isValidDateFormat(date)) {
+                throw new Error('Formato data non valido. Usare YYYY-MM-DD')
+            }
+
+            const response = await fetch(`${API_BASE_URL}/specialista/by/evento?date=${date}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+
+            if (!response.ok) {
+                throw new Error(`Errore HTTP: ${response.status} - ${response.statusText}`)
+            }
+
+            /** @type {ServerResponseDto<SpecialistaDTO[]>} */
+            const serverResponse = await response.json()
+
+            console.log('🔍 [SpecialistaService] Risposta completa dal server:', serverResponse)
+            console.log('✅ [SpecialistaService] Specialisti con eventi ricevuti:', serverResponse.data?.length || 0)
+            console.log('🔍 [SpecialistaService] Dati degli specialisti:', serverResponse.data)
+
+            // Restituisce direttamente i dati dal campo data della risposta del server
+            return serverResponse.data || []
+
+        } catch (error) {
+            console.error('❌ [SpecialistaService] Errore nel caricamento specialisti per evento:', error)
+            throw new Error(
+                error.message || 'Errore di comunicazione con il server durante il caricamento degli specialisti per evento'
+            )
+        }
+    },
+
+    /**
      * Test di connettività con il backend
      * @returns {Promise<boolean>} True se il backend è raggiungibile
      */
@@ -339,6 +383,16 @@ export const SpecialistaService = {
     isValidEmail(email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         return emailRegex.test(email)
+    },
+
+    /**
+     * Valida se una data è nel formato YYYY-MM-DD
+     * @param {string} date - Data da validare
+     * @returns {boolean} True se la data è nel formato corretto
+     */
+    isValidDateFormat(date) {
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+        return dateRegex.test(date)
     },
 
     /**

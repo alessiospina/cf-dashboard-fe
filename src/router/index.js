@@ -56,6 +56,15 @@ const routes = [
             /* webpackChunkName: "attivita" */ '@/views/attivita/AttivitaPage.vue'
           ),
       },
+      {
+        path: '/email',
+        name: 'Email',
+        // Pagina di invio email reminder con lazy loading
+        component: () =>
+          import(
+            /* webpackChunkName: "email" */ '@/views/email/EmailPage.vue'
+          ),
+      },
     ],
   },
   {
