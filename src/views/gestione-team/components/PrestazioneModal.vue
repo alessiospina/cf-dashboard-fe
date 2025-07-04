@@ -129,8 +129,9 @@ const isEditing = computed(() => !!props.prestazione?.id)
 const isFormValid = computed(() => {
   return formData.value.tipologia.trim() &&
          formData.value.color &&
-         formData.value.prezzo &&
-         !isNaN(parseFloat(formData.value.prezzo))
+         formData.value.prezzo !== '' &&
+         !isNaN(parseFloat(formData.value.prezzo)) &&
+         parseFloat(formData.value.prezzo) >= 0
 })
 
 const validateForm = () => {
@@ -148,8 +149,8 @@ const validateForm = () => {
     errors.value.prezzo = 'Il prezzo è obbligatorio'
   } else {
     const prezzoNumber = parseFloat(formData.value.prezzo)
-    if (isNaN(prezzoNumber) || prezzoNumber <= 0) {
-      errors.value.prezzo = 'Il prezzo deve essere un numero valido maggiore di 0'
+    if (isNaN(prezzoNumber) || prezzoNumber < 0) {
+      errors.value.prezzo = 'Il prezzo deve essere un numero valido maggiore o uguale a 0'
     }
   }
 
@@ -180,18 +181,18 @@ const formatPrezzoInput = (event) => {
 
 const formatPrezzoOnBlur = () => {
   // Formattazione automatica quando l'utente esce dal campo
-  if (!formData.value.prezzo) return
+  if (formData.value.prezzo === '' || formData.value.prezzo === null || formData.value.prezzo === undefined) return
 
   const prezzoNumber = parseFloat(formData.value.prezzo)
 
-  if (!isNaN(prezzoNumber)) {
+  if (!isNaN(prezzoNumber) && prezzoNumber >= 0) {
     // Formatta sempre con 2 decimali e punto come separatore
     formData.value.prezzo = prezzoNumber.toFixed(2)
   }
 }
 
 const formatPrezzoPreview = (prezzo) => {
-  if (!prezzo) return '€ 0.00'
+  if (prezzo === '' || prezzo === null || prezzo === undefined) return '€ 0.00'
 
   const prezzoNumber = parseFloat(prezzo)
 
@@ -245,27 +246,38 @@ const handleClose = () => {
 }
 
 watch(() => props.visible, (visible) => {
-  if (visible && props.prestazione) {
-    nextTick(() => {
-      // Formatta il prezzo esistente con punto come separatore se presente
-      let prezzoFormattato = ''
-      if (props.prestazione.prezzo !== null && props.prestazione.prezzo !== undefined) {
-        const prezzoNumber = typeof props.prestazione.prezzo === 'string'
-          ? parseFloat(props.prestazione.prezzo)
-          : props.prestazione.prezzo
+  if (visible) {
+    if (props.prestazione) {
+      // Modalità modifica - carica i dati della prestazione
+      nextTick(() => {
+        // Formatta il prezzo esistente con punto come separatore se presente
+        let prezzoFormattato = ''
+        if (props.prestazione.prezzo !== null && props.prestazione.prezzo !== undefined) {
+          const prezzoNumber = typeof props.prestazione.prezzo === 'string'
+            ? parseFloat(props.prestazione.prezzo)
+            : props.prestazione.prezzo
 
-        if (!isNaN(prezzoNumber)) {
-          prezzoFormattato = prezzoNumber.toFixed(2)
+          if (!isNaN(prezzoNumber)) {
+            prezzoFormattato = prezzoNumber.toFixed(2)
+          }
         }
-      }
 
+        formData.value = {
+          tipologia: props.prestazione.tipologia || '',
+          color: props.prestazione.color || '#007bff',
+          prezzo: prezzoFormattato
+        }
+      })
+    } else {
+      // Modalità creazione - reset del form
       formData.value = {
-        tipologia: props.prestazione.tipologia || '',
-        color: props.prestazione.color || '#007bff',
-        prezzo: prezzoFormattato
+        tipologia: '',
+        color: '#007bff',
+        prezzo: ''
       }
-    })
-  } else if (!visible) {
+      errors.value = {}
+    }
+  } else {
     // Reset quando la modale si chiude
     loading.value = false
   }

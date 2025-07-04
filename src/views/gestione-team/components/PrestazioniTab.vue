@@ -300,7 +300,7 @@ const formatPrezzo = (prezzo) => {
 /* Fix per z-index del dropdown menu */
 .prestazione-dropdown {
   position: relative;
-  z-index: 10;
+  z-index: 20;
 }
 
 .prestazione-dropdown-menu {
@@ -308,6 +308,29 @@ const formatPrezzo = (prezzo) => {
   position: absolute !important;
   will-change: transform;
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 0.375rem;
+  background-color: #ffffff;
+  min-width: 160px;
+}
+
+/* Assicuriamo che la card non interferisca */
+.prestazione-card {
+  position: relative;
+  z-index: 1;
+}
+
+.prestazione-card:hover {
+  z-index: 2;
+}
+
+/* Quando il dropdown è aperto, la card ha priorità massima */
+.prestazione-dropdown.show {
+  z-index: 1070;
+}
+
+.prestazione-dropdown.show .prestazione-dropdown-menu {
+  z-index: 1071 !important;
 }
 
 /* Stati vuoti migliorati */
@@ -348,5 +371,27 @@ const formatPrezzo = (prezzo) => {
 
 [data-coreui-theme="dark"] .color-preview {
   border-color: #4c566a;
+}
+
+[data-coreui-theme="dark"] .prestazione-dropdown-menu {
+  background-color: #2e3440;
+  border-color: #4c566a;
+}
+
+[data-coreui-theme="dark"] .prestazione-dropdown-menu .dropdown-item {
+  color: #d8dee9;
+}
+
+[data-coreui-theme="dark"] .prestazione-dropdown-menu .dropdown-item:hover {
+  background-color: #434c5e;
+  color: #eceff4;
+}
+
+[data-coreui-theme="dark"] .prestazione-dropdown-menu .dropdown-item.text-danger {
+  color: #bf616a !important;
+}
+
+[data-coreui-theme="dark"] .prestazione-dropdown-menu .dropdown-item.text-danger:hover {
+  background-color: rgba(191, 97, 106, 0.1);
 }
 </style>
