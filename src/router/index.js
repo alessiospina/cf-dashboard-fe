@@ -65,6 +65,15 @@ const routes = [
             /* webpackChunkName: "email" */ '@/views/email/EmailPage.vue'
           ),
       },
+      {
+        path: '/statistics',
+        name: 'Statistics',
+        // Pagina di statistiche annuali con grafici e report
+        component: () =>
+          import(
+            /* webpackChunkName: "statistics" */ '@/views/statistics/StatisticsPage.vue'
+          ),
+      },
     ],
   },
   {

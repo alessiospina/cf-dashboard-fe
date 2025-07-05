@@ -25,7 +25,19 @@ import {
   faTrash,
   faCheck,
   faTimes,
-  faExclamationTriangle
+  faExclamationTriangle,
+  faChartPie,
+  faCalendarAlt,
+  faEuroSign,
+  faBullseye,
+  faChartLine,
+  faSyncAlt,
+  faTable,
+  faCalendarCheck,
+  faChevronDown,
+  faChevronRight,
+  faInfoCircle,
+  faChartBar
 } from '@fortawesome/free-solid-svg-icons'
 
 // Aggiungi le icone che usi alla libreria
@@ -43,7 +55,19 @@ library.add(
   faTrash,
   faCheck,
   faTimes,
-  faExclamationTriangle
+  faExclamationTriangle,
+  faChartPie,
+  faCalendarAlt,
+  faEuroSign,
+  faBullseye,
+  faChartLine,
+  faSyncAlt,
+  faTable,
+  faCalendarCheck,
+  faChevronDown,
+  faChevronRight,
+  faInfoCircle,
+  faChartBar
 )
 
 const app = createApp(App)

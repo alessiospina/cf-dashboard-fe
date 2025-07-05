@@ -35,6 +35,12 @@ export default [
     icon: 'cil-task',
   },
   {
+    component: 'CNavItem',
+    name: 'Statistiche',
+    to: '/statistics',
+    icon: 'cil-chart-pie',
+  },
+  {
     component: 'CNavTitle',
     name: 'Notification',
   },
