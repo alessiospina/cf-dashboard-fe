@@ -13,11 +13,11 @@ const routes = [
       {
         path: '/dashboard',
         name: 'Dashboard',
-        // Nuova dashboard principale - ex pagina Performance
+        // Dashboard principale con statistiche annuali
         // Contiene metriche, grafici e statistiche del centro
         component: () =>
           import(
-            /* webpackChunkName: "dashboard" */ '@/views/dashboard/PerformancePage.vue'
+            /* webpackChunkName: "dashboard" */ '@/views/statistics/StatisticsPage.vue'
           ),
       },
       {
@@ -63,15 +63,6 @@ const routes = [
         component: () =>
           import(
             /* webpackChunkName: "email" */ '@/views/email/EmailPage.vue'
-          ),
-      },
-      {
-        path: '/statistics',
-        name: 'Statistics',
-        // Pagina di statistiche annuali con grafici e report
-        component: () =>
-          import(
-            /* webpackChunkName: "statistics" */ '@/views/statistics/StatisticsPage.vue'
           ),
       },
     ],

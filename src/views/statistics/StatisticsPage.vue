@@ -4,7 +4,7 @@
     <div class="statistics-header">
       <h1 class="page-title">
         <font-awesome-icon :icon="['fas', 'chart-pie']" class="title-icon me-2" />
-        Statistiche Annuali
+        Dashboard
       </h1>
       <div class="year-selector">
         <label for="year-select">Anno:</label>
