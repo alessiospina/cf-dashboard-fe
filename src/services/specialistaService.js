@@ -4,8 +4,10 @@
  * Basato sul backend NestJS con TypeORM
  */
 
-// Configurazione dell'API
-const API_BASE_URL = 'http://localhost:8000/api'
+import { getApiBaseUrl } from '@/config/api'
+
+// Configurazione dell'API - URL letto dal file .env
+const API_BASE_URL = getApiBaseUrl()
 
 /**
  * Interfaccia per il DTO dello specialista dal backend

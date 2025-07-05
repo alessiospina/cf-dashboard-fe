@@ -6,6 +6,7 @@
  */
 
 import axios from 'axios'
+import { getApiBaseUrl } from '@/config/api'
 import {
   CreateEventoDto,
   EventoMapper,
@@ -14,8 +15,8 @@ import {
   Direction
 } from '@/types/backend.types'
 
-// Configurazione base per le chiamate API
-const API_BASE_URL = 'http://localhost:8000/api'
+// Configurazione base per le chiamate API - URL letto dal file .env
+const API_BASE_URL = getApiBaseUrl()
 
 // Creiamo un'istanza di axios con configurazione di base
 const apiClient = axios.create({
