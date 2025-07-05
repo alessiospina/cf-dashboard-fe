@@ -5,7 +5,7 @@
  * Include: invio email, gestione stato, validazioni, feedback utente, selezione specialisti
  */
 
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { EmailService } from '@/services/emailService'
 import { SpecialistaService } from '@/services/specialistaService'
 
@@ -241,13 +241,34 @@ export function useEmail() {
         showResultsModal.value = false
     }
 
-    // Gestione notifiche
+    // Gestione notifiche con timer automatico
+    const notificationTimer = ref(null)
+
     const setNotification = (message, type = 'info') => {
         notification.value = { message, type }
         console.log(`📢 [useEmail] Notifica ${type}:`, message)
+
+        // Auto-dismiss per notifiche di successo dopo 2 secondi
+        if (type === 'success') {
+            // Cancella il timer precedente se esiste
+            if (notificationTimer.value) {
+                clearTimeout(notificationTimer.value)
+            }
+
+            // Imposta timer per nascondere la notifica
+            notificationTimer.value = setTimeout(() => {
+                clearNotification()
+                notificationTimer.value = null
+            }, 2000)
+        }
     }
 
     const clearNotification = () => {
+        // Cancella il timer se esiste
+        if (notificationTimer.value) {
+            clearTimeout(notificationTimer.value)
+            notificationTimer.value = null
+        }
         notification.value = null
     }
 
@@ -318,6 +339,15 @@ export function useEmail() {
             console.log('🔄 [useEmail] Data cambiata, ricaricamento specialisti:', newDate)
             await loadSpecialisti(newDate)
         }
+    })
+
+    // Cleanup timer quando il composable viene smontato
+    onUnmounted(() => {
+        if (notificationTimer.value) {
+            clearTimeout(notificationTimer.value)
+            notificationTimer.value = null
+        }
+        console.log('🧹 [useEmail] Cleanup timer notifiche completato')
     })
 
     // API pubblica del composable

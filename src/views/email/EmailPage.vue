@@ -14,10 +14,10 @@
       <CCol>
         <h2 class="page-title">
           <CIcon icon="cil-envelope-closed" class="me-2" />
-          Specialisti Reminder
+          Email
         </h2>
         <p class="text-muted">
-          Invia promemoria via email agli specialisti per appuntamenti di una data specifica
+          Gestione notifiche email e reminder
         </p>
       </CCol>
     </CRow>
@@ -40,6 +40,36 @@
         {{ notification.message }}
       </CAlert>
     </Transition>
+
+    <!-- Tab Navigation -->
+    <CNav variant="tabs" class="mb-4">
+      <CNavItem>
+        <CNavLink
+          :active="activeTab === 'specialisti'"
+          @click="setActiveTab('specialisti')"
+          class="nav-link-custom"
+        >
+          <CIcon icon="cil-people" class="me-2" />
+          Specialisti Reminder
+        </CNavLink>
+      </CNavItem>
+      <!-- Tab Pazienti Reminder - Coming Soon -->
+      <CNavItem>
+        <CNavLink
+          :active="activeTab === 'pazienti'"
+          @click="setActiveTab('pazienti')"
+          class="nav-link-custom"
+        >
+          <CIcon icon="cil-user" class="me-2" />
+          Pazienti Reminder
+        </CNavLink>
+      </CNavItem>
+    </CNav>
+
+    <!-- Tab Content -->
+    <CTabContent>
+      <!-- Tab Specialisti Reminder -->
+      <CTabPane :visible="activeTab === 'specialisti'">
 
     <!-- Card principale del form -->
     <CCard class="mb-4">
@@ -202,6 +232,7 @@
                       :disabled="emailLoading"
                       class="specialista-checkbox"
                       @click.stop
+                      @change="toggleSpecialista(specialista.id)"
                     />
                     <div class="specialista-info">
                       <div class="specialista-name">
@@ -324,6 +355,57 @@
         </div>
       </CCardBody>
     </CCard>
+
+      </CTabPane>
+
+      <!-- Tab Pazienti Reminder - Coming Soon -->
+      <CTabPane :visible="activeTab === 'pazienti'">
+        <CCard>
+          <CCardHeader class="bg-info text-white">
+            <h5 class="mb-0">
+              <CIcon icon="cil-user" class="me-2" />
+              Pazienti Reminder
+            </h5>
+          </CCardHeader>
+          <CCardBody>
+            <div class="text-center py-5">
+              <CIcon icon="cil-clock" size="4xl" class="text-info mb-4" />
+              <h4 class="text-info mb-3">Funzionalità in Sviluppo</h4>
+              <p class="text-muted mb-4">
+                La funzionalità di invio reminder ai pazienti è attualmente in fase di sviluppo
+                e sarà disponibile in una versione futura della piattaforma.
+              </p>
+              <div class="coming-soon-features">
+                <CRow class="justify-content-center">
+                  <CCol md="8">
+                    <CAlert color="light" class="text-start">
+                      <h6 class="text-info mb-3">
+                        <CIcon icon="cil-list" class="me-2" />
+                        Funzionalità Previste:
+                      </h6>
+                      <ul class="mb-0 text-muted">
+                        <li>Invio promemoria appuntamenti ai pazienti</li>
+                        <li>Notifiche personalizzate per tipo di prestazione</li>
+                        <li>Gestione template email per pazienti</li>
+                        <li>Programmazione automatica dei reminder</li>
+                        <li>Statistiche di apertura e interazione</li>
+                      </ul>
+                    </CAlert>
+                  </CCol>
+                </CRow>
+              </div>
+              <div class="mt-4">
+                <CBadge color="info" class="px-3 py-2">
+                  <CIcon icon="cil-calendar" class="me-2" />
+                  Coming Soon
+                </CBadge>
+              </div>
+            </div>
+          </CCardBody>
+        </CCard>
+      </CTabPane>
+
+    </CTabContent>
 
     <!-- Modal risultati dettagliati -->
     <CModal
@@ -459,6 +541,9 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useEmail } from '@/composables/useEmail'
 
+// Gestione tab per i diversi tipi di reminder
+const activeTab = ref('specialisti')
+
 const {
   // Stato principale
   loading,
@@ -522,6 +607,11 @@ const {
 
 // Stato locale per gestione notifiche con timer
 const notificationTimer = ref(null)
+
+// Gestione tab
+const setActiveTab = (tab) => {
+  activeTab.value = tab
+}
 
 // Metodi locali della pagina
 const handleSendEmail = async () => {
@@ -588,7 +678,7 @@ const clearNotificationWithTimer = () => {
 
 // Lifecycle hooks
 onMounted(() => {
-  console.log('🚀 [SpecialistiReminderPage] Pagina Specialisti Reminder caricata')
+  console.log('🚀 [EmailPage] Pagina Email caricata')
 })
 
 onUnmounted(() => {
@@ -614,6 +704,51 @@ onUnmounted(() => {
   margin-bottom: 0.5rem;
 }
 
+/* Stili per tab navigation */
+.nav-link-custom {
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s ease-in-out;
+  cursor: pointer;
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  color: #495057;
+}
+
+.nav-link-custom:hover {
+  border-bottom-color: #dee2e6;
+  color: #0d6efd;
+}
+
+.nav-link-custom.active {
+  border-bottom-color: #0d6efd;
+  color: #0d6efd;
+  font-weight: 600;
+}
+
+/* Stili per sezione Coming Soon */
+.coming-soon-features {
+  margin: 2rem 0;
+}
+
+.coming-soon-features ul {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.coming-soon-features li {
+  position: relative;
+  padding-left: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.coming-soon-features li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #0dcaf0;
+  font-weight: bold;
+}
+
 /* Sezioni del form */
 .form-section-title {
   color: #495057;
@@ -621,6 +756,11 @@ onUnmounted(() => {
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
   border-bottom: 2px solid #e9ecef;
+}
+
+/* Styling per checkbox specialisti */
+.form-check-input {
+  margin-right: 1.5rem;
 }
 
 /* Container selezione data */
@@ -683,7 +823,7 @@ onUnmounted(() => {
 
 .specialista-checkbox {
   flex-shrink: 0;
-  margin-right: 0.75rem;
+  margin-right: 1.75rem;
   margin-top: 0.25rem;
 }
 
@@ -932,5 +1072,25 @@ onUnmounted(() => {
 
 [data-coreui-theme="dark"] .specialista-item:hover {
   background-color: rgba(136, 192, 208, 0.1);
+}
+
+/* Stili tema dark per tab */
+[data-coreui-theme="dark"] .nav-link-custom {
+  color: #d8dee9;
+}
+
+[data-coreui-theme="dark"] .nav-link-custom:hover {
+  border-bottom-color: #4c566a;
+  color: #88c0d0;
+}
+
+[data-coreui-theme="dark"] .nav-link-custom.active {
+  border-bottom-color: #88c0d0;
+  color: #88c0d0;
+}
+
+/* Stili tema dark per sezione Coming Soon */
+[data-coreui-theme="dark"] .coming-soon-features li::before {
+  color: #88c0d0;
 }
 </style>

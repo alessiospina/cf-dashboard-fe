@@ -35,8 +35,12 @@ export default [
     icon: 'cil-task',
   },
   {
+    component: 'CNavTitle',
+    name: 'Notification',
+  },
+  {
     component: 'CNavItem',
-    name: 'Specialisti Reminder',
+    name: 'Email',
     to: '/email',
     icon: 'cil-envelope-closed',
   },

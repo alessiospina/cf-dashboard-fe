@@ -58,8 +58,8 @@ const routes = [
       },
       {
         path: '/email',
-        name: 'SpecialistiReminder',
-        // Pagina di invio reminder agli specialisti con lazy loading
+        name: 'Email',
+        // Pagina di gestione notifiche email con lazy loading
         component: () =>
           import(
             /* webpackChunkName: "email" */ '@/views/email/EmailPage.vue'

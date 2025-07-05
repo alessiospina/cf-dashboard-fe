@@ -925,7 +925,7 @@ const formattaPrezzo = () => {
 }
 
 const resetForm = () => {
-  // Reset ai valori di default
+  // Reset ai valori di default - assicurati che il titolo sia sempre pulito
   form.titolo = ''
   form.stanza = ''
   form.prezzo = '' // Reset campo prezzo
@@ -946,7 +946,7 @@ const resetForm = () => {
   form.nomePaziente = ''
   form.cognomePaziente = ''
 
-  // Reset campi specialista
+  // Reset campi specialista - IMPORTANTE: reset completo per evitare problemi con titolo
   form.specialistaInput = ''
   form.specialistaSelezionato = null
   form.pazienteInput = ''
@@ -971,6 +971,11 @@ const resetForm = () => {
   errors.value = {}
   submitError.value = ''
   clearRicorrenzaError() // ⭐ NUOVO - Pulisce errori ricorrenza
+
+  // IMPORTANTE: Forza il reset del titolo per evitare che rimanga dalla sessione precedente
+  setTimeout(() => {
+    form.titolo = ''
+  }, 0)
 }
 
 const populateForm = (evento) => {
@@ -1456,7 +1461,8 @@ watch(() => form.specialistaId, (newSpecialistaId) => {
 
 // Auto-popolamento del titolo quando si seleziona uno specialista o cambia prestazione
 watch(() => form.specialistaSelezionato?.prestazione?.tipologia, (newTipologia) => {
-  if (newTipologia && (!form.titolo || form.titolo === '')) {
+  // Solo se non siamo in modalità modifica E il titolo è vuoto
+  if (newTipologia && (!form.titolo || form.titolo === '') && !isEdit.value) {
     form.titolo = `Sessione di ${formatPrestazione(newTipologia)}`
     console.log('📝 [EventModal] Auto-compilato titolo da prestazione:', form.titolo)
   }
@@ -1537,15 +1543,43 @@ watch(() => form.data, (nuovaData) => {
 
 watch(() => props.visible, (newVisible) => {
   if (newVisible) {
-    if (isEdit.value) {
-      populateForm(props.evento)
-      // Il tracking viene inizializzato nella populateForm
-    } else {
-      resetForm()
-      if (props.evento?.dataInizio) {
+    // Forza il reset completo prima di qualsiasi altra operazione
+    resetForm()
+
+    // Piccolo delay per assicurarsi che il reset sia completo
+    setTimeout(() => {
+      if (isEdit.value) {
+        // MODIFICA EVENTO: Popola tutti i campi dall'evento esistente
         populateForm(props.evento)
+        console.log('📝 [EventModal] Modalità modifica - popolamento form con evento esistente')
+      } else {
+        // NUOVO EVENTO: Popola solo data/ora se fornite, MA NON il titolo
+        console.log('📝 [EventModal] Modalità creazione - nuovo evento')
+        form.titolo = '' // Forza titolo vuoto per nuovi eventi
+
+        // Se l'evento ha dati temporali (click su timeline), popola solo quelli
+        if (props.evento?.dataInizio) {
+          console.log('📅 [EventModal] Popolamento data/ora da timeline per nuovo evento')
+          const dataInizio = new Date(props.evento.dataInizio)
+          const dataFineDate = new Date(props.evento.dataFine)
+
+          // Popola SOLO i campi temporali, non il titolo
+          form.data = dataInizio.toISOString().split('T')[0]
+          form.oraInizio = normalizzaOrario(dataInizio.toTimeString().slice(0, 5))
+          form.oraFine = normalizzaOrario(dataFineDate.toTimeString().slice(0, 5))
+
+          // Assicurati che il titolo rimanga vuoto
+          form.titolo = ''
+
+          console.log('✅ [EventModal] Popolati solo campi temporali:', {
+            data: form.data,
+            oraInizio: form.oraInizio,
+            oraFine: form.oraFine,
+            titolo: form.titolo
+          })
+        }
       }
-    }
+    }, 50)
   }
 }, {immediate: true})
 </script>
