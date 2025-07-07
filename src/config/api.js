@@ -1,6 +1,6 @@
 /**
  * Configurazione centralizzata per le API
- * 
+ *
  * Questo file contiene tutte le configurazioni relative alle chiamate API,
  * leggendo i valori dalle variabili d'ambiente definite nel file .env
  */
@@ -11,14 +11,14 @@
  */
 const API_CONFIG = {
   // Protocollo HTTP (http o https)
-  protocol: import.meta.env.VITE_API_PROTOCOL || 'http',
-  
+  protocol: import.meta.env.VITE_API_PROTOCOL,
+
   // Host del backend
-  host: import.meta.env.VITE_API_HOST || 'localhost',
-  
+  host: import.meta.env.VITE_API_HOST,
+
   // Porta del backend
-  port: import.meta.env.VITE_API_PORT || '8000',
-  
+  port: import.meta.env.VITE_API_PORT,
+
   // Percorso base delle API
   basePath: '/api'
 }
