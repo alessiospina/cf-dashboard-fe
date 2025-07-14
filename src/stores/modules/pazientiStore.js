@@ -14,7 +14,7 @@ import { PazienteService } from '@/services/pazienteService'
 export const usePazientiStore = defineStore('pazienti', {
   // STATE: definisce i dati reattivi dello store
   state: () => ({
-    // Lista di tutti i pazienti
+    // Lista di tutti i pazienti - SEMPRE un array
     pazienti: [],
 
     // Stato di caricamento per le operazioni async
@@ -40,18 +40,20 @@ export const usePazientiStore = defineStore('pazienti', {
     /**
      * Ritorna true se ci sono pazienti caricati
      */
-    hasPazienti: (state) => state.pazienti.length > 0,
+    hasPazienti: (state) => Array.isArray(state.pazienti) && state.pazienti.length > 0,
 
     /**
      * Ritorna il numero totale di pazienti
      */
-    totalPazienti: (state) => state.pazienti.length,
+    totalPazienti: (state) => Array.isArray(state.pazienti) ? state.pazienti.length : 0,
 
     /**
      * Filtra i pazienti per nome e cognome
      * @param {string} nomeCompleto - Nome e cognome da cercare
      */
     pazientiPerNome: (state) => (nomeCompleto) => {
+      if (!Array.isArray(state.pazienti)) return []
+
       const termine = nomeCompleto.toLowerCase()
       return state.pazienti.filter(paziente =>
         `${paziente.nome} ${paziente.cognome}`.toLowerCase().includes(termine)
@@ -60,10 +62,11 @@ export const usePazientiStore = defineStore('pazienti', {
 
     /**
      * Cerca pazienti in TUTTI i campi disponibili
-     * Supporta ricerca per "nome cognome", date, terapie, telefoni, indirizzi, etc.
+     * Supporta ricerca per "nome cognome", date, telefoni, indirizzi geografici, etc.
      * @param {string} searchTerm - Termine di ricerca
      */
     searchPazienti: (state) => (searchTerm) => {
+      if (!Array.isArray(state.pazienti)) return []
       if (!searchTerm) return state.pazienti
 
       const term = searchTerm.toLowerCase().trim()
@@ -75,7 +78,11 @@ export const usePazientiStore = defineStore('pazienti', {
         const email = paziente.email?.toLowerCase() || ''
         const telefono = paziente.telefono?.toLowerCase() || ''
         const codiceFiscale = paziente.codiceFiscale?.toLowerCase() || ''
-        const indirizzo = paziente.indirizzo?.toLowerCase() || ''
+        const indirizzoResidenza = paziente.indirizzoResidenza?.toLowerCase() || ''
+
+        // Dati geografici
+        const comuneNascita = paziente.comuneNascita?.nome?.toLowerCase() || ''
+        const comuneResidenza = paziente.comuneResidenza?.nome?.toLowerCase() || ''
 
         // Data di nascita - ricerca sia formato originale che formattato
         const dataNascita = paziente.dataDiNascita ?
@@ -93,10 +100,12 @@ export const usePazientiStore = defineStore('pazienti', {
           email.includes(term) ||
           codiceFiscale.includes(term)
 
-        // Ricerca nei campi aggiuntivi
+        // Ricerca nei campi aggiuntivi (inclusi i dati geografici)
         const matchCampiAggiuntivi =
           telefono.includes(term) ||
-          indirizzo.includes(term) ||
+          indirizzoResidenza.includes(term) ||
+          comuneNascita.includes(term) ||
+          comuneResidenza.includes(term) ||
           dataNascita.includes(term) ||
           dataNascitaISO.includes(term)
 
@@ -105,7 +114,7 @@ export const usePazientiStore = defineStore('pazienti', {
           nomeCompleto.includes(term) ||
           cognomeNome.includes(term)
 
-        // Ricerca per parole multiple separate (es: "mario 123" deve trovare tutti i termini)
+        // Ricerca per parole multiple separate (es: "mario napoli" deve trovare tutti i termini)
         const parole = term.split(/\s+/).filter(parola => parola.length > 0)
         const matchParoleMultiple = parole.length > 1
           ? parole.every(parola =>
@@ -114,7 +123,9 @@ export const usePazientiStore = defineStore('pazienti', {
               email.includes(parola) ||
               telefono.includes(parola) ||
               codiceFiscale.includes(parola) ||
-              indirizzo.includes(parola) ||
+              indirizzoResidenza.includes(parola) ||
+              comuneNascita.includes(parola) ||
+              comuneResidenza.includes(parola) ||
               dataNascita.includes(parola)
             )
           : false
@@ -145,11 +156,22 @@ export const usePazientiStore = defineStore('pazienti', {
       this.error = null
 
       try {
+        console.log('Inizio caricamento pazienti...')
         const pazienti = await PazienteService.getAllPazienti()
-        this.pazienti = pazienti
-        console.log('Pazienti caricati:', pazienti.length)
+        console.log('Risposta API pazienti:', pazienti)
+
+        // Verifica che pazienti sia un array
+        if (Array.isArray(pazienti)) {
+          this.pazienti = pazienti
+          console.log('Pazienti caricati:', pazienti.length)
+        } else {
+          console.error('La risposta API non è un array:', pazienti)
+          this.pazienti = []
+          this.error = 'Formato dati non valido dal server'
+        }
       } catch (error) {
         this.error = 'Errore nel caricamento dei pazienti'
+        this.pazienti = [] // Assicuriamoci che sia sempre un array
         console.error('Errore fetch pazienti:', error)
       } finally {
         this.loading = false
@@ -168,7 +190,7 @@ export const usePazientiStore = defineStore('pazienti', {
         const response = await PazienteService.getPazientiPaginated(params)
 
         // Aggiorniamo i pazienti e la paginazione
-        this.pazienti = response.data || []
+        this.pazienti = Array.isArray(response.data) ? response.data : []
         this.pagination = {
           currentPage: params.page || 1,
           pageSize: params.pageSize || 10,
@@ -179,6 +201,7 @@ export const usePazientiStore = defineStore('pazienti', {
         console.log('Pazienti paginati caricati:', this.pazienti.length)
       } catch (error) {
         this.error = 'Errore nel caricamento dei pazienti'
+        this.pazienti = [] // Assicuriamoci che sia sempre un array
         console.error('Errore fetch pazienti paginati:', error)
       } finally {
         this.loading = false

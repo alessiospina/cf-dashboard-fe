@@ -147,7 +147,7 @@
             <CInputGroup>
               <CFormInput
                 v-model="searchTerm"
-                placeholder="Cerca per nome, email, telefono, codice fiscale, data nascita..."
+                placeholder="Cerca per nome, email, telefono, codice fiscale, comune..."
                 :disabled="loading"
               />
               <CInputGroupText>
@@ -309,6 +309,11 @@
                   </div>
                 </CTableHeaderCell>
 
+                <!-- Residenza - Non sortable (dati complessi) -->
+                <CTableHeaderCell scope="col">
+                  Residenza
+                </CTableHeaderCell>
+
                 <!-- Email - Sortable -->
                 <CTableHeaderCell
                   scope="col"
@@ -377,6 +382,17 @@
                 <!-- Data di nascita -->
                 <CTableDataCell>
                   {{ formatDate(paziente.dataDiNascita) }}
+                </CTableDataCell>
+
+                <!-- Residenza -->
+                <CTableDataCell>
+                  <div v-if="paziente.comuneResidenza">
+                    <div class="fw-medium">{{ paziente.comuneResidenza.nome }}</div>
+                    <small v-if="paziente.indirizzoResidenza" class="text-muted">
+                      {{ paziente.indirizzoResidenza }}
+                    </small>
+                  </div>
+                  <span v-else class="text-muted">-</span>
                 </CTableDataCell>
 
                 <!-- Email -->
@@ -775,7 +791,9 @@ const totalPages = computed(() => Math.ceil(totalPazienti.value / itemsPerPage.v
 
 // Computed per pazienti filtrati e ordinati
 const sortedAndFilteredPazienti = computed(() => {
-  let result = [...filteredPazienti.value]
+  // Protezione: assicuriamoci che sia sempre un array
+  const pazientiArray = Array.isArray(filteredPazienti.value) ? filteredPazienti.value : []
+  let result = [...pazientiArray]
 
   if (sortColumn.value) {
     result.sort((a, b) => {

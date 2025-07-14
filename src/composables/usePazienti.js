@@ -30,6 +30,12 @@ export function usePazienti() {
 
   // Pazienti filtrati in base alla ricerca
   const filteredPazienti = computed(() => {
+    // Assicuriamoci che pazienti.value sia sempre un array
+    if (!Array.isArray(pazienti.value)) {
+      console.warn('pazienti.value non è un array:', pazienti.value)
+      return []
+    }
+
     if (!searchTerm.value) {
       return pazienti.value
     }
@@ -171,8 +177,15 @@ export function usePazienti() {
       errors.email = 'L\'email non è valida'
     }
 
-    // Il campo tipoTerapia non è più necessario per il paziente
-    // Il tipo di terapia è ora determinato dalla prestazione dello specialista nell'evento
+    // Validazione opzionale per i comuni
+    // Puoi rendere obbligatori questi campi se necessario
+    if (formData.provinciaNascitaId && !formData.comuneNascitaId) {
+      errors.comuneNascitaId = 'Seleziona un comune di nascita'
+    }
+
+    if (formData.provinciaResidenzaId && !formData.comuneResidenzaId) {
+      errors.comuneResidenzaId = 'Seleziona un comune di residenza'
+    }
 
     return {
       isValid: Object.keys(errors).length === 0,

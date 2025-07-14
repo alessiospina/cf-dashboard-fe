@@ -82,6 +82,97 @@
           </CRow>
         </div>
 
+        <!-- Sezione Dati di Nascita -->
+        <div class="form-section mb-4">
+          <h6 class="section-title">Luogo di Nascita</h6>
+          <CRow class="g-3">
+            <CCol md="6">
+              <div class="input-group-with-icon">
+                <CIcon icon="cil-map" class="input-icon"/>
+                <div class="input-content">
+                  <ProvinceAutocomplete
+                    v-model="form.provinciaNascitaId"
+                    label="Provincia di nascita"
+                    placeholder="Cerca provincia di nascita..."
+                    :invalid="!!errors.provinciaNascitaId"
+                    :error-message="errors.provinciaNascitaId"
+                    @provincia-changed="handleProvinciaNascitaChange"
+                  />
+                </div>
+              </div>
+            </CCol>
+            <CCol md="6">
+              <div class="input-group-with-icon">
+                <CIcon icon="cil-location-pin" class="input-icon"/>
+                <div class="input-content">
+                  <ComuniAutocomplete
+                    v-model="form.comuneNascitaId"
+                    :provincia-id="form.provinciaNascitaId"
+                    label="Comune di nascita"
+                    placeholder="Cerca comune di nascita..."
+                    :invalid="!!errors.comuneNascitaId"
+                    :error-message="errors.comuneNascitaId"
+                    @comune-changed="handleComuneNascitaChange"
+                  />
+                </div>
+              </div>
+            </CCol>
+          </CRow>
+        </div>
+
+        <!-- Sezione Residenza -->
+        <div class="form-section mb-4">
+          <h6 class="section-title">Residenza</h6>
+          <CRow class="g-3">
+            <CCol md="6">
+              <div class="input-group-with-icon">
+                <CIcon icon="cil-map" class="input-icon"/>
+                <div class="input-content">
+                  <ProvinceAutocomplete
+                    v-model="form.provinciaResidenzaId"
+                    label="Provincia di residenza"
+                    placeholder="Cerca provincia di residenza..."
+                    :invalid="!!errors.provinciaResidenzaId"
+                    :error-message="errors.provinciaResidenzaId"
+                    @provincia-changed="handleProvinciaResidenzaChange"
+                  />
+                </div>
+              </div>
+            </CCol>
+            <CCol md="6">
+              <div class="input-group-with-icon">
+                <CIcon icon="cil-location-pin" class="input-icon"/>
+                <div class="input-content">
+                  <ComuniAutocomplete
+                    v-model="form.comuneResidenzaId"
+                    :provincia-id="form.provinciaResidenzaId"
+                    label="Comune di residenza"
+                    placeholder="Cerca comune di residenza..."
+                    :invalid="!!errors.comuneResidenzaId"
+                    :error-message="errors.comuneResidenzaId"
+                    @comune-changed="handleComuneResidenzaChange"
+                  />
+                </div>
+              </div>
+            </CCol>
+            <CCol cols="12">
+              <div class="input-group-with-icon">
+                <CIcon icon="cil-home" class="input-icon"/>
+                <div class="input-content">
+                  <CFormLabel class="form-label-clean">Indirizzo di residenza (opzionale)</CFormLabel>
+                  <CFormInput
+                    v-model="form.indirizzoResidenza"
+                    placeholder="Via Roma, 123"
+                    class="form-control-clean"
+                    :invalid="!!errors.indirizzoResidenza"
+                  />
+                  <CFormFeedback v-if="errors.indirizzoResidenza" invalid>{{ errors.indirizzoResidenza }}</CFormFeedback>
+                </div>
+              </div>
+            </CCol>
+          </CRow>
+        </div>
+
         <!-- Sezione Contatti -->
         <div class="form-section mb-4">
           <h6 class="section-title">Contatti</h6>
@@ -117,19 +208,6 @@
                 </div>
               </div>
             </CCol>
-            <CCol cols="12">
-              <div class="input-group-with-icon">
-                <CIcon icon="cil-location-pin" class="input-icon"/>
-                <div class="input-content">
-                  <CFormLabel class="form-label-clean">Indirizzo (opzionale)</CFormLabel>
-                  <CFormInput
-                    v-model="form.indirizzo"
-                    placeholder="Via Roma, 123 - 80100 Napoli"
-                    class="form-control-clean"
-                  />
-                </div>
-              </div>
-            </CCol>
           </CRow>
         </div>
 
@@ -142,6 +220,17 @@
                 <span class="me-2">Anteprima:</span>
                 <strong>{{ form.nome }} {{ form.cognome }}</strong>
                 <span v-if="form.email" class="text-muted ms-2">({{ form.email }})</span>
+              </div>
+              <div v-if="form.comuneNascitaId || form.comuneResidenzaId" class="mt-2">
+                <small class="text-muted d-block">
+                  <span v-if="form.comuneNascitaId">
+                    Nato a: {{ getComuneNome(form.comuneNascitaId) }}
+                  </span>
+                  <span v-if="form.comuneNascitaId && form.comuneResidenzaId"> • </span>
+                  <span v-if="form.comuneResidenzaId">
+                    Residente a: {{ getComuneNome(form.comuneResidenzaId) }}
+                  </span>
+                </small>
               </div>
             </div>
           </div>
@@ -200,6 +289,9 @@
 
 import { ref, reactive, computed, watch } from 'vue'
 import { usePazienti } from '@/composables/usePazienti'
+import { useGeo } from '@/composables/useGeo'
+import ProvinceAutocomplete from '@/components/geo/ProvinceAutocomplete.vue'
+import ComuniAutocomplete from '@/components/geo/ComuniAutocomplete.vue'
 
 // Props: dati che arrivano dal componente padre
 const props = defineProps({
@@ -227,8 +319,17 @@ const {
   validatePazienteForm,
   createPaziente,
   updatePaziente
-  // TIPI_TERAPIA_OPTIONS rimosso - non più necessario
 } = usePazienti()
+
+// Composable geografico per gestire province e comuni
+const {
+  loadComuniByProvincia,
+  findProvinciaByComune,
+  findComuneById,
+  initialize,
+  hasProvince,
+  province
+} = useGeo()
 
 // Computed: determina se siamo in modalità modifica
 const isEdit = computed(() => !!props.paziente?.id)
@@ -238,11 +339,17 @@ const form = reactive({
   nome: '',
   cognome: '',
   dataDiNascita: '',
-  indirizzo: '',
+  // Campi geografici per nascita
+  provinciaNascitaId: null,
+  comuneNascitaId: null,
+  // Campi geografici per residenza
+  provinciaResidenzaId: null,
+  comuneResidenzaId: null,
+  indirizzoResidenza: '',
+  // Campi contatti
   codiceFiscale: '',
   email: '',
   telefono: ''
-  // tipoTerapia rimosso - non più necessario per il paziente
 })
 
 // Stato per errori di validazione
@@ -251,6 +358,9 @@ const errors = ref({})
 // Stato per il salvataggio
 const submitting = ref(false)
 const submitError = ref('')
+
+// Flag per controllare quando stiamo popolando il form (evita reset comuni)
+const isPopulatingForm = ref(false)
 
 // Funzione per resettare il form
 const resetForm = () => {
@@ -262,32 +372,118 @@ const resetForm = () => {
 }
 
 // Funzione per popolare il form con i dati del paziente (in modifica)
-const populateForm = (paziente) => {
-  if (paziente) {
-    form.nome = paziente.nome || ''
-    form.cognome = paziente.cognome || ''
-    // Formattiamo la data per l'input date
-    form.dataDiNascita = paziente.dataDiNascita ?
-      new Date(paziente.dataDiNascita).toISOString().split('T')[0] : ''
-    form.indirizzo = paziente.indirizzo || ''
-    form.codiceFiscale = paziente.codiceFiscale || ''
-    form.email = paziente.email || ''
-    form.telefono = paziente.telefono || ''
-    // tipoTerapia rimosso - non più associato al paziente
+const populateForm = async (paziente) => {
+  if (!paziente) return
+
+  console.log('📝 Popolamento form paziente:', paziente.nome, paziente.cognome)
+
+  // Imposta flag per evitare reset durante il popolamento
+  isPopulatingForm.value = true
+
+  // Dati base
+  form.nome = paziente.nome || ''
+  form.cognome = paziente.cognome || ''
+  form.dataDiNascita = paziente.dataDiNascita ?
+    new Date(paziente.dataDiNascita).toISOString().split('T')[0] : ''
+  form.indirizzoResidenza = paziente.indirizzoResidenza || ''
+  form.codiceFiscale = paziente.codiceFiscale || ''
+  form.email = paziente.email || ''
+  form.telefono = paziente.telefono || ''
+
+  try {
+    // Attendi che i dati geografici siano caricati
+    await initialize()
+
+    // Pre-selezione comune e provincia di nascita
+    if (paziente.comuneNascita?.id) {
+      console.log('🏙️ Pre-selezione nascita:', paziente.comuneNascita.nome)
+
+      // Usa il nuovo metodo per trovare il comune nella lista completa
+      const comuneNascita = findComuneById(paziente.comuneNascita.id)
+
+      if (comuneNascita) {
+        console.log('🔍 Comune nascita trovato:', comuneNascita)
+        form.comuneNascitaId = comuneNascita.id
+
+        // Prova 1: Imposta la provincia dal comune trovato
+        if (comuneNascita.provincia?.id) {
+          form.provinciaNascitaId = comuneNascita.provincia.id
+          console.log('📍 Provincia nascita da comune:', comuneNascita.provincia.nome)
+        } else {
+          // Prova 2: Usa i dati dal paziente se disponibili
+          if (paziente.comuneNascita.provincia?.id) {
+            form.provinciaNascitaId = paziente.comuneNascita.provincia.id
+            console.log('📍 Provincia nascita da paziente:', paziente.comuneNascita.provincia.nome)
+          } else {
+            console.log('❌ Provincia nascita non disponibile')
+          }
+        }
+      } else {
+        console.log('❌ Comune nascita non trovato:', paziente.comuneNascita.id)
+      }
+    }
+
+    // Pre-selezione comune e provincia di residenza
+    if (paziente.comuneResidenza?.id) {
+      console.log('🏠 Pre-selezione residenza:', paziente.comuneResidenza.nome)
+
+      // Usa il nuovo metodo per trovare il comune nella lista completa
+      const comuneResidenza = findComuneById(paziente.comuneResidenza.id)
+
+      if (comuneResidenza) {
+        console.log('🔍 Comune residenza trovato:', comuneResidenza)
+        form.comuneResidenzaId = comuneResidenza.id
+
+        // Prova 1: Imposta la provincia dal comune trovato
+        if (comuneResidenza.provincia?.id) {
+          form.provinciaResidenzaId = comuneResidenza.provincia.id
+          console.log('📍 Provincia residenza da comune:', comuneResidenza.provincia.nome)
+        } else {
+          // Prova 2: Usa i dati dal paziente se disponibili
+          if (paziente.comuneResidenza.provincia?.id) {
+            form.provinciaResidenzaId = paziente.comuneResidenza.provincia.id
+            console.log('📍 Provincia residenza da paziente:', paziente.comuneResidenza.provincia.nome)
+          } else {
+            console.log('❌ Provincia residenza non disponibile')
+          }
+        }
+      } else {
+        console.log('❌ Comune residenza non trovato:', paziente.comuneResidenza.id)
+      }
+    }
+
+    console.log('✅ Form popolato con successo')
+    console.log('   → Provincia nascita ID:', form.provinciaNascitaId)
+    console.log('   → Comune nascita ID:', form.comuneNascitaId)
+    console.log('   → Provincia residenza ID:', form.provinciaResidenzaId)
+    console.log('   → Comune residenza ID:', form.comuneResidenzaId)
+
+  } catch (error) {
+    console.error('❌ Errore nel popolamento form:', error)
+  } finally {
+    // ✅ RIMUOVI FLAG: fine popolamento, permetti reset normali
+    isPopulatingForm.value = false
   }
 }
 
 // Watch: osserva i cambiamenti nelle props
 watch(
   () => props.visible,
-  (newVisible) => {
+  async (newVisible) => {
     if (newVisible) {
+      console.log('👁️ Modale aperta, modalità:', isEdit.value ? 'MODIFICA' : 'CREAZIONE')
+
       // Quando la modale si apre
       if (isEdit.value) {
-        populateForm(props.paziente)
+        console.log('📝 Avvio popolamento form per paziente:', props.paziente?.nome)
+        isPopulatingForm.value = true // Imposta flag prima del popolamento
+        await populateForm(props.paziente)
       } else {
+        console.log('🆕 Reset form per nuovo paziente')
         resetForm()
       }
+    } else {
+      console.log('👁️ Modale chiusa')
     }
   },
   { immediate: true }
@@ -327,11 +523,14 @@ const handleSubmit = async () => {
       nome: form.nome.trim(),
       cognome: form.cognome.trim(),
       dataDiNascita: form.dataDiNascita,
-      indirizzo: form.indirizzo?.trim() || null,
+      // Campi geografici
+      comuneNascitaId: form.comuneNascitaId || null,
+      comuneResidenzaId: form.comuneResidenzaId || null,
+      indirizzoResidenza: form.indirizzoResidenza?.trim() || null,
+      // Campi contatti
       codiceFiscale: form.codiceFiscale.toUpperCase().trim(),
       email: form.email.trim(),
       telefono: form.telefono?.trim() || null
-      // tipoTerapia rimosso - non più necessario per il paziente
     }
 
     if (isEdit.value) {
@@ -360,6 +559,38 @@ const handleSubmit = async () => {
   } finally {
     submitting.value = false
   }
+}
+
+// Gestione dei cambi di provincia e comune
+const handleProvinciaNascitaChange = (provinciaData) => {
+  // Reset del comune quando cambia la provincia SOLO se non stiamo popolando il form
+  if (!isPopulatingForm.value) {
+    form.comuneNascitaId = null
+  }
+}
+
+const handleProvinciaResidenzaChange = (provinciaData) => {
+  // Reset del comune quando cambia la provincia SOLO se non stiamo popolando il form
+  if (!isPopulatingForm.value) {
+    form.comuneResidenzaId = null
+  }
+}
+
+const handleComuneNascitaChange = (comuneData) => {
+  // Puoi aggiungere logica aggiuntiva se necessario
+  console.log('Comune nascita selezionato:', comuneData)
+}
+
+const handleComuneResidenzaChange = (comuneData) => {
+  // Puoi aggiungere logica aggiuntiva se necessario
+  console.log('Comune residenza selezionato:', comuneData)
+}
+
+// Funzione helper per ottenere il nome del comune
+const getComuneNome = (comuneId) => {
+  if (!comuneId) return ''
+  const comune = findComuneById(comuneId)
+  return comune ? comune.nome : ''
 }
 
 // Auto-conversione in maiuscolo solo per codice fiscale

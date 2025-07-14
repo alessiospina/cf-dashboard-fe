@@ -20,11 +20,43 @@ const apiClient = axios.create({
   timeout: 10000, // timeout di 10 secondi
 })
 
+// Interceptor per il debug delle richieste
+apiClient.interceptors.request.use(
+  (config) => {
+    console.log('🚀 Request:', {
+      method: config.method?.toUpperCase(),
+      url: config.url,
+      baseURL: config.baseURL,
+      fullURL: `${config.baseURL}${config.url}`,
+      headers: config.headers
+    })
+    return config
+  },
+  (error) => {
+    console.error('❌ Request Error:', error)
+    return Promise.reject(error)
+  }
+)
+
 // Interceptor per gestire errori globalmente
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('✅ Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      url: response.config.url,
+      data: response.data
+    })
+    return response
+  },
   (error) => {
-    console.error('Errore API:', error)
+    console.error('❌ Response Error:', {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      url: error.config?.url,
+      data: error.response?.data
+    })
     return Promise.reject(error)
   }
 )
@@ -37,10 +69,36 @@ export class PazienteService {
    */
   static async getAllPazienti() {
     try {
-      const response = await apiClient.get('/paziente')
-      return response.data.data // Il backend restituisce { data: [...] }
+      const url = '/paziente'
+      console.log('Service: URL chiamata:', `${API_BASE_URL}${url}`)
+      console.log('Service: API_BASE_URL:', API_BASE_URL)
+      console.log('Service: Chiamata a GET /paziente')
+
+      const response = await apiClient.get(url)
+      console.log('Service: Risposta completa:', response)
+      console.log('Service: Status:', response.status)
+      console.log('Service: Headers:', response.headers)
+      console.log('Service: response.data:', response.data)
+
+      // Il backend restituisce { data: [...] } o direttamente l'array?
+      const result = response.data.data || response.data
+      console.log('Service: Risultato finale:', result)
+
+      // Verifica che sia un array
+      if (Array.isArray(result)) {
+        return result
+      } else {
+        console.error('Service: Il risultato non è un array:', result)
+        return []
+      }
     } catch (error) {
       console.error('Errore nel recupero pazienti:', error)
+      console.error('Dettagli errore:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      })
       throw error
     }
   }
