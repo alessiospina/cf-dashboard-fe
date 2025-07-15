@@ -764,8 +764,9 @@
  * - Icone CoreUI come primarie e FontAwesome come fallback
  */
 
-import {ref, computed, onMounted, onUnmounted, watch} from 'vue'
-import {usePazienti} from '@/composables/usePazienti'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { usePazienti } from '@/composables/usePazienti'
+import { useGeo } from '@/composables/useGeo'
 import PazienteModal from './PazienteModal.vue'
 
 // Utilizziamo il composable per accedere a tutta la logica dei pazienti
@@ -795,6 +796,14 @@ const {
   formatTipoTerapia,
   calculateAge
 } = usePazienti()
+
+// Utilizziamo il composable geografico per accedere alle mappe province/comuni
+const {
+  province,
+  getProvinciaById,
+  findComuneById,
+  initialize
+} = useGeo()
 
 // Stato locale per la paginazione e ordinamento
 const currentPage = ref(1)
@@ -1097,10 +1106,14 @@ const formatLuogoNascita = (paziente) => {
   }
 
   const comune = paziente.comuneNascita.nome || ''
-  const provincia = paziente.comuneNascita.provincia
+  const provinciaId = paziente.comuneNascita.idProvincia
 
-  if (provincia?.sigla) {
-    return `${comune} (${provincia.sigla})`
+  // Cerchiamo la provincia nella mappa usando l'ID
+  const provinciaObj = getProvinciaById(provinciaId)
+  const provinciaNome = provinciaObj?.nome
+
+  if (provinciaNome) {
+    return `${provinciaNome}, ${comune}`
   }
 
   return comune || '[Non Dichiarato]'
@@ -1112,10 +1125,14 @@ const formatLuogoResidenza = (paziente) => {
   }
 
   const comune = paziente.comuneResidenza.nome || ''
-  const provincia = paziente.comuneResidenza.provincia
+  const provinciaId = paziente.comuneResidenza.idProvincia
 
-  if (provincia?.sigla) {
-    return `${comune} (${provincia.sigla})`
+  // Cerchiamo la provincia nella mappa usando l'ID
+  const provinciaObj = getProvinciaById(provinciaId)
+  const provinciaNome = provinciaObj?.nome
+
+  if (provinciaNome) {
+    return `${provinciaNome}, ${comune}`
   }
 
   return comune || '[Non Dichiarato]'
@@ -1251,9 +1268,12 @@ const handleDeletePaziente = async () => {
 }
 
 // Caricamento dati all'avvio
-onMounted(() => {
+onMounted(async () => {
   // I dati vengono caricati automaticamente dal composable
   console.log('Pagina Pazienti caricata')
+
+  // Inizializziamo il composable geografico per caricare le province
+  await initialize()
 
   // Debug: controlliamo i dati dei pazienti
   watch(pazienti, (newPazienti) => {
@@ -1262,6 +1282,7 @@ onMounted(() => {
       console.log('🔍 Primo paziente:', newPazienti[0])
       console.log('🏘️ Comune nascita primo paziente:', newPazienti[0]?.comuneNascita)
       console.log('🏠 Comune residenza primo paziente:', newPazienti[0]?.comuneResidenza)
+      console.log('🗺️ Province disponibili:', province.value)
     }
   }, { immediate: true })
 })
