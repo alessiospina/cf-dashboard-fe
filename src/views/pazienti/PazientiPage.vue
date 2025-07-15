@@ -14,7 +14,7 @@
     <CRow class="mb-4">
       <CCol>
         <h2 class="page-title">
-          <CIcon icon="cil-people" class="me-2" />
+          <CIcon icon="cil-user" class="me-2"/>
           Gestione Pazienti
         </h2>
         <p class="text-muted">
@@ -27,7 +27,7 @@
           @click="openCreateModal"
           :disabled="loading"
         >
-          <CIcon icon="cil-plus" class="me-2" />
+          <CIcon icon="cil-plus" class="me-2"/>
           Nuovo Paziente
         </CButton>
       </CCol>
@@ -97,7 +97,7 @@
                     :disabled="currentPage === 1"
                     title="Prima pagina"
                   >
-                    <font-awesome-icon icon="angle-double-left" />
+                    <font-awesome-icon icon="angle-double-left"/>
                   </CButton>
                   <CButton
                     variant="outline"
@@ -106,7 +106,7 @@
                     :disabled="currentPage === 1"
                     title="Pagina precedente"
                   >
-                    <font-awesome-icon icon="angle-left" />
+                    <font-awesome-icon icon="angle-left"/>
                   </CButton>
 
                   <!-- Display pagina corrente -->
@@ -126,7 +126,7 @@
                     :disabled="currentPage === totalPages"
                     title="Pagina successiva"
                   >
-                    <font-awesome-icon icon="angle-right" />
+                    <font-awesome-icon icon="angle-right"/>
                   </CButton>
                   <CButton
                     variant="outline"
@@ -135,7 +135,7 @@
                     :disabled="currentPage === totalPages"
                     title="Ultima pagina"
                   >
-                    <font-awesome-icon icon="angle-double-right" />
+                    <font-awesome-icon icon="angle-double-right"/>
                   </CButton>
                 </CButtonGroup>
               </CCol>
@@ -143,17 +143,50 @@
           </CCol>
 
           <CCol md="4">
-            <!-- Barra di ricerca -->
-            <CInputGroup>
-              <CFormInput
-                v-model="searchTerm"
-                placeholder="Cerca per nome, email, telefono, codice fiscale, comune..."
-                :disabled="loading"
-              />
-              <CInputGroupText>
-                <CIcon icon="cil-magnifying-glass" />
-              </CInputGroupText>
-            </CInputGroup>
+            <!-- Barra di ricerca avanzata -->
+            <CRow class="g-2">
+              <CCol md="12">
+                <CInputGroup>
+                  <CFormInput
+                    v-model="searchTerm"
+                    placeholder="Cerca per nome, email, telefono, codice fiscale, comuni..."
+                    :disabled="loading"
+                  />
+                  <CInputGroupText>
+                    <CIcon icon="cil-magnifying-glass"/>
+                  </CInputGroupText>
+                </CInputGroup>
+              </CCol>
+            </CRow>
+            <!-- Filtri geografici -->
+            <CRow class="g-2 mt-2">
+              <CCol md="6">
+                <CFormSelect
+                  v-model="searchType"
+                  size="sm"
+                  @change="handleSearchTypeChange"
+                  :disabled="loading"
+                >
+                  <option value="all">🔍 Cerca in tutto</option>
+                  <option value="anagrafica">👤 Solo anagrafica</option>
+                  <option value="nascita">🏠 Solo nascita</option>
+                  <option value="residenza">📍 Solo residenza</option>
+                  <option value="contatti">📞 Solo contatti</option>
+                </CFormSelect>
+              </CCol>
+              <CCol md="6">
+                <CFormSelect
+                  v-model="geoLevel"
+                  size="sm"
+                  @change="handleGeoLevelChange"
+                  :disabled="loading || !isGeoSearch"
+                >
+                  <option value="all">🌍 Comune e Provincia</option>
+                  <option value="comune">🏘️ Solo Comune</option>
+                  <option value="provincia">🗺️ Solo Provincia</option>
+                </CFormSelect>
+              </CCol>
+            </CRow>
           </CCol>
         </CRow>
       </CCardHeader>
@@ -161,7 +194,7 @@
       <CCardBody>
         <!-- Stato di caricamento -->
         <div v-if="loading" class="text-center py-4">
-          <CSpinner color="primary" />
+          <CSpinner color="primary"/>
           <p class="mt-2 text-muted">Caricamento pazienti...</p>
         </div>
 
@@ -187,7 +220,14 @@
               <p class="text-muted small mb-0">
                 Mostrando {{ paginationInfo.showing }} di {{ paginationInfo.total }} pazienti
                 <span v-if="searchTerm">
-                  (filtrati per: "{{ searchTerm }}")
+                  (filtrati per: "{{ searchTerm }}"
+                  <span v-if="searchType !== 'all'">
+                    in {{ getSearchTypeLabel(searchType) }}
+                  </span>
+                  <span v-if="isGeoSearch && geoLevel !== 'all'">
+                    - {{ getGeoLevelLabel(geoLevel) }}
+                  </span>
+                  )
                 </span>
                 <span v-if="sortColumn">
                   - Ordinati per {{ getSortColumnLabel(sortColumn) }}
@@ -210,7 +250,7 @@
                       :disabled="selectedCount === sortedAndFilteredPazienti.length"
                       title="Seleziona tutti i pazienti (anche nelle altre pagine)"
                     >
-                      <CIcon icon="cilCheckCircle" class="me-1" />
+                      <CIcon icon="cilCheckCircle" class="me-1"/>
                       Seleziona Tutti ({{ sortedAndFilteredPazienti.length }})
                     </CButton>
                     <CButton
@@ -220,7 +260,7 @@
                       @click="clearSelection"
                       title="Deseleziona tutti i pazienti"
                     >
-                      <CIcon icon="cilX" class="me-1" />
+                      <CIcon icon="cilX" class="me-1"/>
                       Deseleziona ({{ selectedCount }})
                     </CButton>
                   </CButtonGroup>
@@ -236,8 +276,9 @@
             class="d-flex align-items-center justify-content-between mb-3"
           >
             <div class="d-flex align-items-center">
-              <CIcon icon="cilCheckCircle" class="me-2" />
-              <strong>{{ selectedCount }} pazient{{ selectedCount > 1 ? 'i' : 'e' }} selezionat{{ selectedCount > 1 ? 'i' : 'o' }}</strong>
+              <CIcon icon="cilCheckCircle" class="me-2"/>
+              <strong>{{ selectedCount }} pazient{{ selectedCount > 1 ? 'i' : 'e' }}
+                selezionat{{ selectedCount > 1 ? 'i' : 'o' }}</strong>
             </div>
             <div>
               <CButton
@@ -246,7 +287,7 @@
                 @click="clearSelection"
                 class="me-2"
               >
-                <CIcon icon="cilX" class="me-1" />
+                <CIcon icon="cilX" class="me-1"/>
                 Deseleziona tutti
               </CButton>
               <CButton
@@ -255,7 +296,7 @@
                 @click="confirmBulkDelete"
                 :disabled="bulkDeleting"
               >
-                <CIcon icon="cilTrash" class="me-1" />
+                <CIcon icon="cilTrash" class="me-1"/>
                 Elimina selezionati
               </CButton>
             </div>
@@ -275,7 +316,7 @@
                   />
                 </CTableHeaderCell>
 
-                <!-- Nome Completo - Sortable -->
+                <!-- Paziente (Nome + Cognome + Data) - Sortable -->
                 <CTableHeaderCell
                   scope="col"
                   :class="getSortClass('nomeCompleto')"
@@ -283,7 +324,7 @@
                   style="cursor: pointer; user-select: none;"
                 >
                   <div class="d-flex align-items-center justify-content-between">
-                    <span>Nome Completo</span>
+                    <span>Paziente</span>
                     <CIcon
                       :icon="getSortIcon('nomeCompleto')"
                       size="sm"
@@ -292,29 +333,24 @@
                   </div>
                 </CTableHeaderCell>
 
-                <!-- Data di Nascita - Sortable -->
+                <!-- Luoghi (Nascita + Residenza) - Sortable -->
                 <CTableHeaderCell
                   scope="col"
-                  :class="getSortClass('dataDiNascita')"
-                  @click="handleSort('dataDiNascita')"
+                  :class="getSortClass('luoghi')"
+                  @click="handleSort('luoghi')"
                   style="cursor: pointer; user-select: none;"
                 >
                   <div class="d-flex align-items-center justify-content-between">
-                    <span>Data di Nascita</span>
+                    <span>Luoghi</span>
                     <CIcon
-                      :icon="getSortIcon('dataDiNascita')"
+                      :icon="getSortIcon('luoghi')"
                       size="sm"
                       class="sort-icon"
                     />
                   </div>
                 </CTableHeaderCell>
 
-                <!-- Residenza - Non sortable (dati complessi) -->
-                <CTableHeaderCell scope="col">
-                  Residenza
-                </CTableHeaderCell>
-
-                <!-- Email - Sortable -->
+                <!-- Contatti (Email + Telefono) - Sortable -->
                 <CTableHeaderCell
                   scope="col"
                   :class="getSortClass('email')"
@@ -322,26 +358,9 @@
                   style="cursor: pointer; user-select: none;"
                 >
                   <div class="d-flex align-items-center justify-content-between">
-                    <span>Email</span>
+                    <span>Contatti</span>
                     <CIcon
                       :icon="getSortIcon('email')"
-                      size="sm"
-                      class="sort-icon"
-                    />
-                  </div>
-                </CTableHeaderCell>
-
-                <!-- Telefono - Sortable -->
-                <CTableHeaderCell
-                  scope="col"
-                  :class="getSortClass('telefono')"
-                  @click="handleSort('telefono')"
-                  style="cursor: pointer; user-select: none;"
-                >
-                  <div class="d-flex align-items-center justify-content-between">
-                    <span>Telefono</span>
-                    <CIcon
-                      :icon="getSortIcon('telefono')"
                       size="sm"
                       class="sort-icon"
                     />
@@ -369,47 +388,77 @@
                   />
                 </CTableDataCell>
 
-                <!-- Nome completo -->
+                <!-- Paziente (Nome + Cognome + Data + CF) -->
                 <CTableDataCell>
-                  <div class="fw-semibold">
-                    {{ paziente.nome }} {{ paziente.cognome }}
+                  <div class="paziente-info">
+                    <div class="paziente-nome fw-semibold">
+                      {{ paziente.nome }} {{ paziente.cognome }}
+                    </div>
+                    <div class="paziente-data text-muted">
+                      <CIcon icon="cil-calendar" size="sm" class="me-1"/>
+                      {{ formatDate(paziente.dataDiNascita) }}
+                      <span v-if="paziente.dataDiNascita" class="ms-1">
+                        ({{ calculateAge(paziente.dataDiNascita) }})
+                      </span>
+                    </div>
+                    <div class="paziente-cf text-muted">
+                      <CIcon icon="cil-file" size="sm" class="me-1"/>
+                      {{ paziente.codiceFiscale }}
+                    </div>
                   </div>
-                  <small class="text-muted">
-                    CF: {{ paziente.codiceFiscale }}
-                  </small>
                 </CTableDataCell>
 
-                <!-- Data di nascita -->
+                <!-- Luoghi (Nascita + Residenza accorpati) -->
                 <CTableDataCell>
-                  {{ formatDate(paziente.dataDiNascita) }}
-                </CTableDataCell>
+                  <div class="luoghi-info">
+                    <!-- Nascita -->
+                    <div class="luogo-nascita">
+                      <CIcon icon="cil-user" size="sm" class="me-1 text-primary"/>
+                      <span class="luogo-label">Nato a:</span>
+                      <span class="luogo-value">
+                        {{ formatLuogoNascita(paziente) }}
+                      </span>
+                    </div>
 
-                <!-- Residenza -->
-                <CTableDataCell>
-                  <div v-if="paziente.comuneResidenza">
-                    <div class="fw-medium">{{ paziente.comuneResidenza.nome }}</div>
-                    <small v-if="paziente.indirizzoResidenza" class="text-muted">
-                      {{ paziente.indirizzoResidenza }}
-                    </small>
+                    <!-- Residenza -->
+                    <div class="luogo-residenza">
+                      <CIcon icon="cil-location-pin" size="sm" class="me-1 text-success"/>
+                      <span class="luogo-label">Residente a:</span>
+                      <span class="luogo-value">
+                        {{ formatLuogoResidenza(paziente) }}
+                      </span>
+                    </div>
+
+                    <!-- Indirizzo (se presente) -->
+                    <div v-if="paziente.indirizzoResidenza" class="luogo-indirizzo text-muted">
+                      <span class="me-1">📍</span>
+                      <span class="luogo-label">Indirizzo:</span>
+                      <span class="luogo-value">{{ paziente.indirizzoResidenza }}</span>
+                    </div>
                   </div>
-                  <span v-else class="text-muted">-</span>
                 </CTableDataCell>
 
-                <!-- Email -->
+                <!-- Contatti (Email + Telefono) -->
                 <CTableDataCell>
-                  <a :href="`mailto:${paziente.email}`" class="text-decoration-none">
-                    {{ paziente.email }}
-                  </a>
-                </CTableDataCell>
-
-                <!-- Telefono -->
-                <CTableDataCell>
-                  <span v-if="paziente.telefono">
-                    <a :href="`tel:${paziente.telefono}`" class="text-decoration-none">
-                      {{ paziente.telefono }}
-                    </a>
-                  </span>
-                  <span v-else class="text-muted">-</span>
+                  <div class="contatti-info">
+                    <div class="contatti-email">
+                      <CIcon icon="cil-envelope-closed" size="sm" class="me-1 text-info"/>
+                      <a :href="`mailto:${paziente.email}`" class="text-decoration-none">
+                        {{ paziente.email }}
+                      </a>
+                    </div>
+                    <div class="contatti-telefono text-muted">
+                      <CIcon icon="cil-phone" size="sm" class="me-1"/>
+                      <span v-if="paziente.telefono">
+                        <a :href="`tel:${paziente.telefono}`" class="text-decoration-none">
+                          {{ paziente.telefono }}
+                        </a>
+                      </span>
+                      <span v-else class="text-muted">
+                        [Non Dichiarato]
+                      </span>
+                    </div>
+                  </div>
                 </CTableDataCell>
 
                 <!-- Azioni -->
@@ -422,7 +471,7 @@
                       @click="selectPazienteForEdit(paziente)"
                       title="Modifica paziente"
                     >
-                      <CIcon icon="cilPencil" />
+                      <CIcon icon="cilPencil"/>
                     </CButton>
                     <CButton
                       variant="outline"
@@ -431,7 +480,7 @@
                       @click="confirmDeletePaziente(paziente)"
                       title="Elimina paziente"
                     >
-                      <CIcon icon="cilTrash" />
+                      <CIcon icon="cilTrash"/>
                     </CButton>
                   </CButtonGroup>
                 </CTableDataCell>
@@ -457,7 +506,7 @@
                   :disabled="currentPage === 1"
                   title="Prima pagina"
                 >
-                  <font-awesome-icon icon="angle-double-left" />
+                  <font-awesome-icon icon="angle-double-left"/>
                 </CButton>
                 <CButton
                   variant="outline"
@@ -466,7 +515,7 @@
                   :disabled="currentPage === 1"
                   title="Pagina precedente"
                 >
-                  <font-awesome-icon icon="angle-left" />
+                  <font-awesome-icon icon="angle-left"/>
                 </CButton>
                 <!-- Input navigazione diretta -->
                 <CInputGroup style="width: 100px;">
@@ -489,7 +538,7 @@
                   :disabled="currentPage === totalPages"
                   title="Pagina successiva"
                 >
-                  <font-awesome-icon icon="angle-right" />
+                  <font-awesome-icon icon="angle-right"/>
                 </CButton>
                 <CButton
                   variant="outline"
@@ -498,7 +547,7 @@
                   :disabled="currentPage === totalPages"
                   title="Ultima pagina"
                 >
-                  <font-awesome-icon icon="angle-double-right" />
+                  <font-awesome-icon icon="angle-double-right"/>
                 </CButton>
               </CButtonGroup>
             </CCol>
@@ -524,14 +573,15 @@
 
         <!-- Stato vuoto -->
         <div v-else class="text-center py-5">
-          <CIcon icon="cil-people" size="3xl" class="text-muted mb-3" />
+          <CIcon icon="cil-user" size="3xl" class="text-muted mb-3"/>
           <h5 class="text-muted">
             {{ searchTerm ? 'Nessun paziente trovato' : 'Nessun paziente presente' }}
           </h5>
           <p class="text-muted">
-            {{ searchTerm
-              ? 'Prova a modificare i criteri di ricerca'
-              : 'Inizia aggiungendo il primo paziente'
+            {{
+              searchTerm
+                ? 'Prova a modificare i criteri di ricerca'
+                : 'Inizia aggiungendo il primo paziente'
             }}
           </p>
           <CButton
@@ -539,7 +589,7 @@
             color="primary"
             @click="openCreateModal"
           >
-            <CIcon icon="cil-plus" class="me-2" />
+            <CIcon icon="cil-plus" class="me-2"/>
             Aggiungi Primo Paziente
           </CButton>
         </div>
@@ -564,14 +614,14 @@
     >
       <CModalHeader class="bg-danger text-white">
         <CModalTitle class="d-flex align-items-center">
-          <CIcon icon="cilWarning" class="me-2" />
+          <CIcon icon="cilWarning" class="me-2"/>
           Conferma Eliminazione
         </CModalTitle>
       </CModalHeader>
 
       <CModalBody class="p-4">
         <div class="text-center">
-          <CIcon icon="cilTrash" size="3xl" class="text-danger mb-3" />
+          <CIcon icon="cilTrash" size="3xl" class="text-danger mb-3"/>
           <h5 class="mb-3">Sei sicuro di voler eliminare questo paziente?</h5>
 
           <div v-if="pazienteToDelete" class="alert alert-light border">
@@ -597,7 +647,7 @@
           :disabled="deletingPaziente"
           class="me-2"
         >
-          <CIcon icon="cilX" class="me-2" />
+          <CIcon icon="cilX" class="me-2"/>
           Annulla
         </CButton>
         <CButton
@@ -605,8 +655,8 @@
           @click="handleDeletePaziente"
           :disabled="deletingPaziente"
         >
-          <CSpinner v-if="deletingPaziente" size="sm" class="me-2" />
-          <CIcon v-else icon="cilTrash" class="me-2" />
+          <CSpinner v-if="deletingPaziente" size="sm" class="me-2"/>
+          <CIcon v-else icon="cilTrash" class="me-2"/>
           {{ deletingPaziente ? 'Eliminazione...' : 'Elimina Definitivamente' }}
         </CButton>
       </CModalFooter>
@@ -621,14 +671,14 @@
     >
       <CModalHeader class="bg-danger text-white">
         <CModalTitle class="d-flex align-items-center">
-          <CIcon icon="cilWarning" class="me-2" />
+          <CIcon icon="cilWarning" class="me-2"/>
           Conferma Eliminazione Multipla
         </CModalTitle>
       </CModalHeader>
 
       <CModalBody class="p-4">
         <div class="text-center mb-4">
-          <CIcon icon="cilTrash" size="3xl" class="text-danger mb-3" />
+          <CIcon icon="cilTrash" size="3xl" class="text-danger mb-3"/>
           <h5 class="mb-3">
             Sei sicuro di voler eliminare {{ selectedCount }}
             pazient{{ selectedCount > 1 ? 'i' : 'e' }}?
@@ -664,7 +714,7 @@
                 <div class="fw-bold">{{ paziente.nome }} {{ paziente.cognome }}</div>
                 <small class="text-muted">CF: {{ paziente.codiceFiscale }}</small>
               </div>
-              <CIcon icon="cilTrash" class="text-danger" />
+              <CIcon icon="cilTrash" class="text-danger"/>
             </div>
             <div v-if="selectedCount > 10" class="text-muted text-center">
               ... e altri {{ selectedCount - 10 }} pazienti
@@ -685,7 +735,7 @@
           :disabled="false"
           class="me-2"
         >
-          <CIcon icon="cilX" class="me-2" />
+          <CIcon icon="cilX" class="me-2"/>
           {{ bulkDeleting ? 'Chiudi' : 'Annulla' }}
         </CButton>
         <CButton
@@ -693,7 +743,7 @@
           color="danger"
           @click="handleBulkDelete"
         >
-          <CIcon icon="cilTrash" class="me-2" />
+          <CIcon icon="cilTrash" class="me-2"/>
           Elimina {{ selectedCount > 1 ? selectedCount + ' Pazienti' : 'Paziente' }}
         </CButton>
       </CModalFooter>
@@ -714,8 +764,8 @@
  * - Icone CoreUI come primarie e FontAwesome come fallback
  */
 
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { usePazienti } from '@/composables/usePazienti'
+import {ref, computed, onMounted, onUnmounted, watch} from 'vue'
+import {usePazienti} from '@/composables/usePazienti'
 import PazienteModal from './PazienteModal.vue'
 
 // Utilizziamo il composable per accedere a tutta la logica dei pazienti
@@ -750,6 +800,15 @@ const {
 const currentPage = ref(1)
 const itemsPerPage = ref(10)
 const directPageInput = ref(1)
+
+// Stato per i filtri geografici
+const searchType = ref('all') // 'all', 'anagrafica', 'nascita', 'residenza', 'contatti'
+const geoLevel = ref('all') // 'all', 'comune', 'provincia'
+
+// Computed per determinare se è una ricerca geografica
+const isGeoSearch = computed(() =>
+  searchType.value === 'nascita' || searchType.value === 'residenza'
+)
 
 // Computed properties per informazioni di paginazione
 const showPagination = computed(() => totalPages.value > 1 || Number(itemsPerPage.value) < sortedAndFilteredPazienti.value.length)
@@ -793,8 +852,53 @@ const totalPages = computed(() => Math.ceil(totalPazienti.value / itemsPerPage.v
 const sortedAndFilteredPazienti = computed(() => {
   // Protezione: assicuriamoci che sia sempre un array
   const pazientiArray = Array.isArray(filteredPazienti.value) ? filteredPazienti.value : []
-  let result = [...pazientiArray]
 
+  // Applica filtri avanzati per tipo di ricerca
+  let result = pazientiArray.filter(paziente => {
+    if (!searchTerm.value) return true
+
+    const searchTermLower = searchTerm.value.toLowerCase()
+
+    // Filtro per tipo di ricerca
+    switch (searchType.value) {
+      case 'anagrafica':
+        return (
+          paziente.nome?.toLowerCase().includes(searchTermLower) ||
+          paziente.cognome?.toLowerCase().includes(searchTermLower) ||
+          paziente.codiceFiscale?.toLowerCase().includes(searchTermLower)
+        )
+
+      case 'nascita':
+        return applyGeoFilter(paziente, searchTermLower, 'nascita')
+
+      case 'residenza':
+        return applyGeoFilter(paziente, searchTermLower, 'residenza')
+
+      case 'contatti':
+        return (
+          paziente.email?.toLowerCase().includes(searchTermLower) ||
+          paziente.telefono?.toLowerCase().includes(searchTermLower)
+        )
+
+      case 'all':
+      default:
+        return (
+          // Anagrafica
+          paziente.nome?.toLowerCase().includes(searchTermLower) ||
+          paziente.cognome?.toLowerCase().includes(searchTermLower) ||
+          paziente.codiceFiscale?.toLowerCase().includes(searchTermLower) ||
+          // Nascita
+          applyGeoFilter(paziente, searchTermLower, 'nascita') ||
+          // Residenza
+          applyGeoFilter(paziente, searchTermLower, 'residenza') ||
+          // Contatti
+          paziente.email?.toLowerCase().includes(searchTermLower) ||
+          paziente.telefono?.toLowerCase().includes(searchTermLower)
+        )
+    }
+  })
+
+  // Applica ordinamento
   if (sortColumn.value) {
     result.sort((a, b) => {
       let valueA, valueB
@@ -806,10 +910,14 @@ const sortedAndFilteredPazienti = computed(() => {
           valueB = `${b.nome || ''} ${b.cognome || ''}`.trim().toLowerCase()
           break
 
-        case 'dataDiNascita':
-          // Ordinamento per data
-          valueA = a.dataDiNascita ? new Date(a.dataDiNascita) : new Date(0)
-          valueB = b.dataDiNascita ? new Date(b.dataDiNascita) : new Date(0)
+        case 'luoghi':
+          // Ordinamento per luoghi (priorità residenza, poi nascita)
+          valueA = a.comuneResidenza?.nome?.toLowerCase() ||
+            a.comuneNascita?.nome?.toLowerCase() ||
+            ''
+          valueB = b.comuneResidenza?.nome?.toLowerCase() ||
+            b.comuneNascita?.nome?.toLowerCase() ||
+            ''
           break
 
         case 'email':
@@ -817,9 +925,10 @@ const sortedAndFilteredPazienti = computed(() => {
           valueB = (b.email || '').toLowerCase()
           break
 
-        case 'telefono':
-          valueA = (a.telefono || '').toLowerCase()
-          valueB = (b.telefono || '').toLowerCase()
+        case 'dataDiNascita':
+          // Ordinamento per data
+          valueA = a.dataDiNascita ? new Date(a.dataDiNascita) : new Date(0)
+          valueB = b.dataDiNascita ? new Date(b.dataDiNascita) : new Date(0)
           break
 
         default:
@@ -843,12 +952,39 @@ const sortedAndFilteredPazienti = computed(() => {
   return result
 })
 
+// Funzione helper per applicare filtri geografici
+const applyGeoFilter = (paziente, searchTerm, tipo) => {
+  const campo = tipo === 'nascita' ? 'comuneNascita' : 'comuneResidenza'
+  const comune = paziente[campo]
+
+  if (!comune) return false
+
+  switch (geoLevel.value) {
+    case 'comune':
+      return comune.nome?.toLowerCase().includes(searchTerm)
+
+    case 'provincia':
+      return (
+        comune.provincia?.nome?.toLowerCase().includes(searchTerm) ||
+        comune.provincia?.sigla?.toLowerCase().includes(searchTerm)
+      )
+
+    case 'all':
+    default:
+      return (
+        comune.nome?.toLowerCase().includes(searchTerm) ||
+        comune.provincia?.nome?.toLowerCase().includes(searchTerm) ||
+        comune.provincia?.sigla?.toLowerCase().includes(searchTerm)
+      )
+  }
+}
+
 // Computed per la selezione multipla
 const hasSelectedPazienti = computed(() => selectedPazienti.value.size > 0)
 const selectedCount = computed(() => selectedPazienti.value.size)
 const isAllSelected = computed(() => {
   return paginatedPazienti.value.length > 0 &&
-         paginatedPazienti.value.every(p => selectedPazienti.value.has(p.id))
+    paginatedPazienti.value.every(p => selectedPazienti.value.has(p.id))
 })
 const isPartiallySelected = computed(() => {
   return selectedPazienti.value.size > 0 && !isAllSelected.value
@@ -946,12 +1082,77 @@ const getSortClass = (column) => {
 // Funzione per ottenere l'etichetta leggibile della colonna ordinata
 const getSortColumnLabel = (column) => {
   const labels = {
-    'nomeCompleto': 'Nome Completo',
-    'dataDiNascita': 'Data di Nascita',
-    'email': 'Email',
-    'telefono': 'Telefono'
+    'nomeCompleto': 'Paziente',
+    'luoghi': 'Luoghi',
+    'email': 'Contatti',
+    'dataDiNascita': 'Data di Nascita'
   }
   return labels[column] || column
+}
+
+// Funzioni helper per formattare i luoghi
+const formatLuogoNascita = (paziente) => {
+  if (!paziente.comuneNascita) {
+    return '[Non Dichiarato]'
+  }
+
+  const comune = paziente.comuneNascita.nome || ''
+  const provincia = paziente.comuneNascita.provincia
+
+  if (provincia?.sigla) {
+    return `${comune} (${provincia.sigla})`
+  }
+
+  return comune || '[Non Dichiarato]'
+}
+
+const formatLuogoResidenza = (paziente) => {
+  if (!paziente.comuneResidenza) {
+    return '[Non Dichiarato]'
+  }
+
+  const comune = paziente.comuneResidenza.nome || ''
+  const provincia = paziente.comuneResidenza.provincia
+
+  if (provincia?.sigla) {
+    return `${comune} (${provincia.sigla})`
+  }
+
+  return comune || '[Non Dichiarato]'
+}
+
+// Funzioni helper per le etichette dei filtri
+const getSearchTypeLabel = (type) => {
+  const labels = {
+    'all': 'Tutto',
+    'anagrafica': 'Anagrafica',
+    'nascita': 'Nascita',
+    'residenza': 'Residenza',
+    'contatti': 'Contatti'
+  }
+  return labels[type] || type
+}
+
+const getGeoLevelLabel = (level) => {
+  const labels = {
+    'all': 'Comune e Provincia',
+    'comune': 'Solo Comune',
+    'provincia': 'Solo Provincia'
+  }
+  return labels[level] || level
+}
+
+// Gestori per i filtri avanzati
+const handleSearchTypeChange = () => {
+  resetPagination()
+  clearSelection()
+  console.log('Tipo di ricerca cambiato:', searchType.value)
+}
+
+const handleGeoLevelChange = () => {
+  resetPagination()
+  clearSelection()
+  console.log('Livello geografico cambiato:', geoLevel.value)
 }
 
 // Watch del termine di ricerca per reset paginazione
@@ -1053,6 +1254,16 @@ const handleDeletePaziente = async () => {
 onMounted(() => {
   // I dati vengono caricati automaticamente dal composable
   console.log('Pagina Pazienti caricata')
+
+  // Debug: controlliamo i dati dei pazienti
+  watch(pazienti, (newPazienti) => {
+    if (newPazienti && newPazienti.length > 0) {
+      console.log('🚀 Dati pazienti caricati:', newPazienti)
+      console.log('🔍 Primo paziente:', newPazienti[0])
+      console.log('🏘️ Comune nascita primo paziente:', newPazienti[0]?.comuneNascita)
+      console.log('🏠 Comune residenza primo paziente:', newPazienti[0]?.comuneResidenza)
+    }
+  }, { immediate: true })
 })
 
 // Cleanup al dismount per evitare memory leaks
@@ -1075,10 +1286,10 @@ const getIconComponent = (coreUIIcon, fontAwesomeIcon) => {
 // 2. Se non disponibile, usa FontAwesome (fas fa-nome)
 // 3. Per i controlli di paginazione usiamo direttamente FontAwesome perché sono più comuni
 const navigationIcons = {
-  first: { coreUI: 'cilMediaSkipBackward', fontAwesome: 'fas fa-angle-double-left' },
-  previous: { coreUI: 'cilChevronLeft', fontAwesome: 'fas fa-angle-left' },
-  next: { coreUI: 'cilChevronRight', fontAwesome: 'fas fa-angle-right' },
-  last: { coreUI: 'cilMediaSkipForward', fontAwesome: 'fas fa-angle-double-right' }
+  first: {coreUI: 'cilMediaSkipBackward', fontAwesome: 'fas fa-angle-double-left'},
+  previous: {coreUI: 'cilChevronLeft', fontAwesome: 'fas fa-angle-left'},
+  next: {coreUI: 'cilChevronRight', fontAwesome: 'fas fa-angle-right'},
+  last: {coreUI: 'cilMediaSkipForward', fontAwesome: 'fas fa-angle-double-right'}
 }
 
 // Stato per il timer di auto-dismiss delle notifiche
@@ -1239,6 +1450,208 @@ const handleBulkDelete = async () => {
   color: #2c3e50;
   font-weight: 600;
   margin-bottom: 0.5rem;
+}
+
+/* Stili per la colonna luoghi accorpata */
+.luoghi-info {
+  min-width: 200px;
+}
+
+.luogo-nascita,
+.luogo-residenza {
+  font-size: 0.8rem;
+  line-height: 1.2;
+  margin-bottom: 0.25rem;
+}
+
+.luogo-label {
+  font-weight: 600;
+  margin-right: 0.25rem;
+}
+
+.luogo-value {
+  color: #495057;
+}
+
+.luogo-indirizzo {
+  font-size: 0.75rem;
+  line-height: 1.2;
+  margin-top: 0.25rem;
+  color: #6c757d;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+}
+
+/* Responsive per la colonna luoghi */
+@media (max-width: 768px) {
+  .luoghi-info {
+    min-width: unset;
+  }
+
+  .luogo-nascita,
+  .luogo-residenza {
+    font-size: 0.75rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .luogo-label {
+    font-size: 0.7rem;
+  }
+
+  .luogo-indirizzo {
+    font-size: 0.7rem;
+  }
+}
+
+/* Hover effects per luoghi */
+.table-row-hover:hover .luogo-value {
+  color: #0d6efd;
+}
+
+/* Stili specifici per la nuova struttura della tabella */
+.paziente-info {
+  min-width: 200px;
+}
+
+.paziente-nome {
+  font-size: 0.9rem;
+  line-height: 1.2;
+  margin-bottom: 0.25rem;
+}
+
+.paziente-data,
+.paziente-cf {
+  font-size: 0.8rem;
+  line-height: 1.1;
+  margin-bottom: 0.1rem;
+}
+
+.geo-info {
+  min-width: 150px;
+}
+
+.geo-primary {
+  font-weight: 600;
+  font-size: 0.85rem;
+  line-height: 1.2;
+  margin-bottom: 0.25rem;
+}
+
+.geo-secondary,
+.geo-year,
+.geo-address {
+  font-size: 0.75rem;
+  line-height: 1.1;
+  margin-bottom: 0.1rem;
+}
+
+.contatti-info {
+  min-width: 180px;
+}
+
+.contatti-email {
+  font-size: 0.85rem;
+  line-height: 1.2;
+  margin-bottom: 0.25rem;
+}
+
+.contatti-telefono {
+  font-size: 0.75rem;
+  line-height: 1.1;
+}
+
+/* Responsive per mobile */
+@media (max-width: 768px) {
+  .paziente-info,
+  .geo-info,
+  .contatti-info {
+    min-width: unset;
+  }
+
+  .paziente-nome {
+    font-size: 0.85rem;
+  }
+
+  .paziente-data,
+  .paziente-cf,
+  .geo-secondary,
+  .geo-year,
+  .geo-address,
+  .contatti-telefono {
+    font-size: 0.7rem;
+  }
+
+  .geo-primary,
+  .contatti-email {
+    font-size: 0.8rem;
+  }
+}
+
+/* Icone colorate per categorie */
+.geo-info .text-primary {
+  color: #0d6efd !important;
+}
+
+.geo-info .text-success {
+  color: #198754 !important;
+}
+
+.contatti-info .text-info {
+  color: #0dcaf0 !important;
+}
+
+/* Hover effects migliorati */
+.table-row-hover:hover .paziente-nome {
+  color: #0d6efd;
+}
+
+.table-row-hover:hover .geo-primary {
+  color: #0d6efd;
+}
+
+.table-row-hover:hover .contatti-email a {
+  color: #0d6efd;
+}
+
+/* Stili per i filtri geografici */
+.form-select {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.form-select option {
+  font-size: 0.8rem;
+}
+
+/* Responsive per i filtri */
+@media (max-width: 768px) {
+  .form-select {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.4rem;
+  }
+}
+
+/* Miglioramento leggibilità link */
+.table a {
+  color: inherit;
+  transition: color 0.15s ease-in-out;
+}
+
+.table a:hover {
+  color: #0d6efd;
+  text-decoration: underline !important;
+}
+
+/* Padding ottimizzato per celle */
+.table td {
+  padding: 0.75rem 0.5rem;
+  vertical-align: top;
+}
+
+/* Stili per campi non specificati */
+.text-muted {
+  font-style: italic;
 }
 
 .table-row-hover {
@@ -1668,5 +2081,71 @@ const handleBulkDelete = async () => {
   background-color: var(--cui-dark-form-bg, #3b4252);
   border-color: var(--cui-dark-form-border, #4c566a);
   color: var(--cui-dark-form-color, #eceff4);
+}
+
+/* Stili migliorati per la colonna luoghi */
+.luoghi-info {
+  min-width: 200px;
+}
+
+.luogo-nascita,
+.luogo-residenza {
+  font-size: 0.8rem;
+  line-height: 1.3;
+  margin-bottom: 0.35rem;
+  display: flex;
+  align-items: center;
+}
+
+.luogo-label {
+  font-weight: 600;
+  margin-right: 0.25rem;
+  color: #6c757d;
+  font-size: 0.75rem;
+}
+
+.luogo-value {
+  color: #495057;
+  font-weight: 500;
+}
+
+.luogo-indirizzo {
+  font-size: 0.75rem;
+  line-height: 1.2;
+  margin-top: 0.25rem;
+  color: #6c757d;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+}
+
+/* Responsive per la colonna luoghi */
+@media (max-width: 768px) {
+  .luoghi-info {
+    min-width: unset;
+  }
+
+  .luogo-nascita,
+  .luogo-residenza {
+    font-size: 0.75rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .luogo-label {
+    font-size: 0.7rem;
+  }
+
+  .luogo-indirizzo {
+    font-size: 0.7rem;
+  }
+}
+
+/* Hover effects per luoghi */
+.table-row-hover:hover .luogo-value {
+  color: #0d6efd;
+}
+
+.table-row-hover:hover .luogo-indirizzo {
+  color: #495057;
 }
 </style>
