@@ -166,7 +166,7 @@
               <div class="sub-section mb-4">
                 <h6 class="sub-section-title">Residenza Attuale</h6>
                 <CRow class="g-3">
-                  <CCol md="6">
+                  <CCol cols="12" md="6">
                     <div class="input-group-with-icon">
                       <CIcon icon="cil-map" class="input-icon"/>
                       <div class="input-content">
@@ -181,7 +181,7 @@
                       </div>
                     </div>
                   </CCol>
-                  <CCol md="6">
+                  <CCol cols="12" md="6">
                     <div class="input-group-with-icon">
                       <CIcon icon="cil-location-pin" class="input-icon"/>
                       <div class="input-content">
@@ -229,7 +229,7 @@
           <div v-if="activeTab === 'contatti'" class="tab-pane active">
             <div class="form-section">
               <CRow class="g-3">
-                <CCol md="6">
+                <CCol sm="12">
                   <div class="input-group-with-icon">
                     <CIcon icon="cil-envelope-closed" class="input-icon"/>
                     <div class="input-content">
@@ -246,7 +246,7 @@
                     </div>
                   </div>
                 </CCol>
-                <CCol md="6">
+                <CCol sm="12">
                   <div class="input-group-with-icon">
                     <CIcon icon="cil-phone" class="input-icon"/>
                     <div class="input-content">
@@ -885,6 +885,7 @@ const handleKeyboardShortcuts = (event) => {
 
 .input-content {
   flex: 1;
+  width: 100%; /* Assicura che l'input prenda tutta la larghezza disponibile */
 }
 
 /* Anteprima paziente */
@@ -1028,6 +1029,7 @@ const handleKeyboardShortcuts = (event) => {
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  width: 100%; /* Assicura che l'header occupi tutta la larghezza */
 }
 
 .tabs-header::-webkit-scrollbar {
@@ -1046,8 +1048,10 @@ const handleKeyboardShortcuts = (event) => {
   transition: all 0.2s ease;
   border-bottom: 3px solid transparent;
   min-width: 0;
+  flex: 1; /* Ogni tab occupa lo stesso spazio disponibile */
   flex-shrink: 0;
   position: relative;
+  text-align: center; /* Centra il contenuto del tab */
 }
 
 .tab-button:hover {

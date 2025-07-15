@@ -192,6 +192,11 @@
       </CCardHeader>
 
       <CCardBody>
+        <!-- DEBUG INFO -->
+        <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; font-size: 12px;">
+          DEBUG: Loading={{ loading }}, Error={{ !!error }}, Pazienti={{ sortedAndFilteredPazienti.length }}
+        </div>
+
         <!-- Stato di caricamento -->
         <div v-if="loading" class="text-center py-4">
           <CSpinner color="primary"/>
@@ -211,8 +216,8 @@
           </CButton>
         </CAlert>
 
-        <!-- Tabella pazienti -->
-        <div v-else-if="sortedAndFilteredPazienti.length > 0">
+        <!-- Tabella pazienti Desktop (nascosta su mobile) -->
+        <div class="d-none d-md-block" v-if="!loading && !error && sortedAndFilteredPazienti.length > 0">
           <!-- Controlli tabella avanzati -->
           <CRow class="align-items-center mb-3">
             <CCol md="6">
@@ -489,6 +494,229 @@
           </CTable>
 
           <!-- Paginazione avanzata -->
+          <CRow class="align-items-center mt-4" v-if="showPagination">
+            <CCol md="4">
+              <p class="text-muted small mb-0">
+                Pagina {{ currentPage }} di {{ totalPages }}
+                ({{ paginationInfo.start }}-{{ paginationInfo.end }} di {{ paginationInfo.total }})
+              </p>
+            </CCol>
+            <CCol md="4" class="text-center">
+              <!-- Navigazione veloce -->
+              <CButtonGroup size="sm">
+                <CButton
+                  variant="outline"
+                  color="secondary"
+                  @click="goToFirstPage"
+                  :disabled="currentPage === 1"
+                  title="Prima pagina"
+                >
+                  <font-awesome-icon icon="angle-double-left"/>
+                </CButton>
+                <CButton
+                  variant="outline"
+                  color="secondary"
+                  @click="goToPreviousPage"
+                  :disabled="currentPage === 1"
+                  title="Pagina precedente"
+                >
+                  <font-awesome-icon icon="angle-left"/>
+                </CButton>
+                <!-- Input navigazione diretta -->
+                <CInputGroup style="width: 100px;">
+                  <CFormInput
+                    v-model.number="directPageInput"
+                    @keyup.enter="goToPage(directPageInput)"
+                    @blur="validateDirectPageInput"
+                    type="number"
+                    :min="1"
+                    :max="totalPages"
+                    size="sm"
+                    class="text-center"
+                    title="Inserisci numero pagina"
+                  />
+                </CInputGroup>
+                <CButton
+                  variant="outline"
+                  color="secondary"
+                  @click="goToNextPage"
+                  :disabled="currentPage === totalPages"
+                  title="Pagina successiva"
+                >
+                  <font-awesome-icon icon="angle-right"/>
+                </CButton>
+                <CButton
+                  variant="outline"
+                  color="secondary"
+                  @click="goToLastPage"
+                  :disabled="currentPage === totalPages"
+                  title="Ultima pagina"
+                >
+                  <font-awesome-icon icon="angle-double-right"/>
+                </CButton>
+              </CButtonGroup>
+            </CCol>
+            <CCol md="4">
+              <!-- Paginazione classica (per numeri di pagina) -->
+              <CPagination
+                v-if="totalPages <= 10"
+                class="justify-content-end"
+                :pages="totalPages"
+                :active-page="currentPage"
+                @item-click="changePage"
+                size="sm"
+              />
+              <!-- Paginazione compatta per molte pagine -->
+              <div v-else class="d-flex justify-content-end">
+                <small class="text-muted">
+                  {{ totalPages }} pagine totali
+                </small>
+              </div>
+            </CCol>
+          </CRow>
+        </div>
+
+        <!-- Vista mobile ottimizzata (mostra solo su mobile) -->
+        <div class="d-block d-md-none" v-if="!loading && !error && sortedAndFilteredPazienti.length > 0">
+
+          <!-- Toolbar selezione multipla mobile -->
+          <div v-if="hasSelectedPazienti" class="mb-3">
+            <CAlert color="primary" class="d-flex align-items-center justify-content-between">
+              <div class="d-flex align-items-center">
+                <CIcon icon="cilCheckCircle" class="me-2"/>
+                <small><strong>{{ selectedCount }} selezionat{{ selectedCount > 1 ? 'i' : 'o' }}</strong></small>
+              </div>
+              <div>
+                <CButton color="light" size="sm" @click="clearSelection" class="me-2">
+                  <CIcon icon="cilX" size="sm"/>
+                </CButton>
+                <CButton color="danger" size="sm" @click="confirmBulkDelete" :disabled="bulkDeleting">
+                  <CIcon icon="cilTrash" size="sm"/>
+                </CButton>
+              </div>
+            </CAlert>
+          </div>
+
+          <!-- Lista card pazienti -->
+          <div class="mobile-patients-grid">
+            <div
+              v-for="paziente in paginatedPazienti"
+              :key="paziente.id"
+              class="patient-card"
+              :class="{
+                'selected': selectedPazienti.has(paziente.id),
+                'expanded': activeMobileCard === paziente.id
+              }"
+              @click="toggleMobileCard(paziente.id)"
+            >
+              <!-- Header della card -->
+              <div class="patient-card-header">
+                <div class="patient-info">
+                  <div class="patient-name">
+                    {{ paziente.nome }} {{ paziente.cognome }}
+                  </div>
+                  <div class="patient-details">
+                    <span class="patient-age">
+                      <CIcon icon="cil-calendar" size="sm" class="me-1"/>
+                      {{ formatDate(paziente.dataDiNascita) }}
+                      <span v-if="paziente.dataDiNascita" class="ms-1">
+                        ({{ calculateAge(paziente.dataDiNascita) }})
+                      </span>
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Checkbox selezione -->
+                <div class="patient-checkbox" @click.stop>
+                  <CFormCheck
+                    :checked="selectedPazienti.has(paziente.id)"
+                    @change="togglePazienteSelection(paziente.id)"
+                  />
+                </div>
+              </div>
+
+              <!-- Contenuto della card -->
+              <div class="patient-card-content">
+                <!-- Codice Fiscale -->
+                <div class="patient-detail-row">
+                  <CIcon icon="cil-file" size="sm" class="detail-icon"/>
+                  <span class="detail-label">CF:</span>
+                  <span class="detail-value">{{ paziente.codiceFiscale }}</span>
+                </div>
+
+                <!-- Email -->
+                <div class="patient-detail-row">
+                  <CIcon icon="cil-envelope-closed" size="sm" class="detail-icon text-info"/>
+                  <span class="detail-label">Email:</span>
+                  <a :href="`mailto:${paziente.email}`" class="detail-value detail-link" @click.stop>
+                    {{ paziente.email }}
+                  </a>
+                </div>
+
+                <!-- Telefono -->
+                <div class="patient-detail-row">
+                  <CIcon icon="cil-phone" size="sm" class="detail-icon"/>
+                  <span class="detail-label">Tel:</span>
+                  <span v-if="paziente.telefono" class="detail-value">
+                    <a :href="`tel:${paziente.telefono}`" class="detail-link" @click.stop>
+                      {{ paziente.telefono }}
+                    </a>
+                  </span>
+                  <span v-else class="detail-value text-muted">
+                    [Non Dichiarato]
+                  </span>
+                </div>
+
+                <!-- Luoghi -->
+                <div class="patient-detail-row">
+                  <CIcon icon="cil-location-pin" size="sm" class="detail-icon text-success"/>
+                  <span class="detail-label">Residenza:</span>
+                  <span class="detail-value">{{ formatLuogoResidenza(paziente) }}</span>
+                </div>
+
+                <div class="patient-detail-row">
+                  <CIcon icon="cil-user" size="sm" class="detail-icon text-primary"/>
+                  <span class="detail-label">Nascita:</span>
+                  <span class="detail-value">{{ formatLuogoNascita(paziente) }}</span>
+                </div>
+
+                <!-- Indirizzo (se presente) -->
+                <div v-if="paziente.indirizzoResidenza" class="patient-detail-row">
+                  <span class="detail-icon">📍</span>
+                  <span class="detail-label">Indirizzo:</span>
+                  <span class="detail-value text-muted">{{ paziente.indirizzoResidenza }}</span>
+                </div>
+              </div>
+
+              <!-- Bottoni azione (visibili solo se card attiva) -->
+              <Transition name="mobile-actions">
+                <div v-if="activeMobileCard === paziente.id" class="patient-card-actions" @click.stop>
+                  <CButtonGroup size="sm" class="w-100">
+                    <CButton
+                      variant="outline"
+                      color="primary"
+                      @click="selectPazienteForEdit(paziente)"
+                      class="flex-fill"
+                    >
+                      <CIcon icon="cilPencil" class="me-1"/>
+                      Modifica
+                    </CButton>
+                    <CButton
+                      variant="outline"
+                      color="danger"
+                      @click="confirmDeletePaziente(paziente)"
+                      class="flex-fill"
+                    >
+                      <CIcon icon="cilTrash" class="me-1"/>
+                      Elimina
+                    </CButton>
+                  </CButtonGroup>
+                </div>
+              </Transition>
+            </div>
+          </div>
+
+          <!-- Paginazione mobile (stessa della desktop) -->
           <CRow class="align-items-center mt-4" v-if="showPagination">
             <CCol md="4">
               <p class="text-muted small mb-0">
@@ -853,6 +1081,9 @@ const showBulkDeleteModal = ref(false)
 const bulkDeleting = ref(false)
 const bulkDeleteProgress = ref(0)
 
+// Stato per la gestione delle card mobile
+const activeMobileCard = ref(null)
+
 // Computed properties per la paginazione
 const totalPazienti = computed(() => sortedAndFilteredPazienti.value.length)
 const totalPages = computed(() => Math.ceil(totalPazienti.value / itemsPerPage.value))
@@ -1193,7 +1424,28 @@ watch(itemsPerPage, () => {
   changePage(newPage)
 })
 
-// Gestione eventi modale
+// Funzione per gestire il tap sulle card mobile
+const toggleMobileCard = (pazienteId) => {
+  if (activeMobileCard.value === pazienteId) {
+    // Se la card è già attiva, la chiude
+    activeMobileCard.value = null
+  } else {
+    // Attiva la card selezionata
+    activeMobileCard.value = pazienteId
+  }
+}
+
+// Chiudi la card mobile quando si cambia pagina
+watch(currentPage, () => {
+  activeMobileCard.value = null
+})
+
+// Chiudi la card mobile quando si fa una ricerca
+watch(searchTerm, () => {
+  resetPagination()
+  clearSelection() // Reset selezione quando cambia la ricerca
+  activeMobileCard.value = null
+})
 const handleModalClose = () => {
   if (showCreateModal.value) {
     closeCreateModal()
@@ -2168,5 +2420,292 @@ const handleBulkDelete = async () => {
 
 .table-row-hover:hover .luogo-indirizzo {
   color: #495057;
+}
+
+/* Stili per la vista mobile */
+.mobile-patients-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.patient-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+.patient-card:hover {
+  border-color: #0d6efd;
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.15);
+  transform: translateY(-1px);
+}
+
+.patient-card.selected {
+  border-color: #0d6efd;
+  background-color: rgba(13, 110, 253, 0.05);
+}
+
+.patient-card.expanded {
+  border-color: #0d6efd;
+  box-shadow: 0 6px 20px rgba(13, 110, 253, 0.2);
+}
+
+/* Indicatore visivo per card espanse */
+.patient-card.expanded::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(to bottom, #0d6efd, #6610f2);
+  border-radius: 0 4px 4px 0;
+}
+
+/* Header della card */
+.patient-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.patient-info {
+  flex: 1;
+}
+
+.patient-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.25rem;
+  line-height: 1.2;
+}
+
+.patient-details {
+  font-size: 0.85rem;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+}
+
+.patient-age {
+  display: flex;
+  align-items: center;
+}
+
+.patient-checkbox {
+  margin-left: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* Contenuto della card */
+.patient-card-content {
+  margin-bottom: 0.75rem;
+}
+
+.patient-detail-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+.patient-detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.detail-icon {
+  width: 1.2rem;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+  color: #6c757d;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #495057;
+  margin-right: 0.5rem;
+  min-width: 4rem;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  color: #2c3e50;
+  flex: 1;
+  word-break: break-word;
+}
+
+.detail-link {
+  color: #0d6efd;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.detail-link:hover {
+  color: #0056b3;
+  text-decoration: underline;
+}
+
+/* Bottoni azione */
+.patient-card-actions {
+  border-top: 1px solid #e9ecef;
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.patient-card-actions .btn {
+  font-size: 0.85rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  flex: 1;
+}
+
+.patient-card-actions .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.patient-card-actions .btn-group {
+  gap: 0.5rem;
+}
+
+/* Animazioni per i bottoni azione */
+.mobile-actions-enter-active {
+  transition: all 0.3s ease;
+}
+
+.mobile-actions-leave-active {
+  transition: all 0.2s ease;
+}
+
+.mobile-actions-enter-from {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.mobile-actions-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
+}
+
+/* Animazione per la selezione */
+.patient-card.selected {
+  animation: selectPulse 0.3s ease;
+}
+
+@keyframes selectPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+/* Responsive ottimizzazioni */
+@media (max-width: 480px) {
+  .patient-card {
+    padding: 0.875rem;
+  }
+
+  .patient-name {
+    font-size: 1rem;
+  }
+
+  .patient-detail-row {
+    font-size: 0.85rem;
+  }
+
+  .detail-label {
+    min-width: 3.5rem;
+  }
+
+  .patient-card-actions .btn {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+  }
+}
+
+/* Supporto tema dark per mobile */
+[data-coreui-theme="dark"] .patient-card {
+  background-color: #2e3440;
+  border-color: #4c566a;
+}
+
+[data-coreui-theme="dark"] .patient-card:hover {
+  border-color: #5e81ac;
+  box-shadow: 0 4px 12px rgba(94, 129, 172, 0.2);
+}
+
+[data-coreui-theme="dark"] .patient-card.selected {
+  border-color: #5e81ac;
+  background-color: rgba(94, 129, 172, 0.1);
+}
+
+[data-coreui-theme="dark"] .patient-name {
+  color: #eceff4;
+}
+
+[data-coreui-theme="dark"] .patient-details {
+  color: #81a1c1;
+}
+
+[data-coreui-theme="dark"] .detail-icon {
+  color: #81a1c1;
+}
+
+[data-coreui-theme="dark"] .detail-label {
+  color: #d8dee9;
+}
+
+[data-coreui-theme="dark"] .detail-value {
+  color: #eceff4;
+}
+
+[data-coreui-theme="dark"] .detail-link {
+  color: #5e81ac;
+}
+
+[data-coreui-theme="dark"] .detail-link:hover {
+  color: #88c0d0;
+}
+
+[data-coreui-theme="dark"] .patient-card-actions {
+  border-top-color: #4c566a;
+}
+
+/* Accessibilità */
+.patient-card:focus {
+  outline: 2px solid #0d6efd;
+  outline-offset: 2px;
+}
+
+.patient-card:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Utility per nascondere/mostrare elementi su mobile (sostituto Tailwind) */
+.hidden {
+  display: none;
+}
+
+.block {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .md\\:block {
+    display: block;
+  }
+
+  .md\\:hidden {
+    display: none;
+  }
 }
 </style>
