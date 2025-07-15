@@ -158,33 +158,33 @@
                 </CInputGroup>
               </CCol>
             </CRow>
-            <!-- Filtri geografici -->
+            <!-- Filtri geografici specifici -->
             <CRow class="g-2 mt-2">
               <CCol md="6">
-                <CFormSelect
-                  v-model="searchType"
-                  size="sm"
-                  @change="handleSearchTypeChange"
-                  :disabled="loading"
-                >
-                  <option value="all">🔍 Cerca in tutto</option>
-                  <option value="anagrafica">👤 Solo anagrafica</option>
-                  <option value="nascita">🏠 Solo nascita</option>
-                  <option value="residenza">📍 Solo residenza</option>
-                  <option value="contatti">📞 Solo contatti</option>
-                </CFormSelect>
+                <CInputGroup>
+                  <CFormInput
+                    v-model="filtroComune"
+                    placeholder="Filtra per comune (nascita/residenza)..."
+                    size="sm"
+                    :disabled="loading"
+                  />
+                  <CInputGroupText>
+                    <CIcon icon="cil-location-pin" size="sm"/>
+                  </CInputGroupText>
+                </CInputGroup>
               </CCol>
               <CCol md="6">
-                <CFormSelect
-                  v-model="geoLevel"
-                  size="sm"
-                  @change="handleGeoLevelChange"
-                  :disabled="loading || !isGeoSearch"
-                >
-                  <option value="all">🌍 Comune e Provincia</option>
-                  <option value="comune">🏘️ Solo Comune</option>
-                  <option value="provincia">🗺️ Solo Provincia</option>
-                </CFormSelect>
+                <CInputGroup>
+                  <CFormInput
+                    v-model="filtroProvincia"
+                    placeholder="Filtra per provincia (nascita/residenza)..."
+                    size="sm"
+                    :disabled="loading"
+                  />
+                  <CInputGroupText>
+                    <CIcon icon="cil-map" size="sm"/>
+                  </CInputGroupText>
+                </CInputGroup>
               </CCol>
             </CRow>
           </CCol>
@@ -192,11 +192,6 @@
       </CCardHeader>
 
       <CCardBody>
-        <!-- DEBUG INFO -->
-        <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; font-size: 12px;">
-          DEBUG: Loading={{ loading }}, Error={{ !!error }}, Pazienti={{ sortedAndFilteredPazienti.length }}
-        </div>
-
         <!-- Stato di caricamento -->
         <div v-if="loading" class="text-center py-4">
           <CSpinner color="primary"/>
@@ -436,7 +431,7 @@
 
                     <!-- Indirizzo (se presente) -->
                     <div v-if="paziente.indirizzoResidenza" class="luogo-indirizzo text-muted">
-                      <span class="me-1">📍</span>
+                      <CIcon icon="cil-location-pin" size="sm" class="me-1"/>
                       <span class="luogo-label">Indirizzo:</span>
                       <span class="luogo-value">{{ paziente.indirizzoResidenza }}</span>
                     </div>
@@ -682,7 +677,7 @@
 
                 <!-- Indirizzo (se presente) -->
                 <div v-if="paziente.indirizzoResidenza" class="patient-detail-row">
-                  <span class="detail-icon">📍</span>
+                  <CIcon icon="cil-location-pin" size="sm" class="detail-icon"/>
                   <span class="detail-label">Indirizzo:</span>
                   <span class="detail-value text-muted">{{ paziente.indirizzoResidenza }}</span>
                 </div>
@@ -1526,17 +1521,6 @@ onMounted(async () => {
 
   // Inizializziamo il composable geografico per caricare le province
   await initialize()
-
-  // Debug: controlliamo i dati dei pazienti
-  watch(pazienti, (newPazienti) => {
-    if (newPazienti && newPazienti.length > 0) {
-      console.log('🚀 Dati pazienti caricati:', newPazienti)
-      console.log('🔍 Primo paziente:', newPazienti[0])
-      console.log('🏘️ Comune nascita primo paziente:', newPazienti[0]?.comuneNascita)
-      console.log('🏠 Comune residenza primo paziente:', newPazienti[0]?.comuneResidenza)
-      console.log('🗺️ Province disponibili:', province.value)
-    }
-  }, { immediate: true })
 })
 
 // Cleanup al dismount per evitare memory leaks
