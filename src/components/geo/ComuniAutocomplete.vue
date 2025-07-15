@@ -34,6 +34,16 @@
         <CSpinner size="sm" />
       </div>
 
+      <!-- Pulsante rimuovi selezione (solo se c'è una selezione) -->
+      <div
+        v-else-if="selectedComuneId && provinciaId && !disabled"
+        class="clear-button"
+        @click="clearSelection"
+        title="Rimuovi selezione"
+      >
+        <CIcon icon="cil-x" />
+      </div>
+
       <!-- Icona dropdown -->
       <div v-else-if="provinciaId" class="dropdown-icon" @click="toggleDropdown">
         <CIcon icon="cil-chevron-bottom" :class="{ 'rotated': showDropdown }" />
@@ -421,6 +431,23 @@ const toggleDropdown = () => {
     })
   }
 }
+
+// Funzione per rimuovere la selezione corrente
+const clearSelection = () => {
+  if (props.disabled) return
+
+  // Reset completo della selezione
+  selectedComuneId.value = null
+  searchText.value = ''
+  showDropdown.value = false
+  highlightedIndex.value = -1
+
+  // Emette gli eventi al componente padre con null
+  emit('update:modelValue', null)
+  emit('comune-changed', null)
+
+  console.log('🗑️ Selezione comune rimossa')
+}
 </script>
 
 <style scoped>
@@ -446,6 +473,30 @@ const toggleDropdown = () => {
   transform: translateY(-50%);
   pointer-events: none;
   z-index: 1;
+}
+
+.clear-button {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  z-index: 1;
+  background-color: #fef2f2;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.clear-button:hover {
+  background-color: #fee2e2;
+  color: #b91c1c;
 }
 
 .dropdown-icon {

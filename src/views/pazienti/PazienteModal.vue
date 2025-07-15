@@ -118,6 +118,13 @@
               </div>
             </CCol>
           </CRow>
+          <!-- Helper per i campi geografici -->
+          <div class="mt-2">
+            <small class="text-muted">
+              <CIcon icon="cil-info" class="me-1" size="sm"/>
+              I campi geografici sono opzionali. Usa il pulsante "X" per rimuovere una selezione.
+            </small>
+          </div>
         </div>
 
         <!-- Sezione Residenza -->
@@ -171,6 +178,13 @@
               </div>
             </CCol>
           </CRow>
+          <!-- Helper per i campi geografici -->
+          <div class="mt-2">
+            <small class="text-muted">
+              <CIcon icon="cil-info" class="me-1" size="sm"/>
+              I campi geografici sono opzionali. Usa il pulsante "X" per rimuovere una selezione.
+            </small>
+          </div>
         </div>
 
         <!-- Sezione Contatti -->
