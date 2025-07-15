@@ -65,7 +65,7 @@
           </CCol>
 
           <!-- Controlli paginazione header (mostrati solo se ci sono dati) -->
-          <CCol md="5" v-if="!loading && sortedAndFilteredPazienti.length > 0">
+          <CCol md="3" v-if="!loading && sortedAndFilteredPazienti.length > 0">
             <CRow class="align-items-center justify-content-center">
               <!-- Selettore righe per pagina compatto -->
               <CCol md="auto">
@@ -142,29 +142,30 @@
             </CRow>
           </CCol>
 
-          <CCol md="4">
-            <!-- Barra di ricerca avanzata -->
+          <CCol md="6">
+            <!-- Tutti i filtri sulla stessa riga orizzontale -->
             <CRow class="g-2">
-              <CCol md="12">
-                <CInputGroup>
-                  <CFormInput
-                    v-model="searchTerm"
-                    placeholder="Cerca per nome, email, telefono, codice fiscale, comuni..."
-                    :disabled="loading"
-                  />
-                  <CInputGroupText>
-                    <CIcon icon="cil-magnifying-glass"/>
-                  </CInputGroupText>
-                </CInputGroup>
-              </CCol>
-            </CRow>
-            <!-- Filtri geografici specifici -->
-            <CRow class="g-2 mt-2">
+              <!-- Campo di ricerca principale -->
               <CCol md="6">
                 <CInputGroup>
                   <CFormInput
+                    v-model="searchTerm"
+                    placeholder="Cerca per nome, email, telefono..."
+                    size="sm"
+                    :disabled="loading"
+                  />
+                  <CInputGroupText>
+                    <CIcon icon="cil-magnifying-glass" size="sm"/>
+                  </CInputGroupText>
+                </CInputGroup>
+              </CCol>
+
+              <!-- Filtro comune -->
+              <CCol md="3">
+                <CInputGroup>
+                  <CFormInput
                     v-model="filtroComune"
-                    placeholder="Filtra per comune (nascita/residenza)..."
+                    placeholder="Comune..."
                     size="sm"
                     :disabled="loading"
                   />
@@ -173,16 +174,18 @@
                   </CInputGroupText>
                 </CInputGroup>
               </CCol>
-              <CCol md="6">
+
+              <!-- Filtro provincia -->
+              <CCol md="3">
                 <CInputGroup>
                   <CFormInput
                     v-model="filtroProvincia"
-                    placeholder="Filtra per provincia (nascita/residenza)..."
+                    placeholder="Provincia..."
                     size="sm"
                     :disabled="loading"
                   />
                   <CInputGroupText>
-                    <CIcon icon="cil-map" size="sm"/>
+                    <CIcon icon="cil-user" size="sm"/>
                   </CInputGroupText>
                 </CInputGroup>
               </CCol>
@@ -219,13 +222,16 @@
               <!-- Info risultati con ordinamento -->
               <p class="text-muted small mb-0">
                 Mostrando {{ paginationInfo.showing }} di {{ paginationInfo.total }} pazienti
-                <span v-if="searchTerm">
-                  (filtrati per: "{{ searchTerm }}"
-                  <span v-if="searchType !== 'all'">
-                    in {{ getSearchTypeLabel(searchType) }}
+                <span v-if="searchTerm || filtroComune || filtroProvincia">
+                  (filtrati
+                  <span v-if="searchTerm">
+                    per: "{{ searchTerm }}"
                   </span>
-                  <span v-if="isGeoSearch && geoLevel !== 'all'">
-                    - {{ getGeoLevelLabel(geoLevel) }}
+                  <span v-if="filtroComune">
+                    {{ searchTerm ? ' - ' : 'per: ' }}comune "{{ filtroComune }}"
+                  </span>
+                  <span v-if="filtroProvincia">
+                    {{ (searchTerm || filtroComune) ? ' - ' : 'per: ' }}provincia "{{ filtroProvincia }}"
                   </span>
                   )
                 </span>
@@ -490,7 +496,7 @@
 
           <!-- Paginazione avanzata -->
           <CRow class="align-items-center mt-4" v-if="showPagination">
-            <CCol md="4">
+            <CCol md="6">
               <p class="text-muted small mb-0">
                 Pagina {{ currentPage }} di {{ totalPages }}
                 ({{ paginationInfo.start }}-{{ paginationInfo.end }} di {{ paginationInfo.total }})
@@ -551,7 +557,7 @@
                 </CButton>
               </CButtonGroup>
             </CCol>
-            <CCol md="4">
+            <CCol md="6">
               <!-- Paginazione classica (per numeri di pagina) -->
               <CPagination
                 v-if="totalPages <= 10"
@@ -713,7 +719,7 @@
 
           <!-- Paginazione mobile (stessa della desktop) -->
           <CRow class="align-items-center mt-4" v-if="showPagination">
-            <CCol md="4">
+            <CCol md="6">
               <p class="text-muted small mb-0">
                 Pagina {{ currentPage }} di {{ totalPages }}
                 ({{ paginationInfo.start }}-{{ paginationInfo.end }} di {{ paginationInfo.total }})
@@ -774,7 +780,7 @@
                 </CButton>
               </CButtonGroup>
             </CCol>
-            <CCol md="4">
+            <CCol md="6">
               <!-- Paginazione classica (per numeri di pagina) -->
               <CPagination
                 v-if="totalPages <= 10"
@@ -798,17 +804,19 @@
         <div v-else class="text-center py-5">
           <CIcon icon="cil-user" size="3xl" class="text-muted mb-3"/>
           <h5 class="text-muted">
-            {{ searchTerm ? 'Nessun paziente trovato' : 'Nessun paziente presente' }}
+            {{
+              (searchTerm || filtroComune || filtroProvincia) ? 'Nessun paziente trovato' : 'Nessun paziente presente'
+            }}
           </h5>
           <p class="text-muted">
             {{
-              searchTerm
+              (searchTerm || filtroComune || filtroProvincia)
                 ? 'Prova a modificare i criteri di ricerca'
                 : 'Inizia aggiungendo il primo paziente'
             }}
           </p>
           <CButton
-            v-if="!searchTerm"
+            v-if="!(searchTerm || filtroComune || filtroProvincia)"
             color="primary"
             @click="openCreateModal"
           >
@@ -987,9 +995,9 @@
  * - Icone CoreUI come primarie e FontAwesome come fallback
  */
 
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { usePazienti } from '@/composables/usePazienti'
-import { useGeo } from '@/composables/useGeo'
+import {ref, computed, onMounted, onUnmounted, watch} from 'vue'
+import {usePazienti} from '@/composables/usePazienti'
+import {useGeo} from '@/composables/useGeo'
 import PazienteModal from './PazienteModal.vue'
 
 // Utilizziamo il composable per accedere a tutta la logica dei pazienti
@@ -1028,19 +1036,15 @@ const {
   initialize
 } = useGeo()
 
+// Stato per i nuovi filtri geografici specifici
+// Questi filtri permettono di cercare nei comuni e province sia di nascita che di residenza
+const filtroComune = ref('') // Filtro per comune (cerca sia nascita che residenza)
+const filtroProvincia = ref('') // Filtro per provincia (cerca sia nascita che residenza)
+
 // Stato locale per la paginazione e ordinamento
 const currentPage = ref(1)
 const itemsPerPage = ref(10)
 const directPageInput = ref(1)
-
-// Stato per i filtri geografici
-const searchType = ref('all') // 'all', 'anagrafica', 'nascita', 'residenza', 'contatti'
-const geoLevel = ref('all') // 'all', 'comune', 'provincia'
-
-// Computed per determinare se è una ricerca geografica
-const isGeoSearch = computed(() =>
-  searchType.value === 'nascita' || searchType.value === 'residenza'
-)
 
 // Computed properties per informazioni di paginazione
 const showPagination = computed(() => totalPages.value > 1 || Number(itemsPerPage.value) < sortedAndFilteredPazienti.value.length)
@@ -1083,54 +1087,44 @@ const activeMobileCard = ref(null)
 const totalPazienti = computed(() => sortedAndFilteredPazienti.value.length)
 const totalPages = computed(() => Math.ceil(totalPazienti.value / itemsPerPage.value))
 
-// Computed per pazienti filtrati e ordinati
+// Computed per pazienti filtrati e ordinati con i nuovi filtri specifici
 const sortedAndFilteredPazienti = computed(() => {
   // Protezione: assicuriamoci che sia sempre un array
   const pazientiArray = Array.isArray(filteredPazienti.value) ? filteredPazienti.value : []
 
-  // Applica filtri avanzati per tipo di ricerca
+  // Applica filtri geografici specifici
   let result = pazientiArray.filter(paziente => {
-    if (!searchTerm.value) return true
+    let passaFiltro = true
 
-    const searchTermLower = searchTerm.value.toLowerCase()
-
-    // Filtro per tipo di ricerca
-    switch (searchType.value) {
-      case 'anagrafica':
-        return (
-          paziente.nome?.toLowerCase().includes(searchTermLower) ||
-          paziente.cognome?.toLowerCase().includes(searchTermLower) ||
-          paziente.codiceFiscale?.toLowerCase().includes(searchTermLower)
-        )
-
-      case 'nascita':
-        return applyGeoFilter(paziente, searchTermLower, 'nascita')
-
-      case 'residenza':
-        return applyGeoFilter(paziente, searchTermLower, 'residenza')
-
-      case 'contatti':
-        return (
-          paziente.email?.toLowerCase().includes(searchTermLower) ||
-          paziente.telefono?.toLowerCase().includes(searchTermLower)
-        )
-
-      case 'all':
-      default:
-        return (
-          // Anagrafica
-          paziente.nome?.toLowerCase().includes(searchTermLower) ||
-          paziente.cognome?.toLowerCase().includes(searchTermLower) ||
-          paziente.codiceFiscale?.toLowerCase().includes(searchTermLower) ||
-          // Nascita
-          applyGeoFilter(paziente, searchTermLower, 'nascita') ||
-          // Residenza
-          applyGeoFilter(paziente, searchTermLower, 'residenza') ||
-          // Contatti
-          paziente.email?.toLowerCase().includes(searchTermLower) ||
-          paziente.telefono?.toLowerCase().includes(searchTermLower)
-        )
+    // Filtro per comune (nascita o residenza)
+    if (filtroComune.value) {
+      const comuneTermine = filtroComune.value.toLowerCase()
+      const hasComune = (
+        paziente.comuneNascita?.nome?.toLowerCase().includes(comuneTermine) ||
+        paziente.comuneResidenza?.nome?.toLowerCase().includes(comuneTermine)
+      )
+      passaFiltro = passaFiltro && hasComune
     }
+
+    // Filtro per provincia (nascita o residenza)
+    if (filtroProvincia.value) {
+      const provinciaTermine = filtroProvincia.value.toLowerCase()
+      const hasProvincia = (
+        // Cerca nelle province di nascita
+        (paziente.comuneNascita?.idProvincia &&
+          getProvinciaById(paziente.comuneNascita.idProvincia)?.nome?.toLowerCase().includes(provinciaTermine)) ||
+        (paziente.comuneNascita?.idProvincia &&
+          getProvinciaById(paziente.comuneNascita.idProvincia)?.sigla?.toLowerCase().includes(provinciaTermine)) ||
+        // Cerca nelle province di residenza
+        (paziente.comuneResidenza?.idProvincia &&
+          getProvinciaById(paziente.comuneResidenza.idProvincia)?.nome?.toLowerCase().includes(provinciaTermine)) ||
+        (paziente.comuneResidenza?.idProvincia &&
+          getProvinciaById(paziente.comuneResidenza.idProvincia)?.sigla?.toLowerCase().includes(provinciaTermine))
+      )
+      passaFiltro = passaFiltro && hasProvincia
+    }
+
+    return passaFiltro
   })
 
   // Applica ordinamento
@@ -1186,33 +1180,6 @@ const sortedAndFilteredPazienti = computed(() => {
 
   return result
 })
-
-// Funzione helper per applicare filtri geografici
-const applyGeoFilter = (paziente, searchTerm, tipo) => {
-  const campo = tipo === 'nascita' ? 'comuneNascita' : 'comuneResidenza'
-  const comune = paziente[campo]
-
-  if (!comune) return false
-
-  switch (geoLevel.value) {
-    case 'comune':
-      return comune.nome?.toLowerCase().includes(searchTerm)
-
-    case 'provincia':
-      return (
-        comune.provincia?.nome?.toLowerCase().includes(searchTerm) ||
-        comune.provincia?.sigla?.toLowerCase().includes(searchTerm)
-      )
-
-    case 'all':
-    default:
-      return (
-        comune.nome?.toLowerCase().includes(searchTerm) ||
-        comune.provincia?.nome?.toLowerCase().includes(searchTerm) ||
-        comune.provincia?.sigla?.toLowerCase().includes(searchTerm)
-      )
-  }
-}
 
 // Computed per la selezione multipla
 const hasSelectedPazienti = computed(() => selectedPazienti.value.size > 0)
@@ -1364,39 +1331,16 @@ const formatLuogoResidenza = (paziente) => {
   return comune || '[Non Dichiarato]'
 }
 
-// Funzioni helper per le etichette dei filtri
-const getSearchTypeLabel = (type) => {
-  const labels = {
-    'all': 'Tutto',
-    'anagrafica': 'Anagrafica',
-    'nascita': 'Nascita',
-    'residenza': 'Residenza',
-    'contatti': 'Contatti'
-  }
-  return labels[type] || type
-}
-
-const getGeoLevelLabel = (level) => {
-  const labels = {
-    'all': 'Comune e Provincia',
-    'comune': 'Solo Comune',
-    'provincia': 'Solo Provincia'
-  }
-  return labels[level] || level
-}
-
-// Gestori per i filtri avanzati
-const handleSearchTypeChange = () => {
+// Watch dei filtri geografici per reset paginazione
+watch(filtroComune, () => {
   resetPagination()
-  clearSelection()
-  console.log('Tipo di ricerca cambiato:', searchType.value)
-}
+  clearSelection() // Reset selezione quando cambia il filtro
+})
 
-const handleGeoLevelChange = () => {
+watch(filtroProvincia, () => {
   resetPagination()
-  clearSelection()
-  console.log('Livello geografico cambiato:', geoLevel.value)
-}
+  clearSelection() // Reset selezione quando cambia il filtro
+})
 
 // Watch del termine di ricerca per reset paginazione
 watch(searchTerm, () => {
@@ -1435,10 +1379,10 @@ watch(currentPage, () => {
   activeMobileCard.value = null
 })
 
-// Chiudi la card mobile quando si fa una ricerca
-watch(searchTerm, () => {
+// Chiudi la card mobile quando si fa una ricerca o si cambiano i filtri
+watch([searchTerm, filtroComune, filtroProvincia], () => {
   resetPagination()
-  clearSelection() // Reset selezione quando cambia la ricerca
+  clearSelection() // Reset selezione quando cambia la ricerca o i filtri
   activeMobileCard.value = null
 })
 const handleModalClose = () => {
@@ -2587,9 +2531,15 @@ const handleBulkDelete = async () => {
 }
 
 @keyframes selectPulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.02); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* Responsive ottimizzazioni */
