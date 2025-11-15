@@ -729,8 +729,11 @@ const isTabCompleted = (tabId) => {
     case 'anagrafica':
       return !!(form.nome && form.cognome && form.dataDiNascita && form.codiceFiscale)
     case 'residenza':
-      // I campi geografici sono opzionali, quindi il tab è sempre "completato"
-      return true
+      // Il tab è completato se almeno i comuni (nascita o residenza) sono compilati
+      // Oppure se nessun campo è stato toccato (per evitare di mostrare verde all'apertura)
+      const hasNascita = !!(form.provinciaNascitaId && form.comuneNascitaId)
+      const hasResidenza = !!(form.provinciaResidenzaId && form.comuneResidenzaId)
+      return hasNascita || hasResidenza
     case 'contatti':
       return !!(form.email) // Email è obbligatorio, telefono opzionale
     default:

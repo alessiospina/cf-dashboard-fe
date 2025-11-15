@@ -22,14 +22,33 @@
         </p>
       </CCol>
       <CCol md="auto">
-        <CButton
-          color="primary"
-          @click="openCreateModal"
-          :disabled="loading"
-        >
-          <CIcon icon="cil-plus" class="me-2"/>
-          Nuovo Paziente
-        </CButton>
+        <CButtonGroup>
+          <CButton
+            color="primary"
+            @click="openCreateModal"
+            :disabled="loading"
+          >
+            <CIcon icon="cil-plus" class="me-2"/>
+            Nuovo Paziente
+          </CButton>
+          <CButton
+            color="success"
+            @click="triggerFileUpload"
+            :disabled="loading || uploadingFile"
+          >
+            <CSpinner v-if="uploadingFile" size="sm" class="me-2"/>
+            <CIcon v-else icon="cil-cloud-upload" class="me-2"/>
+            {{ uploadingFile ? 'Caricamento...' : 'Carica Excel' }}
+          </CButton>
+        </CButtonGroup>
+        <!-- Input file nascosto -->
+        <input
+          ref="fileInput"
+          type="file"
+          accept=".xlsx,.xls"
+          style="display: none"
+          @change="handleFileUpload"
+        />
       </CCol>
     </CRow>
 
@@ -1083,6 +1102,10 @@ const bulkDeleteProgress = ref(0)
 // Stato per la gestione delle card mobile
 const activeMobileCard = ref(null)
 
+// Stato per il caricamento file Excel
+const uploadingFile = ref(false)
+const fileInput = ref(null)
+
 // Computed properties per la paginazione
 const totalPazienti = computed(() => sortedAndFilteredPazienti.value.length)
 const totalPages = computed(() => Math.ceil(totalPazienti.value / itemsPerPage.value))
@@ -1455,6 +1478,94 @@ const handleDeletePaziente = async () => {
     // L'errore viene gestito dal composable con notifiche
   } finally {
     deletingPaziente.value = false
+  }
+}
+
+// Funzioni per il caricamento file Excel
+const triggerFileUpload = () => {
+  // Triggera il click sull'input file nascosto
+  fileInput.value?.click()
+}
+
+const handleFileUpload = async (event) => {
+  const file = event.target.files[0]
+
+  if (!file) return
+
+  // Verifica che sia un file Excel
+  const validExtensions = ['.xlsx', '.xls']
+  const fileName = file.name.toLowerCase()
+  const isValidFile = validExtensions.some(ext => fileName.endsWith(ext))
+
+  if (!isValidFile) {
+    showNotificationWithAutoHide(
+      'Per favore seleziona un file Excel valido (.xlsx o .xls)',
+      'error'
+    )
+    // Reset input
+    event.target.value = ''
+    return
+  }
+
+  // Verifica dimensione file (max 10MB)
+  const maxSize = 10 * 1024 * 1024 // 10MB in bytes
+  if (file.size > maxSize) {
+    showNotificationWithAutoHide(
+      'Il file è troppo grande. La dimensione massima consentita è 10MB',
+      'error'
+    )
+    // Reset input
+    event.target.value = ''
+    return
+  }
+
+  uploadingFile.value = true
+
+  try {
+    // Crea FormData per l'upload
+    const formData = new FormData()
+    formData.append('file', file)
+
+    // Effettua la richiesta al backend
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/pazienti/upload`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        // Non impostare Content-Type, il browser lo imposterà automaticamente con il boundary
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || 'Errore durante il caricamento del file')
+    }
+
+    const result = await response.json()
+
+    // Mostra notifica di successo
+    showNotificationWithAutoHide(
+      result.message || `${result.importati || 0} pazienti importati con successo`,
+      'success',
+      5000
+    )
+
+    // Ricarica la lista pazienti
+    await loadPazienti()
+
+    // Reset paginazione
+    resetPagination()
+
+  } catch (error) {
+    console.error('Errore durante il caricamento del file:', error)
+    showNotificationWithAutoHide(
+      error.message || 'Errore durante il caricamento del file Excel',
+      'error'
+    )
+  } finally {
+    uploadingFile.value = false
+    // Reset input per permettere di ricaricare lo stesso file
+    event.target.value = ''
   }
 }
 
