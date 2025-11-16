@@ -31,15 +31,6 @@
             <CIcon icon="cil-plus" class="me-2"/>
             Nuovo Paziente
           </CButton>
-          <CButton
-            color="success"
-            @click="triggerFileUpload"
-            :disabled="loading || uploadingFile"
-          >
-            <CSpinner v-if="uploadingFile" size="sm" class="me-2"/>
-            <CIcon v-else icon="cil-cloud-upload" class="me-2"/>
-            {{ uploadingFile ? 'Caricamento...' : 'Carica Excel' }}
-          </CButton>
         </CButtonGroup>
         <!-- Input file nascosto -->
         <input
@@ -417,18 +408,23 @@
                 <CTableDataCell>
                   <div class="paziente-info">
                     <div class="paziente-nome fw-semibold">
-                      {{ paziente.nome }} {{ paziente.cognome }}
+                      <span v-if="paziente.nome || paziente.cognome">
+                        {{ paziente.nome || '' }} {{ paziente.cognome || '' }}
+                      </span>
+                      <span v-else class="text-muted">[Non Dichiarato]</span>
                     </div>
                     <div class="paziente-data text-muted">
                       <CIcon icon="cil-calendar" size="sm" class="me-1"/>
-                      {{ formatDate(paziente.dataDiNascita) }}
-                      <span v-if="paziente.dataDiNascita" class="ms-1">
-                        ({{ calculateAge(paziente.dataDiNascita) }})
+                      <span v-if="paziente.dataDiNascita">
+                        {{ formatDate(paziente.dataDiNascita) }}
+                        <span class="ms-1">({{ calculateAge(paziente.dataDiNascita) }})</span>
                       </span>
+                      <span v-else>[Non Dichiarato]</span>
                     </div>
                     <div class="paziente-cf text-muted">
                       <CIcon icon="cil-file" size="sm" class="me-1"/>
-                      {{ paziente.codiceFiscale }}
+                      <span v-if="paziente.codiceFiscale">{{ paziente.codiceFiscale }}</span>
+                      <span v-else>[Non Dichiarato]</span>
                     </div>
                   </div>
                 </CTableDataCell>
@@ -468,9 +464,14 @@
                   <div class="contatti-info">
                     <div class="contatti-email">
                       <CIcon icon="cil-envelope-closed" size="sm" class="me-1 text-info"/>
-                      <a :href="`mailto:${paziente.email}`" class="text-decoration-none">
-                        {{ paziente.email }}
-                      </a>
+                      <span v-if="paziente.email">
+                        <a :href="`mailto:${paziente.email}`" class="text-decoration-none">
+                          {{ paziente.email }}
+                        </a>
+                      </span>
+                      <span v-else class="text-muted">
+                        [Non Dichiarato]
+                      </span>
                     </div>
                     <div class="contatti-telefono text-muted">
                       <CIcon icon="cil-phone" size="sm" class="me-1"/>
@@ -633,15 +634,19 @@
               <div class="patient-card-header">
                 <div class="patient-info">
                   <div class="patient-name">
-                    {{ paziente.nome }} {{ paziente.cognome }}
+                    <span v-if="paziente.nome || paziente.cognome">
+                      {{ paziente.nome || '' }} {{ paziente.cognome || '' }}
+                    </span>
+                    <span v-else class="text-muted">[Non Dichiarato]</span>
                   </div>
                   <div class="patient-details">
                     <span class="patient-age">
                       <CIcon icon="cil-calendar" size="sm" class="me-1"/>
-                      {{ formatDate(paziente.dataDiNascita) }}
-                      <span v-if="paziente.dataDiNascita" class="ms-1">
-                        ({{ calculateAge(paziente.dataDiNascita) }})
+                      <span v-if="paziente.dataDiNascita">
+                        {{ formatDate(paziente.dataDiNascita) }}
+                        <span class="ms-1">({{ calculateAge(paziente.dataDiNascita) }})</span>
                       </span>
+                      <span v-else>[Non Dichiarato]</span>
                     </span>
                   </div>
                 </div>
@@ -661,16 +666,20 @@
                 <div class="patient-detail-row">
                   <CIcon icon="cil-file" size="sm" class="detail-icon"/>
                   <span class="detail-label">CF:</span>
-                  <span class="detail-value">{{ paziente.codiceFiscale }}</span>
+                  <span v-if="paziente.codiceFiscale" class="detail-value">{{ paziente.codiceFiscale }}</span>
+                  <span v-else class="detail-value text-muted">[Non Dichiarato]</span>
                 </div>
 
                 <!-- Email -->
                 <div class="patient-detail-row">
                   <CIcon icon="cil-envelope-closed" size="sm" class="detail-icon text-info"/>
                   <span class="detail-label">Email:</span>
-                  <a :href="`mailto:${paziente.email}`" class="detail-value detail-link" @click.stop>
-                    {{ paziente.email }}
-                  </a>
+                  <span v-if="paziente.email">
+                    <a :href="`mailto:${paziente.email}`" class="detail-value detail-link" @click.stop>
+                      {{ paziente.email }}
+                    </a>
+                  </span>
+                  <span v-else class="detail-value text-muted">[Non Dichiarato]</span>
                 </div>
 
                 <!-- Telefono -->

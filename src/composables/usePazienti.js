@@ -153,36 +153,22 @@ export function usePazienti() {
   const validatePazienteForm = (formData) => {
     const errors = {}
 
-    if (!formData.nome?.trim()) {
-      errors.nome = 'Il nome è obbligatorio'
-    }
-
-    if (!formData.cognome?.trim()) {
-      errors.cognome = 'Il cognome è obbligatorio'
-    }
-
-    if (!formData.dataDiNascita) {
-      errors.dataDiNascita = 'La data di nascita è obbligatoria'
-    }
-
-    if (!formData.codiceFiscale?.trim()) {
-      errors.codiceFiscale = 'Il codice fiscale è obbligatorio'
-    } else if (!/^[A-Z0-9]{16}$/.test(formData.codiceFiscale.toUpperCase())) {
+    // Validazione formato codice fiscale (solo se fornito)
+    if (formData.codiceFiscale?.trim() && !/^[A-Z0-9]{16}$/.test(formData.codiceFiscale.toUpperCase())) {
       errors.codiceFiscale = 'Il codice fiscale deve essere di 16 caratteri alfanumerici'
     }
 
-    if (!formData.email?.trim()) {
-      errors.email = 'L\'email è obbligatoria'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    // Validazione formato email (solo se fornita)
+    if (formData.email?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       errors.email = 'L\'email non è valida'
     }
 
-    // Validazione opzionale per i comuni
-    // Puoi rendere obbligatori questi campi se necessario
+    // Validazione coerenza campi geografici nascita
     if (formData.provinciaNascitaId && !formData.comuneNascitaId) {
       errors.comuneNascitaId = 'Seleziona un comune di nascita'
     }
 
+    // Validazione coerenza campi geografici residenza
     if (formData.provinciaResidenzaId && !formData.comuneResidenzaId) {
       errors.comuneResidenzaId = 'Seleziona un comune di residenza'
     }

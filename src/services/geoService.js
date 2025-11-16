@@ -87,4 +87,18 @@ export class GeoService {
       throw error
     }
   }
+
+  /**
+   * Ottiene tutte le regioni italiane ordinate per nome
+   * @returns {Promise<Array>} Lista delle regioni
+   */
+  static async getRegioni() {
+    try {
+      const response = await apiClient.get('/geo/regioni')
+      return response.data.data // Backend restituisce { data: [...] }
+    } catch (error) {
+      console.error('Errore nel recupero regioni:', error)
+      throw error
+    }
+  }
 }

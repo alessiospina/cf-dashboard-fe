@@ -1,11 +1,11 @@
 <template>
   <!--
-    Componente Autocomplete Province riusabile
+    Componente Autocomplete Stati riusabile
 
-    Questo componente gestisce l'autocomplete per la selezione di una provincia italiana
+    Questo componente gestisce l'autocomplete per la selezione di uno stato/nazione
     con filtro real-time e validazione per impedire selezioni non valide.
   -->
-  <div class="province-autocomplete-wrapper">
+  <div class="stato-autocomplete-wrapper">
     <CFormLabel v-if="label" :for="inputId" class="form-label-clean">
       {{ label }}
       <span v-if="required" class="text-danger">*</span>
@@ -21,7 +21,7 @@
         @keydown="handleKeydown"
         :placeholder="currentPlaceholder"
         :invalid="invalid"
-        :disabled="disabled || loadingProvince"
+        :disabled="disabled || loadingStati"
         :class="inputClass"
         autocomplete="off"
         role="combobox"
@@ -30,13 +30,13 @@
       />
 
       <!-- Icona di caricamento -->
-      <div v-if="loadingProvince" class="loading-icon">
+      <div v-if="loadingStati" class="loading-icon">
         <CSpinner size="sm" />
       </div>
 
       <!-- Pulsante rimuovi selezione (solo se c'è una selezione) -->
       <div
-        v-else-if="selectedProvinciaId && !disabled"
+        v-else-if="selectedStatoId && !disabled"
         class="clear-button"
         @click="clearSelection"
         title="Rimuovi selezione"
@@ -57,25 +57,24 @@
         @mousedown.prevent
       >
         <!-- Nessun risultato -->
-        <div v-if="filteredProvince.length === 0" class="dropdown-item no-results">
+        <div v-if="filteredStati.length === 0" class="dropdown-item no-results">
           <CIcon icon="cil-magnifying-glass" class="me-2 text-muted" />
-          Nessuna provincia trovata
+          Nessuno stato trovato
         </div>
 
-        <!-- Lista province filtrate -->
+        <!-- Lista stati filtrati -->
         <div
-          v-for="(provincia, index) in filteredProvince"
-          :key="provincia.id"
+          v-for="(stato, index) in filteredStati"
+          :key="stato.id"
           class="dropdown-item"
           :class="{ 'highlighted': index === highlightedIndex }"
-          @click="selectProvincia(provincia)"
+          @click="selectStato(stato)"
           @mouseenter="highlightedIndex = index"
           role="option"
-          :aria-selected="selectedProvinciaId === provincia.id"
+          :aria-selected="selectedStatoId === stato.id"
         >
-          <div class="provincia-info">
-            <div class="provincia-nome">{{ provincia.nome }}</div>
-            <div class="provincia-sigla">({{ provincia.siglaAutomobilistica }})</div>
+          <div class="stato-info">
+            <div class="stato-nome">{{ stato.nome }}</div>
           </div>
         </div>
       </div>
@@ -87,13 +86,13 @@
     </CFormFeedback>
 
     <!-- Errore di caricamento -->
-    <small v-if="errorProvince" class="text-danger">
-      {{ errorProvince }}
+    <small v-if="errorStati" class="text-danger">
+      {{ errorStati }}
       <CButton
         size="sm"
         color="link"
         class="p-0 ms-1"
-        @click="loadProvince"
+        @click="loadStati"
       >
         Riprova
       </CButton>
@@ -103,10 +102,10 @@
 
 <script setup>
 /**
- * Componente Autocomplete Province
+ * Componente Autocomplete Stati
  *
  * Props:
- * - modelValue: ID della provincia selezionata
+ * - modelValue: ID dello stato selezionato
  * - label: etichetta del campo
  * - placeholder: testo placeholder personalizzato
  * - required: campo obbligatorio
@@ -117,7 +116,7 @@
  *
  * Emits:
  * - update:modelValue: emesso quando cambia la selezione
- * - provincia-changed: emesso con i dati completi della provincia
+ * - stato-changed: emesso con i dati completi dello stato
  */
 
 import { ref, computed, watch, nextTick } from 'vue'
@@ -129,17 +128,13 @@ const props = defineProps({
     type: [Number, String, null],
     default: null
   },
-  regioneId: {
-    type: [Number, null],
-    default: null
-  },
   label: {
     type: String,
     default: ''
   },
   placeholder: {
     type: String,
-    default: 'Cerca una provincia...'
+    default: 'Cerca uno stato...'
   },
   required: {
     type: Boolean,
@@ -164,53 +159,53 @@ const props = defineProps({
 })
 
 // Eventi emessi
-const emit = defineEmits(['update:modelValue', 'provincia-changed'])
+const emit = defineEmits(['update:modelValue', 'stato-changed'])
 
 // Composable geografico
 const {
-  province,
-  loadingProvince,
-  errorProvince,
-  loadProvince,
-  getProvinciaById,
-  filterProvince
+  stati,
+  loadingStati,
+  errorStati,
+  loadStati,
+  getStatoById,
+  filterStati
 } = useGeo()
 
 // Stato del componente
 const searchText = ref('') // Testo digitato dall'utente
 const showDropdown = ref(false) // Visibilità dropdown
 const highlightedIndex = ref(-1) // Indice elemento evidenziato
-const selectedProvinciaId = ref(null) // ID provincia selezionata
+const selectedStatoId = ref(null) // ID stato selezionato
 const blurTimeout = ref(null) // Timeout per gestire blur
 const dropdownPosition = ref({ top: 0, left: 0, width: 0 }) // Posizione dropdown
 
 // ID univoco per il campo input
-const inputId = computed(() => `province-autocomplete-${Math.random().toString(36).substr(2, 9)}`)
+const inputId = computed(() => `stato-autocomplete-${Math.random().toString(36).substr(2, 9)}`)
 
 // Placeholder dinamico
 const currentPlaceholder = computed(() => {
-  if (loadingProvince.value) {
-    return 'Caricamento province...'
+  if (loadingStati.value) {
+    return 'Caricamento stati...'
   }
   return props.placeholder
 })
 
-// Province filtrate in base al testo di ricerca e regioneId
-const filteredProvince = computed(() => {
-  return filterProvince(searchText.value, props.regioneId)
+// Stati filtrati in base al testo di ricerca
+const filteredStati = computed(() => {
+  return filterStati(searchText.value)
 })
 
 // Watch del modelValue per sincronizzare con il componente padre
 watch(
   () => props.modelValue,
   (newValue) => {
-    selectedProvinciaId.value = newValue
+    selectedStatoId.value = newValue
 
     if (newValue) {
-      // Trova la provincia e imposta il testo dell'input
-      const provincia = getProvinciaById(newValue)
-      if (provincia) {
-        searchText.value = provincia.nome
+      // Trova lo stato e imposta il testo dell'input
+      const stato = getStatoById(newValue)
+      if (stato) {
+        searchText.value = stato.nome
       }
     } else {
       // Reset dell'input se il valore è nullo
@@ -220,15 +215,15 @@ watch(
   { immediate: true }
 )
 
-// Watch per aggiornare il testo quando si caricano le province
+// Watch per aggiornare il testo quando si caricano gli stati
 watch(
-  () => province.value,
+  () => stati.value,
   () => {
     // Ricalcola il testo dell'input se abbiamo un ID ma non il nome
-    if (selectedProvinciaId.value && !searchText.value) {
-      const provincia = getProvinciaById(selectedProvinciaId.value)
-      if (provincia) {
-        searchText.value = provincia.nome
+    if (selectedStatoId.value && !searchText.value) {
+      const stato = getStatoById(selectedStatoId.value)
+      if (stato) {
+        searchText.value = stato.nome
       }
     }
   },
@@ -245,20 +240,20 @@ watch(
 
 // Gestione input dell'utente
 const handleInput = () => {
-  console.log('⌨️ Input digitato in ProvinceAutocomplete:', searchText.value)
+  console.log('⌨️ Input digitato in StatiAutocomplete:', searchText.value)
   console.log('📊 Debug handleInput:', {
     searchLength: searchText.value.length,
     disabled: props.disabled,
-    loadingProvince: loadingProvince.value,
-    provinceCount: province.value.length,
+    loadingStati: loadingStati.value,
+    statiCount: stati.value.length,
     currentDropdownState: showDropdown.value
   })
 
   // Se l'utente sta digitando, reset della selezione
-  if (selectedProvinciaId.value) {
-    selectedProvinciaId.value = null
+  if (selectedStatoId.value) {
+    selectedStatoId.value = null
     emit('update:modelValue', null)
-    emit('provincia-changed', null)
+    emit('stato-changed', null)
   }
 
   // Calcola posizione e mostra dropdown
@@ -269,7 +264,7 @@ const handleInput = () => {
 
     console.log('📋 Dropdown impostato:', {
       showDropdown: showDropdown.value,
-      filteredCount: filteredProvince.value.length,
+      filteredCount: filteredStati.value.length,
       dropdownPosition: dropdownPosition.value
     })
   } catch (error) {
@@ -295,31 +290,31 @@ const calculateDropdownPosition = () => {
 
 // Gestione focus dell'input
 const handleFocus = () => {
-  console.log('🎯 Focus su ProvinceAutocomplete:', {
+  console.log('🎯 Focus su StatiAutocomplete:', {
     disabled: props.disabled,
-    loadingProvince: loadingProvince.value,
-    provinceCount: province.value.length
+    loadingStati: loadingStati.value,
+    statiCount: stati.value.length
   })
 
-  if (!props.disabled && !loadingProvince.value) {
+  if (!props.disabled && !loadingStati.value) {
     // Assicurati che i dati siano caricati prima di aprire il dropdown
-    if (province.value.length === 0) {
-      console.log('📥 Province non caricate - caricamento forzato')
-      loadProvince().then(() => {
-        if (province.value.length > 0) {
+    if (stati.value.length === 0) {
+      console.log('📥 Stati non caricati - caricamento forzato')
+      loadStati().then(() => {
+        if (stati.value.length > 0) {
           calculateDropdownPosition()
           showDropdown.value = true
           highlightedIndex.value = -1
-          console.log('✅ Dropdown aperto dopo caricamento province')
+          console.log('✅ Dropdown aperto dopo caricamento stati')
         }
       }).catch(error => {
-        console.error('❌ Errore caricamento province al focus:', error)
+        console.error('❌ Errore caricamento stati al focus:', error)
       })
     } else {
       calculateDropdownPosition()
       showDropdown.value = true
       highlightedIndex.value = -1
-      console.log('✅ Dropdown aperto per province')
+      console.log('✅ Dropdown aperto per stati')
     }
   } else {
     console.log('❌ Dropdown NON aperto - condizioni non soddisfatte')
@@ -328,24 +323,24 @@ const handleFocus = () => {
 
 // Gestione blur dell'input (con delay per permettere click su dropdown)
 const handleBlur = () => {
-  console.log('🔄 Blur su ProvinceAutocomplete - impostato timeout')
+  console.log('🔄 Blur su StatiAutocomplete - impostato timeout')
 
   blurTimeout.value = setTimeout(() => {
     console.log('⏰ Timeout blur eseguito - chiudo dropdown')
     showDropdown.value = false
     highlightedIndex.value = -1
 
-    // Validazione: se il testo non corrisponde a una provincia valida, reset
-    if (searchText.value && !selectedProvinciaId.value) {
-      const provinciaEsistente = province.value.find(p =>
-        p.nome.toLowerCase() === searchText.value.toLowerCase()
+    // Validazione: se il testo non corrisponde a uno stato valido, reset
+    if (searchText.value && !selectedStatoId.value) {
+      const statoEsistente = stati.value.find(s =>
+        s.nome.toLowerCase() === searchText.value.toLowerCase()
       )
 
-      if (!provinciaEsistente) {
-        // Reset se non è una provincia valida
+      if (!statoEsistente) {
+        // Reset se non è uno stato valido
         searchText.value = ''
         emit('update:modelValue', null)
-        emit('provincia-changed', null)
+        emit('stato-changed', null)
       }
     }
   }, 1000) // Aumentato da 500 a 1000ms per le modali
@@ -360,7 +355,7 @@ const handleKeydown = (event) => {
       event.preventDefault()
       highlightedIndex.value = Math.min(
         highlightedIndex.value + 1,
-        filteredProvince.value.length - 1
+        filteredStati.value.length - 1
       )
       break
 
@@ -371,8 +366,8 @@ const handleKeydown = (event) => {
 
     case 'Enter':
       event.preventDefault()
-      if (highlightedIndex.value >= 0 && filteredProvince.value[highlightedIndex.value]) {
-        selectProvincia(filteredProvince.value[highlightedIndex.value])
+      if (highlightedIndex.value >= 0 && filteredStati.value[highlightedIndex.value]) {
+        selectStato(filteredStati.value[highlightedIndex.value])
       }
       break
 
@@ -384,28 +379,28 @@ const handleKeydown = (event) => {
   }
 }
 
-// Selezione di una provincia dal dropdown
-const selectProvincia = (provincia) => {
+// Selezione di uno stato dal dropdown
+const selectStato = (stato) => {
   // Cancella il timeout del blur
   if (blurTimeout.value) {
     clearTimeout(blurTimeout.value)
     blurTimeout.value = null
   }
 
-  // Imposta la provincia selezionata
-  selectedProvinciaId.value = provincia.id
-  searchText.value = provincia.nome
+  // Imposta lo stato selezionato
+  selectedStatoId.value = stato.id
+  searchText.value = stato.nome
   showDropdown.value = false
   highlightedIndex.value = -1
 
   // Emette gli eventi al componente padre
-  emit('update:modelValue', provincia.id)
-  emit('provincia-changed', provincia)
+  emit('update:modelValue', stato.id)
+  emit('stato-changed', stato)
 }
 
 // Toggle dropdown (click sull'icona)
 const toggleDropdown = () => {
-  if (props.disabled || loadingProvince.value) return
+  if (props.disabled || loadingStati.value) return
 
   if (!showDropdown.value) {
     calculateDropdownPosition() // Calcola posizione prima di aprire
@@ -428,21 +423,21 @@ const clearSelection = () => {
   if (props.disabled) return
 
   // Reset completo della selezione
-  selectedProvinciaId.value = null
+  selectedStatoId.value = null
   searchText.value = ''
   showDropdown.value = false
   highlightedIndex.value = -1
 
   // Emette gli eventi al componente padre con null
   emit('update:modelValue', null)
-  emit('provincia-changed', null)
+  emit('stato-changed', null)
 
-  console.log('🗑️ Selezione provincia rimossa')
+  console.log('🗑️ Selezione stato rimossa')
 }
 </script>
 
 <style scoped>
-.province-autocomplete-wrapper {
+.stato-autocomplete-wrapper {
   position: relative;
 }
 
@@ -579,21 +574,15 @@ const clearSelection = () => {
   background-color: transparent;
 }
 
-.provincia-info {
+.stato-info {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.provincia-nome {
+.stato-nome {
   font-weight: 500;
   color: #374151;
-}
-
-.provincia-sigla {
-  font-size: 0.875rem;
-  color: #6b7280;
-  font-weight: 600;
 }
 
 .form-label-clean {

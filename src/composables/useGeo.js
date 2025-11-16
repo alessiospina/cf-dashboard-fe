@@ -36,6 +36,9 @@ export function useGeo() {
   const errorComuni = ref(null)
   const errorStati = ref(null)
   const errorTuttiComuni = ref(null) // Errore per tutti i comuni
+  const regioni = ref([])
+  const loadingRegioni = ref(false)
+  const errorRegioni = ref(null)
 
   // Cache per i comuni per provincia (per evitare chiamate ripetute)
   const comuniCache = ref(new Map())
@@ -46,12 +49,16 @@ export function useGeo() {
   // Nuova mappa: provincia_id -> [lista_comuni] per autocomplete
   const comuniPerProvinciaMap = ref(new Map())
 
+  const regioneMap = ref(new Map())
+
+
   // Flag per evitare caricamenti multipli
   const isInitialized = ref(false)
 
   // Computed properties
   const hasProvince = computed(() => province.value.length > 0)
   const hasStati = computed(() => stati.value.length > 0)
+  const hasRegioni = computed(() => regioni.value.length > 0)
 
   // Opzioni formattate per le select
   const provincieOptions = computed(() => [
@@ -67,6 +74,14 @@ export function useGeo() {
     ...stati.value.map(stato => ({
       value: stato.id,
       label: stato.nome
+    }))
+  ])
+
+  const regioniOptions = computed(() => [
+    { value: null, label: 'Seleziona una regione' },
+    ...regioni.value.map(regione => ({
+      value: regione.id,
+      label: regione.nome
     }))
   ])
 
@@ -122,6 +137,22 @@ export function useGeo() {
   }
 
   /**
+   * Costruisce la mappa delle regioni per accesso O(1)
+   * @param {Array} regioni - Lista delle regioni
+   */
+  const buildRegioneMap = (regioni) => {
+    const newRegioneMap = new Map()
+
+    regioni.forEach(regione => {
+      newRegioneMap.set(regione.id, regione)
+    })
+
+    regioneMap.value = newRegioneMap
+    console.log(`✅ Mappa regioni costruita: ${newRegioneMap.size} regioni`)
+  }
+
+
+  /**
    * Ottiene la provincia dato l'ID - O(1)
    * @param {number} provinciaId - ID della provincia
    * @returns {Object|undefined} Oggetto provincia completo
@@ -150,6 +181,16 @@ export function useGeo() {
 
     return null
   }
+
+  /**
+   * Ottiene la regione dato l'ID - O(1)
+   * @param {number} regioneId - ID della regione
+   * @returns {Object|undefined} Oggetto regione completo
+   */
+  const getRegioneById = (regioneId) => {
+    return regioneMap.value.get(regioneId)
+  }
+
 
   /**
    * Trova la provincia dato l'ID del comune (cerca il comune prima)
@@ -280,6 +321,35 @@ export function useGeo() {
     }
   }
 
+  const loadRegioni = async () => {
+    if (loadingRegioni.value || regioni.value.length > 0) {
+      console.log('⏭️ Regioni già caricate, skip')
+      return regioni.value
+    }
+
+    console.log('🔄 Caricamento regioni...')
+    loadingRegioni.value = true
+    errorRegioni.value = null
+
+    try {
+      const regioniData = await GeoService.getRegioni()
+      regioni.value = regioniData
+
+      // Costruisce la mappa O(1) delle regioni
+      buildRegioneMap(regioniData)
+
+      console.log('✅ Regioni caricate:', regioniData.length)
+      return regioniData
+    } catch (error) {
+      errorRegioni.value = 'Errore nel caricamento delle regioni'
+      console.error('❌ Errore caricamento regioni:', error)
+      throw error
+    } finally {
+      loadingRegioni.value = false
+    }
+  }
+
+
   // Metodo per ottenere opzioni comuni per una provincia specifica
   const getComuniOptions = (provinciaId) => {
     if (!provinciaId) {
@@ -306,20 +376,73 @@ export function useGeo() {
   /**
    * Filtra le province per l'autocomplete (case-insensitive)
    * @param {string} searchText - Testo di ricerca
+   * @param {number|null} regioneId - ID della regione per filtrare (opzionale)
    * @returns {Array} Province filtrate
    */
-  const filterProvince = (searchText) => {
+  const filterProvince = (searchText, regioneId = null) => {
+    // Prima filtra per regione se specificata
+    let provinceToFilter = province.value
+    if (regioneId) {
+      provinceToFilter = province.value.filter(p => p.idRegione === regioneId)
+      console.log(`🔍 Filtro province per regione ${regioneId}: ${provinceToFilter.length} province trovate`)
+    }
+
     if (!searchText || searchText.trim() === '') {
-      return province.value.slice(0, 10) // Mostra solo le prime 10 se non c'è ricerca
+      return provinceToFilter.slice(0, 10) // Mostra solo le prime 10 se non c'è ricerca
     }
 
     const searchLower = searchText.toLowerCase().trim()
 
-    return province.value.filter(provincia =>
+    return provinceToFilter.filter(provincia =>
       provincia.nome.toLowerCase().includes(searchLower) ||
       provincia.siglaAutomobilistica.toLowerCase().includes(searchLower)
     ).slice(0, 10) // Limita a 10 risultati
   }
+
+  /**
+   * Ottiene tutte le province di una specifica regione
+   * @param {number} regioneId - ID della regione
+   * @returns {Array} Province della regione
+   */
+  const getProvinceByRegione = (regioneId) => {
+    if (!regioneId) return []
+    return province.value.filter(p => p.idRegione === regioneId)
+  }
+
+  /**
+   * Filtra le regioni per l'autocomplete (case-insensitive)
+   * @param {string} searchText - Testo di ricerca
+   * @returns {Array} Regioni filtrate
+   */
+  const filterRegioni = (searchText) => {
+    if (!searchText || searchText.trim() === '') {
+      return regioni.value.slice(0, 10) // Mostra solo le prime 10 se non c'è ricerca
+    }
+
+    const searchLower = searchText.toLowerCase().trim()
+
+    return regioni.value.filter(regione =>
+      regione.nome.toLowerCase().includes(searchLower)
+    ).slice(0, 10) // Limita a 10 risultati
+  }
+
+  /**
+   * Filtra gli stati per l'autocomplete (case-insensitive)
+   * @param {string} searchText - Testo di ricerca
+   * @returns {Array} Stati filtrati
+   */
+  const filterStati = (searchText) => {
+    if (!searchText || searchText.trim() === '') {
+      return stati.value.slice(0, 10) // Mostra solo i primi 10 se non c'è ricerca
+    }
+
+    const searchLower = searchText.toLowerCase().trim()
+
+    return stati.value.filter(stato =>
+      stato.nome.toLowerCase().includes(searchLower)
+    ).slice(0, 10) // Limita a 10 risultati
+  }
+
 
   /**
    * Filtra i comuni per provincia per l'autocomplete (case-insensitive)
@@ -394,10 +517,12 @@ export function useGeo() {
     isInitialized.value = true
 
     try {
-      // Carica province e tutti i comuni in parallelo per l'autocomplete
+      // Carica province, comuni, regioni e stati in parallelo per l'autocomplete
       await Promise.all([
         loadProvince(),
-        loadAllComuni()
+        loadAllComuni(),
+        loadRegioni(),
+        loadStati()
       ])
     } catch (error) {
       console.error('❌ Errore inizializzazione useGeo:', error)
@@ -450,7 +575,21 @@ export function useGeo() {
 
     // Nuovi metodi per autocomplete
     filterProvince,
-    filterComuniByProvincia
+    filterComuniByProvincia,
+    getProvinceByRegione,
+    filterStati,
+
+    regioni,
+    loadingRegioni,
+    errorRegioni,
+    hasRegioni,
+    regioniOptions,
+
+    // Metodi
+    loadRegioni,
+    getRegioneById,
+    filterRegioni,
+
   }
 
   return geoInstance
