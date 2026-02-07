@@ -170,7 +170,7 @@
 
                 <!-- ITALIANO: Regione/Provincia/Comune -->
                 <CRow v-if="isNazionalitaItaliana" class="g-3">
-                  <CCol md="4">
+                  <CCol cols="12" md="6" lg="4">
                     <div class="input-group-with-icon">
                       <CIcon icon="cil-map" class="input-icon"/>
                       <div class="input-content">
@@ -185,7 +185,7 @@
                       </div>
                     </div>
                   </CCol>
-                  <CCol md="4">
+                  <CCol cols="12" md="6" lg="4">
                     <div class="input-group-with-icon">
                       <CIcon icon="cil-map" class="input-icon"/>
                       <div class="input-content">
@@ -202,7 +202,7 @@
                       </div>
                     </div>
                   </CCol>
-                  <CCol md="4">
+                  <CCol cols="12" md="6" lg="4">
                     <div class="input-group-with-icon">
                       <CIcon icon="cil-location-pin" class="input-icon"/>
                       <div class="input-content">
@@ -237,8 +237,25 @@
               <!-- Sezione Residenza -->
               <div class="sub-section mb-4">
                 <h6 class="sub-section-title">Residenza Attuale</h6>
-                <CRow class="g-3">
-                  <CCol cols="12" md="4">
+
+                <!-- Switch per copiare luogo di nascita - sempre visibile -->
+                <div class="same-as-birth-wrapper mb-3">
+                  <CFormSwitch
+                    id="residenzaUgualeNascita"
+                    v-model="residenzaUgualeNascita"
+                    :disabled="!hasLuogoNascita"
+                    label="Uguale al luogo di nascita"
+                    class="same-as-birth-switch"
+                  />
+                  <small v-if="!hasLuogoNascita" class="text-muted d-block mt-1">
+                    <CIcon icon="cil-info" size="sm" class="me-1"/>
+                    Compila prima il luogo di nascita per abilitare questa opzione
+                  </small>
+                </div>
+
+                <!-- Mostra i campi geografici solo se residenza diversa da nascita -->
+                <CRow v-if="!residenzaUgualeNascita" class="g-3">
+                  <CCol cols="12" md="6" lg="4">
                     <div class="input-group-with-icon">
                       <CIcon icon="cil-map" class="input-icon"/>
                       <div class="input-content">
@@ -253,7 +270,7 @@
                       </div>
                     </div>
                   </CCol>
-                  <CCol cols="12" md="4">
+                  <CCol cols="12" md="6" lg="4">
                     <div class="input-group-with-icon">
                       <CIcon icon="cil-map" class="input-icon"/>
                       <div class="input-content">
@@ -270,7 +287,7 @@
                       </div>
                     </div>
                   </CCol>
-                  <CCol cols="12" md="4">
+                  <CCol cols="12" md="6" lg="4">
                     <div class="input-group-with-icon">
                       <CIcon icon="cil-location-pin" class="input-icon"/>
                       <div class="input-content">
@@ -287,6 +304,16 @@
                       </div>
                     </div>
                   </CCol>
+                </CRow>
+
+                <!-- Messaggio quando residenza uguale a nascita -->
+                <div v-if="residenzaUgualeNascita" class="same-as-birth-info mb-3">
+                  <CIcon icon="cil-check-circle" class="me-2 text-success"/>
+                  <span>La residenza corrisponde al luogo di nascita: <strong>{{ getComuneNome(form.comuneNascitaId) }}</strong></span>
+                </div>
+
+                <!-- Indirizzo sempre visibile -->
+                <CRow class="g-3">
                   <CCol cols="12">
                     <div class="input-group-with-icon">
                       <CIcon icon="cil-home" class="input-icon"/>
@@ -504,6 +531,9 @@ const isComuneResidenzaDisabled = computed(() => {
   return !form.provinciaResidenzaId
 })
 
+// Stato per switch "residenza uguale a nascita" (attivo di default)
+const residenzaUgualeNascita = ref(true)
+
 // Stato reattivo del form
 const form = reactive({
   nome: '',
@@ -526,6 +556,11 @@ const form = reactive({
   comuneResidenzaId: null,
   indirizzoResidenza: '',
   // Campi contatti
+})
+
+// Computed per verificare se è stato inserito il luogo di nascita (tutti e 3 i campi)
+const hasLuogoNascita = computed(() => {
+  return !!(form.regioneNascitaId && form.provinciaNascitaId && form.comuneNascitaId)
 })
 
 // Stato per errori di validazione
@@ -551,6 +586,7 @@ const resetForm = () => {
   errors.value = {}
   submitError.value = ''
   activeTab.value = tabs[0].id // Sempre il primo tab
+  residenzaUgualeNascita.value = true // Reset switch (attivo di default)
 }
 
 // Funzione per popolare il form con i dati del paziente (in modifica)
@@ -755,10 +791,16 @@ const handleSubmit = async () => {
       // Campi geografici - nascita (straniero): usa la nazionalità come stato di nascita
       statoNascitaId: !isNazionalitaItaliana.value && form.nazionalita ? form.nazionalita : null,
 
-      // Campi geografici - residenza
-      regioneResidenzaId: form.regioneResidenzaId || null,
-      provinciaResidenzaId: form.provinciaResidenzaId || null,
-      comuneResidenzaId: form.comuneResidenzaId || null,
+      // Campi geografici - residenza (copia da nascita se switch attivo)
+      regioneResidenzaId: residenzaUgualeNascita.value
+        ? form.regioneNascitaId || null
+        : form.regioneResidenzaId || null,
+      provinciaResidenzaId: residenzaUgualeNascita.value
+        ? form.provinciaNascitaId || null
+        : form.provinciaResidenzaId || null,
+      comuneResidenzaId: residenzaUgualeNascita.value
+        ? form.comuneNascitaId || null
+        : form.comuneResidenzaId || null,
       indirizzoResidenza: form.indirizzoResidenza?.trim() || null
     }
 
@@ -879,6 +921,43 @@ watch(
         }
         console.log('🌍 Nazionalità cambiata, campi nascita resettati')
       }
+    }
+  }
+)
+
+// Watch per sincronizzare residenza con nascita quando checkbox è attivo
+watch(
+  () => residenzaUgualeNascita.value,
+  (isChecked) => {
+    if (isChecked && hasLuogoNascita.value) {
+      // Copia i dati di nascita nella residenza
+      form.regioneResidenzaId = form.regioneNascitaId
+      form.provinciaResidenzaId = form.provinciaNascitaId
+      form.comuneResidenzaId = form.comuneNascitaId
+      console.log('🏠 Residenza copiata dal luogo di nascita')
+    }
+  }
+)
+
+// Watch per sincronizzare residenza quando cambiano i dati di nascita (se checkbox attivo)
+watch(
+  [() => form.regioneNascitaId, () => form.provinciaNascitaId, () => form.comuneNascitaId],
+  ([newRegione, newProvincia, newComune]) => {
+    if (residenzaUgualeNascita.value) {
+      form.regioneResidenzaId = newRegione
+      form.provinciaResidenzaId = newProvincia
+      form.comuneResidenzaId = newComune
+    }
+  }
+)
+
+// Watch per resettare checkbox se il luogo di nascita diventa incompleto
+watch(
+  () => hasLuogoNascita.value,
+  (hasData) => {
+    if (!hasData && residenzaUgualeNascita.value) {
+      residenzaUgualeNascita.value = false
+      console.log('🔄 Checkbox residenza resettato: luogo nascita incompleto')
     }
   }
 )
@@ -1111,10 +1190,33 @@ const handleKeyboardShortcuts = (event) => {
   color: #374151;
 }
 
-/* Responsive */
+/* Responsive - Medium screens (tablets, small laptops like 13-inch MacBooks) */
+@media (max-width: 992px) {
+  .paziente-modal-simple :deep(.modal-dialog) {
+    max-width: 95%;
+    margin: 1rem auto;
+  }
+
+  .paziente-modal-simple :deep(.modal-body) {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  /* Hide icons on medium screens to save space */
+  .input-group-with-icon .input-icon {
+    display: none;
+  }
+
+  .input-group-with-icon {
+    gap: 0;
+  }
+}
+
+/* Responsive - Small screens (mobile) */
 @media (max-width: 768px) {
   .paziente-modal-simple :deep(.modal-dialog) {
     margin: 0.5rem;
+    max-width: calc(100% - 1rem);
   }
 
   .paziente-modal-simple :deep(.modal-header),
@@ -1122,6 +1224,11 @@ const handleKeyboardShortcuts = (event) => {
   .paziente-modal-simple :deep(.modal-footer) {
     padding-left: 1rem;
     padding-right: 1rem;
+  }
+
+  .paziente-modal-simple :deep(.modal-body) {
+    max-height: 65vh;
+    overflow-y: auto;
   }
 }
 
@@ -1164,29 +1271,18 @@ const handleKeyboardShortcuts = (event) => {
   outline: none;
 }
 
-/* Responsive per le icone */
-@media (max-width: 768px) {
-  .paziente-modal-simple :deep(.modal-dialog) {
-    margin: 0.5rem;
+/* Additional mobile adjustments */
+@media (max-width: 576px) {
+  .shortcuts-hint {
+    display: none; /* Hide keyboard shortcuts hint on very small screens */
   }
 
-  .paziente-modal-simple :deep(.modal-header),
-  .paziente-modal-simple :deep(.modal-body),
-  .paziente-modal-simple :deep(.modal-footer) {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-
-  .input-group-with-icon {
+  .paziente-modal-simple :deep(.modal-footer) .d-flex {
     flex-direction: column;
-    gap: 0.5rem;
   }
 
-  .input-icon {
-    align-self: flex-start;
-    margin-top: 0;
-    width: 36px;
-    height: 36px;
+  .paziente-modal-simple :deep(.modal-footer) .btn {
+    width: 100%;
   }
 }
 
@@ -1320,7 +1416,14 @@ const handleKeyboardShortcuts = (event) => {
 
 /* Contenuto tabs */
 .tab-content-container {
-  min-height: 400px;
+  min-height: 350px;
+}
+
+/* Large screens - restore minimum height */
+@media (min-width: 1200px) {
+  .tab-content-container {
+    min-height: 400px;
+  }
 }
 
 .tab-pane {
@@ -1359,13 +1462,33 @@ const handleKeyboardShortcuts = (event) => {
   border-bottom: 1px solid #f3f4f6;
 }
 
-/* Responsive per tabs */
+/* Responsive per tabs - Medium screens */
+@media (max-width: 992px) {
+  .tab-button {
+    padding: 0.75rem 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .tab-title {
+    font-size: 0.8rem;
+  }
+
+  .tab-subtitle {
+    display: none; /* Hide subtitle on medium screens */
+  }
+
+  .tab-content-container {
+    min-height: auto;
+  }
+}
+
+/* Responsive per tabs - Small screens */
 @media (max-width: 768px) {
   .tab-button {
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.75rem 1rem;
+    padding: 0.75rem 0.5rem;
     text-align: center;
   }
 
@@ -1374,7 +1497,7 @@ const handleKeyboardShortcuts = (event) => {
   }
 
   .tab-subtitle {
-    font-size: 0.625rem;
+    display: none;
   }
 
   .tab-icon {
@@ -1383,7 +1506,7 @@ const handleKeyboardShortcuts = (event) => {
   }
 
   .tab-content-container {
-    min-height: 300px;
+    min-height: auto;
   }
 }
 
@@ -1420,5 +1543,73 @@ const handleKeyboardShortcuts = (event) => {
 .shortcuts-hint strong {
   color: #3b82f6;
   font-weight: 600;
+}
+
+/* Switch "residenza uguale a nascita" */
+.same-as-birth-wrapper {
+  background-color: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.same-as-birth-switch {
+  font-size: 0.875rem;
+  margin-bottom: 0;
+}
+
+.same-as-birth-switch :deep(.form-check-input) {
+  cursor: pointer;
+  width: 2.5rem;
+  height: 1.25rem;
+}
+
+.same-as-birth-switch :deep(.form-check-input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.same-as-birth-switch :deep(.form-check-label) {
+  cursor: pointer;
+  color: #374151;
+  margin-left: 0.5rem;
+  font-weight: 500;
+}
+
+.same-as-birth-switch :deep(.form-check-input:disabled + .form-check-label) {
+  cursor: not-allowed;
+  color: #9ca3af;
+}
+
+.same-as-birth-switch :deep(.form-check-input:checked) {
+  background-color: #10b981;
+  border-color: #10b981;
+}
+
+.same-as-birth-switch :deep(.form-check-input:checked + .form-check-label) {
+  color: #10b981;
+}
+
+/* Info quando residenza è uguale a nascita */
+.same-as-birth-info {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #166534;
+}
+
+/* Responsive per switch */
+@media (max-width: 576px) {
+  .same-as-birth-wrapper {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .same-as-birth-switch :deep(.form-check-label) {
+    font-size: 0.8rem;
+  }
 }
 </style>

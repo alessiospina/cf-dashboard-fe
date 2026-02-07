@@ -595,10 +595,14 @@ const clearSelection = () => {
 .form-control-clean {
   border: 2px solid #e5e7eb;
   border-radius: 8px;
-  padding: 0.75rem 3rem 0.75rem 0.75rem; /* Padding extra a destra per l'icona */
+  padding: 0.75rem 2.5rem 0.75rem 0.75rem; /* Padding extra a destra per l'icona */
   font-size: 0.875rem;
   transition: all 0.2s ease;
   background-color: #ffffff;
+  /* Text truncation to prevent overlap with dropdown icon */
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .form-control-clean:focus {
