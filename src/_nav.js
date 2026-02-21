@@ -44,4 +44,14 @@ export default [
     to: '/email',
     icon: 'cil-envelope-closed',
   },
+  {
+    component: 'CNavTitle',
+    name: 'Amministrazione',
+  },
+  {
+    component: 'CNavItem',
+    name: 'Report',
+    to: '/admin-messages',
+    icon: 'cil-speech',
+  },
 ]

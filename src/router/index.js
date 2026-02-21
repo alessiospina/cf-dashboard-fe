@@ -74,6 +74,15 @@ const routes = [
             /* webpackChunkName: "email" */ '@/views/email/EmailPage.vue'
           ),
       },
+      {
+        path: '/admin-messages',
+        name: 'AdminMessages',
+        // Admin messages: problems, feedback and reports management
+        component: () =>
+          import(
+            /* webpackChunkName: "admin-messages" */ '@/views/admin-messages/AdminMessagesPage.vue'
+          ),
+      },
     ],
   },
   {
