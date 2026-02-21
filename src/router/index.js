@@ -30,6 +30,15 @@ const routes = [
           ),
       },
       {
+        path: '/pazienti/import',
+        name: 'PazientiImport',
+        // Pagina di import pazienti da Excel con lazy loading
+        component: () =>
+          import(
+            /* webpackChunkName: "pazienti-import" */ '@/views/pazienti/PazientiImportPage.vue'
+          ),
+      },
+      {
         path: '/calendario',
         name: 'Calendario',
         // Pagina di gestione calendario con lazy loading

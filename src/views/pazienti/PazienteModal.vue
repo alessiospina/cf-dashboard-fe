@@ -56,7 +56,7 @@
                   <div class="input-group-with-icon">
                     <CIcon icon="cil-user" class="input-icon"/>
                     <div class="input-content">
-                      <CFormLabel class="form-label-clean">Nome (opzionale)</CFormLabel>
+                      <CFormLabel class="form-label-clean">Nome *</CFormLabel>
                       <CFormInput
                         v-model="form.nome"
                         :invalid="!!errors.nome"
@@ -71,7 +71,7 @@
                   <div class="input-group-with-icon">
                     <CIcon icon="cil-people" class="input-icon"/>
                     <div class="input-content">
-                      <CFormLabel class="form-label-clean">Cognome (opzionale)</CFormLabel>
+                      <CFormLabel class="form-label-clean">Cognome *</CFormLabel>
                       <CFormInput
                         v-model="form.cognome"
                         :invalid="!!errors.cognome"
@@ -86,7 +86,7 @@
                   <div class="input-group-with-icon">
                     <CIcon icon="cil-calendar" class="input-icon"/>
                     <div class="input-content">
-                      <CFormLabel class="form-label-clean">Data di nascita (opzionale)</CFormLabel>
+                      <CFormLabel class="form-label-clean">Data di nascita *</CFormLabel>
                       <CFormInput
                         v-model="form.dataDiNascita"
                         type="date"
@@ -101,7 +101,7 @@
                   <div class="input-group-with-icon">
                     <CIcon icon="cil-file" class="input-icon"/>
                     <div class="input-content">
-                      <CFormLabel class="form-label-clean">Codice fiscale (opzionale)</CFormLabel>
+                      <CFormLabel class="form-label-clean">Codice fiscale *</CFormLabel>
                       <CFormInput
                         v-model="form.codiceFiscale"
                         :invalid="!!errors.codiceFiscale"
@@ -119,7 +119,7 @@
                     <div class="input-content">
                       <StatiAutocomplete
                         v-model="form.nazionalita"
-                        label="Nazionalità"
+                        label="Nazionalità *"
                         placeholder="Cerca uno stato..."
                         :invalid="!!errors.nazionalita"
                         :error-message="errors.nazionalita"
@@ -131,7 +131,7 @@
                   <div class="input-group-with-icon">
                     <CIcon icon="cil-envelope-closed" class="input-icon"/>
                     <div class="input-content">
-                      <CFormLabel class="form-label-clean">Email (opzionale)</CFormLabel>
+                      <CFormLabel class="form-label-clean">Email *</CFormLabel>
                       <CFormInput
                         v-model="form.email"
                         type="email"
@@ -164,19 +164,18 @@
           <!-- Tab 2: Residenza -->
           <div v-if="activeTab === 'residenza'" class="tab-pane active">
             <div class="form-section">
-              <!-- Sezione Dati di Nascita -->
-              <div class="sub-section mb-4">
+              <!-- Sezione Dati di Nascita - SOLO per italiani -->
+              <div v-if="isNazionalitaItaliana" class="sub-section mb-4">
                 <h6 class="sub-section-title">Luogo di Nascita</h6>
 
-                <!-- ITALIANO: Regione/Provincia/Comune -->
-                <CRow v-if="isNazionalitaItaliana" class="g-3">
+                <CRow class="g-3">
                   <CCol cols="12" md="6" lg="4">
                     <div class="input-group-with-icon">
                       <CIcon icon="cil-map" class="input-icon"/>
                       <div class="input-content">
                         <RegioneAutocomplete
                           v-model="form.regioneNascitaId"
-                          label="Regione di nascita"
+                          label="Regione di nascita *"
                           placeholder="Cerca regione di nascita..."
                           :invalid="!!errors.regioneNascitaId"
                           :error-message="errors.regioneNascitaId"
@@ -192,7 +191,7 @@
                         <ProvinceAutocomplete
                           v-model="form.provinciaNascitaId"
                           :regione-id="form.regioneNascitaId"
-                          label="Provincia di nascita"
+                          label="Provincia di nascita *"
                           :placeholder="isProvinciaNascitaDisabled ? 'Seleziona prima una regione' : 'Cerca provincia di nascita...'"
                           :invalid="!!errors.provinciaNascitaId"
                           :error-message="errors.provinciaNascitaId"
@@ -209,7 +208,7 @@
                         <ComuniAutocomplete
                           v-model="form.comuneNascitaId"
                           :provincia-id="form.provinciaNascitaId"
-                          label="Comune di nascita"
+                          label="Comune di nascita *"
                           :placeholder="isComuneNascitaDisabled ? 'Seleziona prima una provincia' : 'Cerca comune di nascita...'"
                           :invalid="!!errors.comuneNascitaId"
                           :error-message="errors.comuneNascitaId"
@@ -220,26 +219,14 @@
                     </div>
                   </CCol>
                 </CRow>
-
-                <!-- STRANIERO: Messaggio informativo -->
-                <div v-else-if="form.nazionalita && !isNazionalitaItaliana" class="text-muted small">
-                  <CIcon icon="cil-info" class="me-1"/>
-                  Il luogo di nascita corrisponde al paese di nazionalità selezionato nel tab Anagrafica.
-                </div>
-
-                <!-- Messaggio se nazionalità non selezionata -->
-                <div v-else class="text-muted small">
-                  <CIcon icon="cil-info" class="me-1"/>
-                  Seleziona prima la nazionalità nel tab Anagrafica per compilare il luogo di nascita.
-                </div>
               </div>
 
               <!-- Sezione Residenza -->
               <div class="sub-section mb-4">
                 <h6 class="sub-section-title">Residenza Attuale</h6>
 
-                <!-- Switch per copiare luogo di nascita - sempre visibile -->
-                <div class="same-as-birth-wrapper mb-3">
+                <!-- Switch per copiare luogo di nascita - SOLO per italiani -->
+                <div v-if="isNazionalitaItaliana" class="same-as-birth-wrapper mb-3">
                   <CFormSwitch
                     id="residenzaUgualeNascita"
                     v-model="residenzaUgualeNascita"
@@ -253,15 +240,15 @@
                   </small>
                 </div>
 
-                <!-- Mostra i campi geografici solo se residenza diversa da nascita -->
-                <CRow v-if="!residenzaUgualeNascita" class="g-3">
+                <!-- Mostra i campi geografici solo se residenza diversa da nascita (o se straniero) -->
+                <CRow v-if="!isNazionalitaItaliana || !residenzaUgualeNascita" class="g-3">
                   <CCol cols="12" md="6" lg="4">
                     <div class="input-group-with-icon">
                       <CIcon icon="cil-map" class="input-icon"/>
                       <div class="input-content">
                         <RegioneAutocomplete
                           v-model="form.regioneResidenzaId"
-                          label="Regione di residenza"
+                          label="Regione di residenza *"
                           placeholder="Cerca regione di residenza..."
                           :invalid="!!errors.regioneResidenzaId"
                           :error-message="errors.regioneResidenzaId"
@@ -277,7 +264,7 @@
                         <ProvinceAutocomplete
                           v-model="form.provinciaResidenzaId"
                           :regione-id="form.regioneResidenzaId"
-                          label="Provincia di residenza"
+                          label="Provincia di residenza *"
                           :placeholder="isProvinciaResidenzaDisabled ? 'Seleziona prima una regione' : 'Cerca provincia di residenza...'"
                           :invalid="!!errors.provinciaResidenzaId"
                           :error-message="errors.provinciaResidenzaId"
@@ -294,7 +281,7 @@
                         <ComuniAutocomplete
                           v-model="form.comuneResidenzaId"
                           :provincia-id="form.provinciaResidenzaId"
-                          label="Comune di residenza"
+                          label="Comune di residenza *"
                           :placeholder="isComuneResidenzaDisabled ? 'Seleziona prima una provincia' : 'Cerca comune di residenza...'"
                           :invalid="!!errors.comuneResidenzaId"
                           :error-message="errors.comuneResidenzaId"
@@ -307,7 +294,7 @@
                 </CRow>
 
                 <!-- Messaggio quando residenza uguale a nascita -->
-                <div v-if="residenzaUgualeNascita" class="same-as-birth-info mb-3">
+                <div v-if="isNazionalitaItaliana && residenzaUgualeNascita" class="same-as-birth-info mb-3">
                   <CIcon icon="cil-check-circle" class="me-2 text-success"/>
                   <span>La residenza corrisponde al luogo di nascita: <strong>{{ getComuneNome(form.comuneNascitaId) }}</strong></span>
                 </div>
@@ -318,7 +305,7 @@
                     <div class="input-group-with-icon">
                       <CIcon icon="cil-home" class="input-icon"/>
                       <div class="input-content">
-                        <CFormLabel class="form-label-clean">Indirizzo di residenza (opzionale)</CFormLabel>
+                        <CFormLabel class="form-label-clean">Indirizzo di residenza *</CFormLabel>
                         <CFormInput
                           v-model="form.indirizzoResidenza"
                           placeholder="Via Roma, 123"
@@ -330,14 +317,6 @@
                     </div>
                   </CCol>
                 </CRow>
-              </div>
-
-              <!-- Helper per i campi geografici -->
-              <div class="mt-2">
-                <small class="text-muted">
-                  <CIcon icon="cil-info" class="me-1" size="sm"/>
-                  I campi geografici sono opzionali. Usa il pulsante "X" per rimuovere una selezione.
-                </small>
               </div>
             </div>
           </div>
@@ -607,7 +586,8 @@ const populateForm = async (paziente) => {
   form.email = paziente.email || ''
   form.telefono = paziente.telefono || ''
   form.indirizzoResidenza = paziente.indirizzoResidenza || ''
-  form.nazionalita = paziente.nazionalita || null
+  // Nazionalità viene restituita come oggetto dal backend, prendiamo l'ID
+  form.nazionalita = paziente.nazionalità?.id || null
 
   try {
     // Attendi che i dati geografici siano caricati
@@ -748,8 +728,69 @@ const handleSubmit = async () => {
   errors.value = {}
   submitError.value = ''
 
-  // Validazione (opzionale - ora tutti i campi sono nullable)
-  // Solo validazione formato, non obbligatorietà
+  // Validazione obbligatorietà campi
+  if (!form.nome?.trim()) {
+    errors.value.nome = 'Il nome è obbligatorio'
+  }
+  if (!form.cognome?.trim()) {
+    errors.value.cognome = 'Il cognome è obbligatorio'
+  }
+  if (!form.dataDiNascita) {
+    errors.value.dataDiNascita = 'La data di nascita è obbligatoria'
+  }
+  if (!form.codiceFiscale?.trim()) {
+    errors.value.codiceFiscale = 'Il codice fiscale è obbligatorio'
+  } else if (!/^[A-Z0-9]{16}$/.test(form.codiceFiscale?.toUpperCase())) {
+    errors.value.codiceFiscale = 'Il codice fiscale deve essere di 16 caratteri alfanumerici'
+  }
+  if (!form.nazionalita) {
+    errors.value.nazionalita = 'La nazionalità è obbligatoria'
+  }
+  if (!form.email?.trim()) {
+    errors.value.email = 'L\'email è obbligatoria'
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+    errors.value.email = 'L\'email non è valida'
+  }
+  // Telefono è opzionale - nessuna validazione
+
+  // Validazione campi geografici nascita (solo per italiani)
+  if (isNazionalitaItaliana.value) {
+    if (!form.regioneNascitaId) {
+      errors.value.regioneNascitaId = 'La regione di nascita è obbligatoria'
+    }
+    if (!form.provinciaNascitaId) {
+      errors.value.provinciaNascitaId = 'La provincia di nascita è obbligatoria'
+    }
+    if (!form.comuneNascitaId) {
+      errors.value.comuneNascitaId = 'Il comune di nascita è obbligatorio'
+    }
+  }
+
+  // Validazione campi residenza (sempre obbligatori)
+  if (!form.indirizzoResidenza?.trim()) {
+    errors.value.indirizzoResidenza = 'L\'indirizzo di residenza è obbligatorio'
+  }
+  if (!form.regioneResidenzaId) {
+    errors.value.regioneResidenzaId = 'La regione di residenza è obbligatoria'
+  }
+  if (!form.provinciaResidenzaId) {
+    errors.value.provinciaResidenzaId = 'La provincia di residenza è obbligatoria'
+  }
+  if (!form.comuneResidenzaId) {
+    errors.value.comuneResidenzaId = 'Il comune di residenza è obbligatorio'
+  }
+
+  // Se ci sono errori, naviga al primo tab con errori e interrompi
+  if (Object.keys(errors.value).length > 0) {
+    const firstErrorTab = tabs.find(tab => hasTabErrors(tab.id))
+    if (firstErrorTab) {
+      console.log('🚨 Navigazione automatica al tab con errori:', firstErrorTab.id)
+      activeTab.value = firstErrorTab.id
+    }
+    return
+  }
+
+  // Validazione formato (dalla funzione originale del composable)
   const validation = validatePazienteForm(form)
 
   if (!validation.isValid) {
@@ -768,7 +809,7 @@ const handleSubmit = async () => {
   submitting.value = true
 
   try {
-    // Prepariamo i dati da inviare - TUTTI i campi sono opzionali/nullable
+    // Prepariamo i dati da inviare (campi già validati come obbligatori sopra)
     const pazienteData = {
       // Anagrafica
       nome: form.nome?.trim() || null,
@@ -780,8 +821,8 @@ const handleSubmit = async () => {
       email: form.email?.trim() || null,
       telefono: form.telefono?.trim() || null,
 
-      // Nazionalità
-      nazionalita: form.nazionalita || null,
+      // Nazionalità (con accento come richiesto dal backend)
+      nazionalità: form.nazionalita || null,
 
       // Campi geografici - nascita (italiano)
       regioneNascitaId: isNazionalitaItaliana.value ? form.regioneNascitaId || null : null,
@@ -911,15 +952,31 @@ watch(
       const wasItalian = oldNazionalita === italiaId.value
       const isNowItalian = newNazionalita === italiaId.value
 
-      // Se cambia da italiano a straniero o viceversa, resetta i campi nascita
+      // Se cambia da italiano a straniero o viceversa
       if (wasItalian !== isNowItalian) {
         if (!isNowItalian) {
-          // Passa a straniero → resetta campi italiani
+          // Passa a STRANIERO → preserva residenza, resetta nascita, disattiva switch
+
+          // Se lo switch era attivo, i campi di residenza sono uguali a nascita
+          // Quindi NON dobbiamo fare nulla perché i valori sono già corretti
+          // Semplicemente resettiamo nascita e disattiviamo lo switch
           form.regioneNascitaId = null
           form.provinciaNascitaId = null
           form.comuneNascitaId = null
+          residenzaUgualeNascita.value = false
+
+          console.log('🌍 Nazionalità → Estero: campi nascita resettati, residenza preservata')
+        } else {
+          // Passa a ITALIANO → attiva switch di default, copia residenza in nascita
+          residenzaUgualeNascita.value = true
+
+          // Copia i valori di residenza in nascita (perché lo switch è attivo)
+          form.regioneNascitaId = form.regioneResidenzaId
+          form.provinciaNascitaId = form.provinciaResidenzaId
+          form.comuneNascitaId = form.comuneResidenzaId
+
+          console.log('🌍 Nazionalità → Italia: switch attivato, nascita = residenza')
         }
-        console.log('🌍 Nazionalità cambiata, campi nascita resettati')
       }
     }
   }
@@ -968,26 +1025,39 @@ const switchTab = (tabId) => {
 }
 
 // Funzione per verificare se un tab è completato
-// Nota: ora tutti i campi sono opzionali, quindi "completato" significa "ha almeno un campo compilato"
+// "Completato" significa che tutti i campi obbligatori sono compilati
 const isTabCompleted = (tabId) => {
   switch (tabId) {
     case 'anagrafica':
-      // Almeno un campo compilato
-      return !!(form.nome || form.cognome || form.dataDiNascita || form.codiceFiscale || form.nazionalita || form.email || form.telefono)
+      // Tutti i campi obbligatori compilati (tranne telefono che è opzionale)
+      return !!(
+        form.nome?.trim() &&
+        form.cognome?.trim() &&
+        form.dataDiNascita &&
+        form.codiceFiscale?.trim() &&
+        form.nazionalita &&
+        form.email?.trim()
+      )
     case 'residenza':
-      // Almeno un campo geografico compilato
-      const hasNascitaData = !!(
-        form.regioneNascitaId ||
-        form.provinciaNascitaId ||
-        form.comuneNascitaId
+      // Per italiani: nascita + residenza obbligatori
+      // Per stranieri: solo residenza obbligatoria
+      const hasResidenzaComplete = !!(
+        form.regioneResidenzaId &&
+        form.provinciaResidenzaId &&
+        form.comuneResidenzaId &&
+        form.indirizzoResidenza?.trim()
       )
-      const hasResidenzaData = !!(
-        form.regioneResidenzaId ||
-        form.provinciaResidenzaId ||
-        form.comuneResidenzaId ||
-        form.indirizzoResidenza
-      )
-      return hasNascitaData || hasResidenzaData
+
+      if (isNazionalitaItaliana.value) {
+        const hasNascitaComplete = !!(
+          form.regioneNascitaId &&
+          form.provinciaNascitaId &&
+          form.comuneNascitaId
+        )
+        return hasNascitaComplete && hasResidenzaComplete
+      }
+
+      return hasResidenzaComplete
     default:
       return false
   }

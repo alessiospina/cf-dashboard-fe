@@ -31,15 +31,15 @@
             <CIcon icon="cil-plus" class="me-2"/>
             Nuovo Paziente
           </CButton>
+          <CButton
+            color="success"
+            @click="goToImport"
+            :disabled="loading"
+          >
+            <CIcon icon="cil-cloud-upload" class="me-2"/>
+            Import da Excel
+          </CButton>
         </CButtonGroup>
-        <!-- Input file nascosto -->
-        <input
-          ref="fileInput"
-          type="file"
-          accept=".xlsx,.xls"
-          style="display: none"
-          @change="handleFileUpload"
-        />
       </CCol>
     </CRow>
 
@@ -1024,9 +1024,13 @@
  */
 
 import {ref, computed, onMounted, onUnmounted, watch} from 'vue'
+import {useRouter} from 'vue-router'
 import {usePazienti} from '@/composables/usePazienti'
 import {useGeo} from '@/composables/useGeo'
 import PazienteModal from './PazienteModal.vue'
+
+// Router per la navigazione
+const router = useRouter()
 
 // Utilizziamo il composable per accedere a tutta la logica dei pazienti
 const {
@@ -1063,6 +1067,13 @@ const {
   findComuneById,
   initialize
 } = useGeo()
+
+/**
+ * Naviga alla pagina di import pazienti da Excel
+ */
+const goToImport = () => {
+  router.push({ name: 'PazientiImport' })
+}
 
 // Stato per i nuovi filtri geografici specifici
 // Questi filtri permettono di cercare nei comuni e province sia di nascita che di residenza

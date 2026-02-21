@@ -161,6 +161,30 @@ export class PazienteService {
       throw error
     }
   }
+
+  /**
+   * Importa pazienti da file Excel
+   * @param {File} file - File Excel da importare
+   * @returns {Promise<Object>} Oggetto con pazienti validi e invalidi
+   */
+  static async importFromExcel(file) {
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await axios.post(`${API_BASE_URL}/paziente/import`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 30000, // timeout di 30 secondi per upload
+      })
+
+      return response.data.data
+    } catch (error) {
+      console.error('Errore nell\'import da Excel:', error)
+      throw error
+    }
+  }
 }
 
 // Le costanti per i tipi di terapia sono state rimosse
