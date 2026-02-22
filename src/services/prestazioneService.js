@@ -5,29 +5,7 @@
  * Utilizziamo axios per le chiamate HTTP e organizziamo tutto in una classe.
  */
 
-import axios from 'axios'
-import { getApiBaseUrl } from '@/config/api'
-
-// Configurazione base per le chiamate API - URL letto dal file .env
-const API_BASE_URL = getApiBaseUrl()
-
-// Creiamo un'istanza di axios con configurazione di base
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 10000, // timeout di 10 secondi
-})
-
-// Interceptor per gestire errori globalmente
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error('Errore API Prestazioni:', error)
-    return Promise.reject(error)
-  }
-)
+import httpClient from './httpClient'
 
 export class PrestazioneService {
   /**
@@ -36,7 +14,7 @@ export class PrestazioneService {
    */
   static async getAllPrestazioni() {
     try {
-      const response = await apiClient.get('/prestazione')
+      const response = await httpClient.get('/prestazione')
       return response.data.data // Il backend restituisce { data: [...] }
     } catch (error) {
       console.error('Errore nel recupero prestazioni:', error)
@@ -51,7 +29,7 @@ export class PrestazioneService {
    */
   static async getPrestazioneById(id) {
     try {
-      const response = await apiClient.get(`/prestazione/${id}`)
+      const response = await httpClient.get(`/prestazione/${id}`)
       return response.data.data
     } catch (error) {
       console.error('Errore nel recupero prestazione:', error)
@@ -66,7 +44,7 @@ export class PrestazioneService {
    */
   static async createPrestazione(prestazioneData) {
     try {
-      const response = await apiClient.post('/prestazione', prestazioneData)
+      const response = await httpClient.post('/prestazione', prestazioneData)
       return response.data.data
     } catch (error) {
       console.error('Errore nella creazione prestazione:', error)
@@ -82,7 +60,7 @@ export class PrestazioneService {
    */
   static async updatePrestazione(id, prestazioneData) {
     try {
-      const response = await apiClient.put(`/prestazione/${id}`, prestazioneData)
+      const response = await httpClient.put(`/prestazione/${id}`, prestazioneData)
       return response.data.data
     } catch (error) {
       console.error('Errore nell\'aggiornamento prestazione:', error)
@@ -97,7 +75,7 @@ export class PrestazioneService {
    */
   static async deletePrestazione(id) {
     try {
-      await apiClient.delete(`/prestazione/${id}`)
+      await httpClient.delete(`/prestazione/${id}`)
     } catch (error) {
       console.error('Errore nell\'eliminazione prestazione:', error)
       throw error

@@ -2,51 +2,7 @@
  * Service for AdminMessage API calls
  */
 
-import axios from 'axios'
-import { getApiBaseUrl } from '@/config/api'
-
-const API_BASE_URL = getApiBaseUrl()
-
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: { 'Content-Type': 'application/json' },
-  timeout: 10000,
-})
-
-apiClient.interceptors.request.use(
-  (config) => {
-    console.log('🚀 Request:', {
-      method: config.method?.toUpperCase(),
-      url: config.url,
-      fullURL: `${config.baseURL}${config.url}`,
-    })
-    return config
-  },
-  (error) => {
-    console.error('❌ Request Error:', error)
-    return Promise.reject(error)
-  },
-)
-
-apiClient.interceptors.response.use(
-  (response) => {
-    console.log('✅ Response:', {
-      status: response.status,
-      url: response.config.url,
-      data: response.data,
-    })
-    return response
-  },
-  (error) => {
-    console.error('❌ Response Error:', {
-      message: error.message,
-      status: error.response?.status,
-      url: error.config?.url,
-      data: error.response?.data,
-    })
-    return Promise.reject(error)
-  },
-)
+import httpClient from './httpClient'
 
 export class AdminMessageService {
   /**
@@ -54,7 +10,7 @@ export class AdminMessageService {
    * @returns {Promise<Array>}
    */
   static async getAll() {
-    const response = await apiClient.get('/admin-message')
+    const response = await httpClient.get('/admin-message')
     return response.data?.data ?? []
   }
 
@@ -63,7 +19,7 @@ export class AdminMessageService {
    * @returns {Promise<Array>}
    */
   static async getVisible() {
-    const response = await apiClient.get('/admin-message/visible')
+    const response = await httpClient.get('/admin-message/visible')
     return response.data?.data ?? []
   }
 
@@ -73,7 +29,7 @@ export class AdminMessageService {
    * @returns {Promise<Object>}
    */
   static async getById(id) {
-    const response = await apiClient.get(`/admin-message/${id}`)
+    const response = await httpClient.get(`/admin-message/${id}`)
     return response.data?.data
   }
 
@@ -83,7 +39,7 @@ export class AdminMessageService {
    * @returns {Promise<Object>}
    */
   static async create(data) {
-    const response = await apiClient.post('/admin-message', data)
+    const response = await httpClient.post('/admin-message', data)
     return response.data?.data
   }
 
@@ -93,7 +49,7 @@ export class AdminMessageService {
    * @returns {Promise<Object>}
    */
   static async update(data) {
-    const response = await apiClient.patch('/admin-message', data)
+    const response = await httpClient.patch('/admin-message', data)
     return response.data?.data
   }
 
@@ -103,6 +59,6 @@ export class AdminMessageService {
    * @returns {Promise<void>}
    */
   static async deleteById(id) {
-    await apiClient.delete(`/admin-message/${id}`)
+    await httpClient.delete(`/admin-message/${id}`)
   }
 }

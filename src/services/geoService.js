@@ -5,29 +5,7 @@
  * necessari per i form di pazienti e specialisti.
  */
 
-import axios from 'axios'
-import { getApiBaseUrl } from '@/config/api'
-
-// Configurazione base per le chiamate API
-const API_BASE_URL = getApiBaseUrl()
-
-// Creiamo un'istanza di axios con configurazione di base
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 10000, // timeout di 10 secondi
-})
-
-// Interceptor per gestire errori globalmente
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error('Errore API Geo:', error)
-    return Promise.reject(error)
-  }
-)
+import httpClient from './httpClient'
 
 export class GeoService {
 
@@ -37,7 +15,7 @@ export class GeoService {
    */
   static async getProvince() {
     try {
-      const response = await apiClient.get('/geo/province')
+      const response = await httpClient.get('/geo/province')
       return response.data.data // Il backend restituisce { data: [...] }
     } catch (error) {
       console.error('Errore nel recupero province:', error)
@@ -51,7 +29,7 @@ export class GeoService {
    */
   static async getStati() {
     try {
-      const response = await apiClient.get('/geo/stati')
+      const response = await httpClient.get('/geo/stati')
       return response.data.data
     } catch (error) {
       console.error('Errore nel recupero stati:', error)
@@ -66,7 +44,7 @@ export class GeoService {
    */
   static async getComuniByProvincia(provinciaId) {
     try {
-      const response = await apiClient.get(`/geo/province/${provinciaId}/comuni`)
+      const response = await httpClient.get(`/geo/province/${provinciaId}/comuni`)
       return response.data.data
     } catch (error) {
       console.error(`Errore nel recupero comuni per provincia ${provinciaId}:`, error)
@@ -80,7 +58,7 @@ export class GeoService {
    */
   static async getAllComuni() {
     try {
-      const response = await apiClient.get('/geo/comuni')
+      const response = await httpClient.get('/geo/comuni')
       return response.data.data
     } catch (error) {
       console.error('Errore nel recupero di tutti i comuni:', error)
@@ -94,7 +72,7 @@ export class GeoService {
    */
   static async getRegioni() {
     try {
-      const response = await apiClient.get('/geo/regioni')
+      const response = await httpClient.get('/geo/regioni')
       return response.data.data // Backend restituisce { data: [...] }
     } catch (error) {
       console.error('Errore nel recupero regioni:', error)

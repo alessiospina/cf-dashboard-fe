@@ -98,7 +98,11 @@ import {
   cilSwapVertical,
   // Icone per le azioni
   cilTrash,
-  cilRoom
+  cilRoom,
+  // Icone per il toggle password nel login
+  cilAccountLogout,
+  cilLockUnlocked,
+  cilLowVision,
 } from '@coreui/icons'
 
 export const iconsSet = Object.assign(
@@ -176,7 +180,11 @@ export const iconsSet = Object.assign(
     cilSwapVertical,
     // Icone per le azioni
     cilTrash,
-    cilRoom
+    cilRoom,
+    cilAccountLogout,
+    // Icone per il toggle password nel login
+    cilLockUnlocked,
+    cilLowVision,
   },
   {
     cifUs,

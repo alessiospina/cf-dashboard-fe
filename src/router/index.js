@@ -13,8 +13,6 @@ const routes = [
       {
         path: '/dashboard',
         name: 'Dashboard',
-        // Dashboard principale con statistiche annuali
-        // Contiene metriche, grafici e statistiche del centro
         component: () =>
           import(
             /* webpackChunkName: "dashboard" */ '@/views/statistics/StatisticsPage.vue'
@@ -23,7 +21,6 @@ const routes = [
       {
         path: '/pazienti',
         name: 'Pazienti',
-        // Pagina di gestione pazienti con lazy loading
         component: () =>
           import(
             /* webpackChunkName: "pazienti" */ '@/views/pazienti/PazientiPage.vue'
@@ -32,7 +29,6 @@ const routes = [
       {
         path: '/pazienti/import',
         name: 'PazientiImport',
-        // Pagina di import pazienti da Excel con lazy loading
         component: () =>
           import(
             /* webpackChunkName: "pazienti-import" */ '@/views/pazienti/PazientiImportPage.vue'
@@ -41,7 +37,6 @@ const routes = [
       {
         path: '/calendario',
         name: 'Calendario',
-        // Pagina di gestione calendario con lazy loading
         component: () =>
           import(
             /* webpackChunkName: "calendario" */ '@/views/calendario/CalendarioView.vue'
@@ -50,7 +45,6 @@ const routes = [
       {
         path: '/gestione-team',
         name: 'GestioneTeam',
-        // Pagina di gestione team (prestazioni e specialisti) con lazy loading
         component: () =>
           import(
             /* webpackChunkName: "gestione-team" */ '@/views/gestione-team/GestioneTeamPage.vue'
@@ -59,7 +53,6 @@ const routes = [
       {
         path: '/attivita',
         name: 'Attivita',
-        // Pagina di gestione attività con lazy loading
         component: () =>
           import(
             /* webpackChunkName: "attivita" */ '@/views/attivita/AttivitaPage.vue'
@@ -68,7 +61,6 @@ const routes = [
       {
         path: '/email',
         name: 'Email',
-        // Pagina di gestione notifiche email con lazy loading
         component: () =>
           import(
             /* webpackChunkName: "email" */ '@/views/email/EmailPage.vue'
@@ -77,7 +69,6 @@ const routes = [
       {
         path: '/admin-messages',
         name: 'AdminMessages',
-        // Admin messages: problems, feedback and reports management
         component: () =>
           import(
             /* webpackChunkName: "admin-messages" */ '@/views/admin-messages/AdminMessagesPage.vue'
@@ -85,6 +76,16 @@ const routes = [
       },
     ],
   },
+
+  // ── Pagina di login (pubblica) ──────────────────────────────────────────────
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/pages/Login'),
+    meta: { public: true },
+  },
+
+  // ── Pagine di errore ────────────────────────────────────────────────────────
   {
     path: '/pages',
     redirect: '/pages/404',
@@ -99,23 +100,21 @@ const routes = [
         path: '404',
         name: 'Page404',
         component: () => import('@/views/pages/Page404'),
+        meta: { public: true },
       },
       {
         path: '500',
         name: 'Page500',
         component: () => import('@/views/pages/Page500'),
-      },
-      {
-        path: 'login',
-        name: 'Login',
-        component: () => import('@/views/pages/Login'),
-      },
-      {
-        path: 'register',
-        name: 'Register',
-        component: () => import('@/views/pages/Register'),
+        meta: { public: true },
       },
     ],
+  },
+
+  // ── Catch-all → 404 ─────────────────────────────────────────────────────────
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/pages/404',
   },
 ]
 
@@ -123,9 +122,40 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
   scrollBehavior() {
-    // always scroll to top
     return { top: 0 }
   },
+})
+
+// ── Navigation guard ──────────────────────────────────────────────────────────
+router.beforeEach(async (to) => {
+  try {
+    // Importazione lazy per evitare dipendenze circolari con Pinia
+    const { useAuthStore } = await import('@/stores/modules/authStore')
+    const authStore = useAuthStore()
+
+    // Prima navigazione: verifica il cookie JWT con GET /auth/me
+    if (!authStore.initialized) {
+      await authStore.initAuth()
+    }
+
+    const isPublic        = to.meta?.public === true
+    const isAuthenticated = authStore.isAuthenticated
+
+    // Già autenticato → non mostrare la pagina di login
+    if (isPublic && isAuthenticated && to.name === 'Login') {
+      return { name: 'Dashboard' }
+    }
+
+    // Rotta protetta senza autenticazione → redirect al login
+    if (!isPublic && !isAuthenticated) {
+      return { name: 'Login' }
+    }
+  } catch (err) {
+    // In caso di errore critico nel guard, permetti sempre le rotte pubbliche
+    console.error('[Router Guard] Errore:', err)
+    if (to.meta?.public) return true
+    return { name: 'Login' }
+  }
 })
 
 export default router

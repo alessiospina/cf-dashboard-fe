@@ -5,8 +5,7 @@
  * Utilizza axios per le chiamate HTTP e organizziamo tutto in una classe.
  */
 
-import axios from 'axios'
-import { getApiBaseUrl } from '@/config/api'
+import httpClient from './httpClient'
 import {
   CreateEventoDto,
   EventoMapper,
@@ -14,27 +13,6 @@ import {
   TipoRicorrenza,
   Direction
 } from '@/types/backend.types'
-
-// Configurazione base per le chiamate API - URL letto dal file .env
-const API_BASE_URL = getApiBaseUrl()
-
-// Creiamo un'istanza di axios con configurazione di base
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 10000, // timeout di 10 secondi
-})
-
-// Interceptor per gestire errori globalmente
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error('Errore API Calendario:', error)
-    return Promise.reject(error)
-  }
-)
 
 /**
  * Servizio per la gestione degli Eventi
@@ -47,7 +25,7 @@ export class EventoService {
    */
   static async getAllEventi() {
     try {
-      const response = await apiClient.get('/evento')
+      const response = await httpClient.get('/evento')
       return response.data.data?.map(evento => EventoMapper.backendToFrontend(evento)) || []
     } catch (error) {
       console.error('Errore nel recupero eventi:', error)
@@ -62,7 +40,7 @@ export class EventoService {
    */
   static async getEventoById(eventoId) {
     try {
-      const response = await apiClient.get(`/evento/${eventoId}`)
+      const response = await httpClient.get(`/evento/${eventoId}`)
       return EventoMapper.backendToFrontend(response.data.data)
     } catch (error) {
       console.error('Errore nel recupero evento:', error)
@@ -99,7 +77,7 @@ export class EventoService {
 
       console.log('📤 [EventoService] Invio dati al backend:', eventoPerBackend)
 
-      const response = await apiClient.post('/evento', eventoPerBackend)
+      const response = await httpClient.post('/evento', eventoPerBackend)
       return EventoMapper.backendToFrontend(response.data.data)
     } catch (error) {
       console.error('❌ [EventoService] Errore nella creazione evento:', error)
@@ -147,7 +125,7 @@ export class EventoService {
       console.log('📤 [EventoService] Invio dati aggiornati al backend:', eventoPerBackend)
 
       // Usa PUT con l'ID nell'URL come si aspetta il backend
-      const response = await apiClient.put(`/evento/${eventoData.id}`, eventoPerBackend)
+      const response = await httpClient.put(`/evento/${eventoData.id}`, eventoPerBackend)
       return EventoMapper.backendToFrontend(response.data.data)
     } catch (error) {
       console.error('❌ [EventoService] Errore nell\'aggiornamento evento:', error)
@@ -171,7 +149,7 @@ export class EventoService {
       const {id, ...datiParziali} = eventoData
 
       // Usa PATCH se il backend lo supportasse in futuro
-      const response = await apiClient.patch(`/evento/${id}`, datiParziali)
+      const response = await httpClient.patch(`/evento/${id}`, datiParziali)
       return EventoMapper.backendToFrontend(response.data.data)
     } catch (error) {
       console.error('Errore nell\'aggiornamento parziale evento:', error)
@@ -198,7 +176,7 @@ export class EventoService {
       }
 
       console.log('📤 [EventoService] Chiamata DELETE per ID:', idNumerico)
-      await apiClient.delete(`/evento/${idNumerico}`)
+      await httpClient.delete(`/evento/${idNumerico}`)
       console.log('✅ [EventoService] Evento eliminato con successo dal backend')
     } catch (error) {
       console.error('❌ [EventoService] Errore nell\'eliminazione evento:', error)
@@ -213,7 +191,7 @@ export class EventoService {
    */
   static async getEventiPerData(data) {
     try {
-      const response = await apiClient.get('/evento', {
+      const response = await httpClient.get('/evento', {
         params: {data}
       })
       return response.data.data?.map(evento => EventoMapper.backendToFrontend(evento)) || []
@@ -231,7 +209,7 @@ export class EventoService {
    */
   static async getEventiPerRange(dataInizio, dataFine) {
     try {
-      const response = await apiClient.get('/evento', {
+      const response = await httpClient.get('/evento', {
         params: {
           dataInizio,
           dataFine
@@ -252,7 +230,7 @@ export class EventoService {
    */
   static async getEventiBetween(dataInizio, dataFine) {
     try {
-      const response = await apiClient.get('/evento/between', {
+      const response = await httpClient.get('/evento/between', {
         params: {
           from: dataInizio,
           to: dataFine
@@ -291,7 +269,7 @@ export class EventoService {
       console.log('📤 [EventoService] Invio dati al backend:', backendData)
 
       // Chiamata API all'endpoint ricorrenza del backend
-      const response = await apiClient.post('/ricorrenza', backendData)
+      const response = await httpClient.post('/ricorrenza', backendData)
 
       // Il backend restituisce un array di eventi creati
       const eventiCreati = response.data.data?.map(evento => EventoMapper.backendToFrontend(evento)) || []
@@ -332,7 +310,7 @@ export class EventoService {
       console.log('📤 [EventoService] Invio update ricorrenza al backend:', backendData)
 
       // Chiamata API all'endpoint ricorrenza per update
-      const response = await apiClient.put(`/ricorrenza/${eventoData.id}`, backendData)
+      const response = await httpClient.put(`/ricorrenza/${eventoData.id}`, backendData)
 
       // Il backend restituisce un array di eventi aggiornati
       const eventiAggiornati = response.data.data?.map(evento => EventoMapper.backendToFrontend(evento)) || []
@@ -376,7 +354,7 @@ export class EventoService {
       console.log('📤 [EventoService] Invio delete ricorrenza al backend:', deleteData)
 
       // Chiamata API all'endpoint ricorrenza per eliminazione
-      const response = await apiClient.delete(`/ricorrenza/${eventoId}`, {
+      const response = await httpClient.delete(`/ricorrenza/${eventoId}`, {
         data: deleteData // DELETE con body data
       })
 

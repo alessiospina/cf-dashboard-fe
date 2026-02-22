@@ -6,29 +6,7 @@
  * Utilizza axios e si basa sull'endpoint esistente /api/evento/between.
  */
 
-import axios from 'axios'
-import { getApiBaseUrl } from '@/config/api'
-
-// Configurazione base per le chiamate API - URL letto dal file .env
-const API_BASE_URL = getApiBaseUrl()
-
-// Creiamo un'istanza di axios con configurazione di base
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 10000, // timeout di 10 secondi
-})
-
-// Interceptor per gestire errori globalmente
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error('Errore API Attività:', error)
-    return Promise.reject(error)
-  }
-)
+import httpClient from './httpClient'
 
 /**
  * Servizio per la gestione delle Attività
@@ -61,7 +39,7 @@ export class AttivitaService {
    */
   static async getAttivitaBetween(dataInizio, dataFine) {
     try {
-      const response = await apiClient.get('/evento/between', {
+      const response = await httpClient.get('/evento/between', {
         params: {
           from: dataInizio,
           to: dataFine
@@ -82,7 +60,7 @@ export class AttivitaService {
    */
   static async getPrestazioni() {
     try {
-      const response = await apiClient.get('/prestazione')
+      const response = await httpClient.get('/prestazione')
       return response.data.data || []
     } catch (error) {
       console.error('Errore nel recupero prestazioni:', error)
@@ -96,7 +74,7 @@ export class AttivitaService {
    */
   static async getSpecialisti() {
     try {
-      const response = await apiClient.get('/specialista')
+      const response = await httpClient.get('/specialista')
       return response.data.data || []
     } catch (error) {
       console.error('Errore nel recupero specialisti:', error)
