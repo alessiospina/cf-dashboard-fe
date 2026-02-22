@@ -1,642 +1,187 @@
-<template>
-  <div class="event-card-container">
-    <div
-      class="event-card"
-      :class="[
-        `event-card--${evento.stato || 'default'}`,
-        { 'event-card--small': isSmall }
-      ]"
-      :style="{
-        backgroundColor: getEventBackgroundColor(),
-        borderLeftColor: getEventBorderColor()
-      }"
-      @click="$emit('click', evento)"
-    >
-      <!-- Contenuto evento -->
-      <div class="event-content">
-        <!-- Header con stanza e stato -->
-        <div class="event-header">
-          <div class="event-tipo" :title="`Stanza: ${evento.stanza || 'Non specificata'}`">
-            {{ evento.stanza || '---' }}
-          </div>
-          <div class="event-stato">
-            <CIcon
-              :icon="getStatoIcon(evento.stato)"
-              size="sm"
-              :class="getStatoClass(evento.stato)"
-            />
-          </div>
-        </div>
+# CF Dashboard — Frontend
 
-        <!-- Body con paziente e orario -->
-        <div class="event-body">
-          <div class="event-paziente" :title="evento.paziente?.nomeCompleto || 'Paziente non specificato'">
-            {{ evento.paziente?.nome || 'N/A' }} {{ evento.paziente?.cognome || '' }}
-          </div>
-          <div class="event-orario">
-            {{ formatOrario(evento.dataInizio) }} - {{ formatOrario(evento.dataFine) }}
-          </div>
-        </div>
+Dashboard di gestione per **Centro Felicemente**, costruita con Vue 3 + CoreUI 5.
 
-        <!-- Durata (mostrata solo se c'è spazio) -->
-        <div v-if="!isSmall" class="event-durata">
-          {{ formatDurata(evento.dataInizio, evento.dataFine) }}
-        </div>
-      </div>
+---
 
-      <!-- Indicatore stato laterale -->
-      <div class="event-indicator" :class="`event-indicator--${evento.stato}`"></div>
+## Stack tecnico
 
-      <!-- ⭐ NUOVO - Indicatore evento ricorrente -->
-      <div v-if="isEventoRicorrente" class="recurring-indicator" title="Evento ricorrente">
-        <CIcon icon="cil-reload" size="sm"/>
-      </div>
+| Categoria | Tecnologia |
+|---|---|
+| Framework | Vue 3 (Composition API, `<script setup>`) |
+| UI Kit | CoreUI Vue 5 |
+| State management | Pinia |
+| Routing | Vue Router 4 |
+| HTTP client | Axios (`withCredentials: true`) |
+| Build tool | Vite 6 |
+| Stili | SCSS + CoreUI design tokens |
+| Icone | @coreui/icons + Font Awesome |
 
-      <!-- ⭐ NUOVO - Bottone menu 3 pallini -->
-      <div class="event-menu-trigger" @click.stop="toggleDropdownMenu">
-        <CIcon icon="cil-options" size="sm"/>
-      </div>
+---
 
-      <!-- ⭐ NUOVO - Dropdown menu -->
-      <div v-if="showDropdownMenu" class="event-dropdown-menu" @click.stop>
-        <div class="dropdown-backdrop" @click="showDropdownMenu = false"></div>
-        <div class="dropdown-content">
-          <div class="dropdown-item" @click="handleModifica">
-            <CIcon icon="cil-pencil" class="me-2"/>
-            Modifica evento
-          </div>
-          <div class="dropdown-item dropdown-item--danger" @click="handleElimina">
-            <CIcon icon="cil-trash" class="me-2"/>
-            Elimina evento
-          </div>
-        </div>
-      </div>
-    </div>
+## Prerequisiti
 
-    <!-- ⭐ NUOVO - Modal per cancellazione eventi (ricorrenti e singoli) -->
-    <DeleteRecurringEventModal
-      :visible="showDeleteModal"
-      :evento="evento"
-      @close="handleDeleteModalClosed"
-      @deleted="handleDeleted"
-    />
-  </div>
-</template>
+- Node.js ≥ 18
+- Backend `cf-dashboard-be` in esecuzione
 
-<script setup>
-import { computed, ref } from 'vue'
-import { useCalendario } from '@/composables/useCalendario'
-import { useDeleteRecurringEvent } from '@/composables/useDeleteRecurringEvent'
-import DeleteRecurringEventModal from './DeleteRecurringEventModal.vue'
-// CIcon è registrato globalmente in main.js, non serve importarlo
+---
 
-const props = defineProps({
-  evento: { type: Object, required: true },
-  small: { type: Boolean, default: false }
-})
+## Installazione e avvio
 
-const emit = defineEmits(['click', 'deleted'])
-const { formatTime, formatDuration } = useCalendario()
+```bash
+# 1. Installa le dipendenze
+npm install
 
-// ⭐ NUOVO - Composable per gestione cancellazione eventi ricorrenti
-const {
-  checkIsEventoRicorrente
-} = useDeleteRecurringEvent()
+# 2. Copia il file di configurazione e adattalo
+cp .env.example .env
 
-// ⭐ NUOVO - Stato per dropdown menu e modal
-const showDropdownMenu = ref(false)
-const showDeleteModal = ref(false)
+# 3. Avvia il server di sviluppo
+npm run dev
+```
 
-// ⭐ NUOVO - Computed per verificare se è evento ricorrente
-const isEventoRicorrente = computed(() => {
-  return checkIsEventoRicorrente(props.evento)
-})
+Il dev server si avvia su **http://localhost:3000**.
 
-// Funzione per ottenere il colore di sfondo dell'evento
-const getEventBackgroundColor = () => {
-  // L'evento ha uno specialista con prestazione che contiene il colore
-  if (props.evento?.specialista?.prestazione?.color) {
-    // Rendiamo il colore più trasparente per lo sfondo
-    return addOpacityToColor(props.evento.specialista.prestazione.color, 0.15)
-  }
+---
 
-  // Colore di default per eventi senza prestazione
-  return '#f8f9fa'
-}
+## Variabili d'ambiente (`.env`)
 
-// Funzione per ottenere il colore del bordo sinistro dell'evento
-const getEventBorderColor = () => {
-  // L'evento ha uno specialista con prestazione che contiene il colore
-  if (props.evento?.specialista?.prestazione?.color) {
-    return props.evento.specialista.prestazione.color
-  }
+```env
+VITE_API_PROTOCOL=http
+VITE_API_HOST=localhost
+VITE_API_PORT=8000
+```
 
-  // Colore di default per eventi senza prestazione
-  return '#6c757d'
-}
+L'URL delle API viene composto come `PROTOCOL://HOST:PORT/api`.
 
-// Funzione helper per aggiungere opacità a un colore esadecimale
-const addOpacityToColor = (hexColor, opacity) => {
-  // Rimuovi il # se presente
-  const hex = hexColor.replace('#', '')
+---
 
-  // Converte hex in RGB
-  const r = parseInt(hex.substring(0, 2), 16)
-  const g = parseInt(hex.substring(2, 4), 16)
-  const b = parseInt(hex.substring(4, 6), 16)
+## Autenticazione
 
-  // Restituisce in formato rgba
-  return `rgba(${r}, ${g}, ${b}, ${opacity})`
-}
+Il sistema usa **JWT in cookie httpOnly** (nessun token nel `localStorage`).
 
-const isSmall = computed(() => {
-  // Controlli di sicurezza per evitare errori con dati null/undefined
-  if (!props.evento || !props.evento.dataInizio || !props.evento.dataFine) {
-    return props.small
-  }
+| Flusso | Descrizione |
+|---|---|
+| Login | `POST /api/auth/login` → il BE imposta il cookie `access_token` |
+| Verifica sessione | `GET /api/auth/me` — chiamato all'avvio dell'app dal navigation guard |
+| Logout | `POST /api/auth/logout` → il BE cancella il cookie |
+| Protezione rotte | `router.beforeEach` verifica `authStore.isAuthenticated` |
+| Rotte pubbliche | Marcate con `meta: { public: true }` (es. `/login`) |
+| Scadenza token | Interceptor Axios redirige a `/login` in caso di risposta `401` |
 
-  try {
-    const inizio = new Date(props.evento.dataInizio)
-    const fine = new Date(props.evento.dataFine)
+Per accedere alla dashboard serve un account creato dal backend (vedi `ADMIN_USERNAME` e `ADMIN_PASSWORD` nel `.env` del BE).
 
-    // Verifica che le date siano valide
-    if (isNaN(inizio.getTime()) || isNaN(fine.getTime())) {
-      return props.small
-    }
+---
 
-    const durataOre = (fine - inizio) / (1000 * 60 * 60)
-    return props.small || durataOre < 1
-  } catch (error) {
-    console.warn('Errore nel calcolo durata evento:', error)
-    return props.small
-  }
-})
+## Struttura del progetto
 
-const formatOrario = (dateString) => {
-  if (!dateString) return '--:--'
+```
+src/
+├── assets/
+│   ├── brand/          # Loghi Centro Felicemente (light/dark mode)
+│   ├── icons/          # Registro icone CoreUI
+│   └── images/
+├── components/         # Componenti condivisi (AppHeader, Sidebar, ecc.)
+├── config/
+│   └── api.js          # URL base API da variabili d'ambiente
+├── composables/        # Hook Vue riutilizzabili (useAdminMessages, ecc.)
+├── layouts/
+│   └── DefaultLayout.vue  # Layout con sidebar per le pagine autenticate
+├── router/
+│   └── index.js        # Rotte + navigation guard autenticazione
+├── services/
+│   ├── httpClient.js       # Istanza Axios centralizzata (withCredentials)
+│   ├── authService.js      # Login / logout / me
+│   ├── pazienteService.js
+│   ├── specialistaService.js
+│   ├── prestazioneService.js
+│   ├── calendarioService.js
+│   ├── attivitaService.js
+│   ├── geoService.js
+│   ├── emailService.js
+│   └── adminMessageService.js
+├── stores/
+│   ├── modules/
+│   │   ├── authStore.js        # Stato utente autenticato
+│   │   ├── pazientiStore.js
+│   │   └── adminMessageStore.js
+│   ├── sidebar.js
+│   └── theme.js
+├── types/
+│   └── backend.types.js    # DTO, mapper, validator
+└── views/
+    ├── pages/
+    │   └── Login.vue       # Pagina di login (pubblica)
+    ├── statistics/         # Dashboard principale
+    ├── pazienti/           # Gestione pazienti
+    ├── calendario/         # Calendario appuntamenti
+    ├── gestione-team/      # Specialisti e prestazioni
+    ├── attivita/           # Attività del centro
+    ├── email/              # Invio email reminder
+    └── admin-messages/     # Segnalazioni / feedback (RBAC: solo admin)
+```
 
-  try {
-    return new Date(dateString).toLocaleTimeString('it-IT', {
-      hour: '2-digit', minute: '2-digit'
-    })
-  } catch (error) {
-    console.warn('Errore nel formato orario:', error)
-    return '--:--'
+---
+
+## Rotte principali
+
+| Rotta | Vista | Protezione |
+|---|---|---|
+| `/login` | `Login.vue` | Pubblica |
+| `/dashboard` | `StatisticsPage.vue` | Autenticata |
+| `/pazienti` | `PazientiPage.vue` | Autenticata |
+| `/pazienti/import` | `PazientiImportPage.vue` | Autenticata |
+| `/calendario` | `CalendarioView.vue` | Autenticata |
+| `/gestione-team` | `GestioneTeamPage.vue` | Autenticata |
+| `/attivita` | `AttivitaPage.vue` | Autenticata |
+| `/email` | `EmailPage.vue` | Autenticata |
+| `/admin-messages` | `AdminMessagesPage.vue` | Autenticata |
+
+---
+
+## Aggiungere un nuovo servizio API
+
+1. Crea `src/services/nomeService.js`
+2. Importa `httpClient` (non creare una nuova istanza Axios):
+
+```js
+import httpClient from './httpClient'
+
+export class NomeService {
+  static async getAll() {
+    const response = await httpClient.get('/nome-endpoint')
+    return response.data?.data ?? []
   }
 }
+```
 
-const formatDurata = (dataInizio, dataFine) => {
-  if (!dataInizio || !dataFine) return '--'
+Il `httpClient` invia automaticamente il cookie JWT e gestisce i redirect `401`.
 
-  try {
-    const inizio = new Date(dataInizio)
-    const fine = new Date(dataFine)
+---
 
-    // Verifica che le date siano valide
-    if (isNaN(inizio.getTime()) || isNaN(fine.getTime())) {
-      return '--'
-    }
+## Script disponibili
 
-    const durataMs = fine - inizio
-    const durataOre = Math.floor(durataMs / (1000 * 60 * 60))
-    const durataMinuti = Math.floor((durataMs % (1000 * 60 * 60)) / (1000 * 60))
+```bash
+npm run dev      # Server di sviluppo (porta 3000)
+npm run build    # Build di produzione in /dist
+npm run preview  # Preview della build di produzione
+npm run lint     # Linting ESLint
+```
 
-    if (durataMinuti === 0) return `${durataOre}h`
-    return `${durataOre}h ${durataMinuti}m`
-  } catch (error) {
-    console.warn('Errore nel calcolo durata:', error)
-    return '--'
-  }
+---
+
+## Build di produzione
+
+```bash
+npm run build
+```
+
+I file vengono generati nella cartella `dist/`. Essendo un'SPA con Vue Router in history mode, il server web deve servire `index.html` per tutti i path.
+
+Esempio configurazione **Nginx**:
+
+```nginx
+location / {
+  root /var/www/cf-dashboard-fe/dist;
+  try_files $uri $uri/ /index.html;
 }
-
-const getStatoIcon = (stato) => {
-  if (!stato) return 'cil-options'
-
-  const icons = {
-    'confermato': 'cil-check-circle',
-    'in_attesa': 'cil-clock',
-    'completato': 'cil-check',
-    'cancellato': 'cil-x-circle'
-  }
-  return icons[stato] || 'cil-options'
-}
-
-const getStatoClass = (stato) => {
-  if (!stato) return 'text-muted'
-
-  const classes = {
-    'confermato': 'text-success',
-    'in_attesa': 'text-warning',
-    'completato': 'text-primary',
-    'cancellato': 'text-danger'
-  }
-  return classes[stato] || 'text-muted'
-}
-
-// ⭐ NUOVO - Gestione dropdown menu e azioni
-const toggleDropdownMenu = (event) => {
-  event?.stopPropagation()
-  showDropdownMenu.value = !showDropdownMenu.value
-}
-
-const handleModifica = () => {
-  showDropdownMenu.value = false
-  emit('click', props.evento)
-}
-
-const handleElimina = () => {
-  showDropdownMenu.value = false
-  showDeleteModal.value = true
-}
-
-const handleDeleteModalClosed = () => {
-  showDeleteModal.value = false
-}
-
-const handleDeleted = (risultato) => {
-  showDeleteModal.value = false
-  emit('deleted', risultato)
-}
-</script>
-
-<style scoped>
-/**
- * Stili EventCard con supporto per dropdown menu
- * Utilizza le variabili CSS di CoreUI per compatibilità totale
- */
-
-.event-card-container {
-  position: relative;
-  height: 100%;
-}
-
-.event-card {
-  position: relative;
-  background: var(--cui-body-bg);
-  border: 1px solid var(--cui-border-color);
-  border-left: 4px solid;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  overflow: visible; /* ⭐ CAMBIATO per permettere dropdown */
-  height: 100%;
-  min-height: 60px;
-  display: flex;
-  flex-direction: column;
-}
-
-.event-card:hover {
-  background: var(--cui-tertiary-bg);
-  transform: scale(1.02);
-  box-shadow: var(--cui-box-shadow);
-  z-index: 30;
-}
-
-.event-card--small {
-  height: 76px;
-  min-height: 76px;
-  max-height: 76px;
-  font-size: 0.8rem;
-}
-
-/* Stati evento */
-.event-card--confermato {
-  /* Il colore viene impostato dinamicamente dal JavaScript */
-}
-
-.event-card--in_attesa {
-  /* Background viene impostato dinamicamente se necessario */
-}
-
-.event-card--completato {
-  opacity: 0.8;
-}
-
-.event-card--cancellato {
-  opacity: 0.7;
-  text-decoration: line-through;
-}
-
-.event-card--default {
-  /* Il colore viene impostato dinamicamente dal JavaScript */
-}
-
-.event-content {
-  padding: 0.5rem;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  overflow: hidden; /* ⭐ MANTIENI overflow hidden sul contenuto */
-}
-
-.event-card--small .event-content {
-  padding: 0.375rem;
-  gap: 0.125rem;
-}
-
-.event-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.25rem;
-}
-
-.event-tipo {
-  font-weight: 700;
-  font-size: 0.75rem;
-  letter-spacing: 0.5px;
-  color: var(--cui-body-color);
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.event-stato {
-  opacity: 0.9;
-}
-
-.event-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-}
-
-.event-paziente {
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--cui-body-color);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  line-height: 1.2;
-}
-
-.event-card--small .event-paziente {
-  font-size: 0.75rem;
-}
-
-.event-orario {
-  font-size: 0.75rem;
-  color: var(--cui-body-color-muted);
-  font-weight: 500;
-  line-height: 1.1;
-}
-
-.event-card--small .event-orario {
-  font-size: 0.7rem;
-}
-
-.event-durata {
-  font-size: 0.7rem;
-  color: var(--cui-body-bg);
-  background: var(--cui-body-color-muted);
-  padding: 0.125rem 0.25rem;
-  border-radius: 3px;
-  text-align: center;
-  margin-top: auto;
-  font-weight: 600;
-  opacity: 0.8;
-}
-
-.event-indicator {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 4px;
-  height: 100%;
-  opacity: 0.8;
-}
-
-/* ⭐ NUOVO - Indicatore eventi ricorrenti */
-.recurring-indicator {
-  position: absolute;
-  top: 0.25rem;
-  right: 2rem; /* ⭐ SPOSTATO per lasciare spazio al menu trigger */
-  background: var(--cui-warning);
-  color: white;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.7rem;
-  z-index: 15;
-  opacity: 0.9;
-}
-
-.event-card--small .recurring-indicator {
-  width: 16px;
-  height: 16px;
-  font-size: 0.6rem;
-  top: 0.2rem;
-  right: 1.8rem;
-}
-
-/* ⭐ NUOVO - Bottone menu trigger (3 pallini) */
-.event-menu-trigger {
-  position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  z-index: 20;
-  opacity: 0.7;
-}
-
-.event-menu-trigger:hover {
-  opacity: 1;
-  background: rgba(0, 0, 0, 0.2);
-  transform: scale(1.1);
-}
-
-.event-card--small .event-menu-trigger {
-  width: 20px;
-  height: 20px;
-  top: 0.2rem;
-  right: 0.2rem;
-}
-
-/* ⭐ NUOVO - Dropdown menu */
-.event-dropdown-menu {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 1050;
-  pointer-events: auto;
-}
-
-.dropdown-backdrop {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: transparent;
-}
-
-.dropdown-content {
-  position: absolute;
-  background: var(--cui-body-bg);
-  border: 1px solid var(--cui-border-color);
-  border-radius: 8px;
-  box-shadow: var(--cui-box-shadow-lg);
-  padding: 0.5rem 0;
-  min-width: 160px;
-  z-index: 1051;
-  
-  /* Posizionamento vicino al trigger */
-  top: 2rem;
-  right: 0.5rem;
-  transform-origin: top right;
-}
-
-.dropdown-item {
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-  color: var(--cui-body-color);
-  font-size: 0.875rem;
-  display: flex;
-  align-items: center;
-  white-space: nowrap;
-}
-
-.dropdown-item:hover {
-  background-color: var(--cui-gray-100);
-}
-
-.dropdown-item--danger {
-  color: var(--cui-danger);
-}
-
-.dropdown-item--danger:hover {
-  background-color: rgba(var(--cui-danger-rgb), 0.1);
-}
-
-/* Indicatori stato */
-.event-indicator--confermato {
-  background: linear-gradient(to bottom, var(--cui-success), var(--cui-success-text-emphasis));
-}
-
-.event-indicator--in_attesa {
-  background: linear-gradient(to bottom, var(--cui-warning), var(--cui-warning-text-emphasis));
-}
-
-.event-indicator--completato {
-  background: linear-gradient(to bottom, var(--cui-info), var(--cui-info-text-emphasis));
-}
-
-.event-indicator--cancellato {
-  background: linear-gradient(to bottom, var(--cui-danger), var(--cui-danger-text-emphasis));
-}
-
-/* Animazioni */
-.event-card {
-  animation: slideIn 0.3s ease-out;
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.dropdown-content {
-  animation: dropdownSlideIn 0.2s ease-out;
-}
-
-@keyframes dropdownSlideIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* Dark mode support */
-[data-coreui-theme="dark"] .event-card {
-  .event-durata {
-    background: var(--cui-body-color);
-    color: var(--cui-body-bg);
-    opacity: 0.9;
-  }
-
-  &:hover {
-    box-shadow: 0 4px 16px rgba(255, 255, 255, 0.1);
-  }
-
-  .event-tipo,
-  .event-paziente {
-    color: var(--cui-body-color);
-  }
-
-  .event-orario {
-    color: var(--cui-body-color-muted);
-  }
-}
-
-[data-coreui-theme="dark"] .dropdown-content {
-  background: var(--cui-dark);
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-}
-
-[data-coreui-theme="dark"] .dropdown-item:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-coreui-theme="dark"] .event-menu-trigger {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-[data-coreui-theme="dark"] .event-menu-trigger:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .dropdown-content {
-    min-width: 140px;
-    font-size: 0.8rem;
-    top: 1.5rem;
-    right: 0.3rem;
-  }
-  
-  .dropdown-item {
-    padding: 0.4rem 0.8rem;
-  }
-  
-  .recurring-indicator {
-    width: 18px;
-    height: 18px;
-    font-size: 0.65rem;
-    right: 1.5rem;
-  }
-
-  .event-menu-trigger {
-    width: 22px;
-    height: 22px;
-  }
-}
-</style>
+```
