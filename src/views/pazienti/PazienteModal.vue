@@ -954,25 +954,41 @@ const getComuneNome = (comuneId) => {
   return comune ? comune.nome : ''
 }
 
-// Auto-conversione in maiuscolo solo per codice fiscale
+// ─── Normalizzazione automatica dei campi testuali ───────────────────────────
+
+// Nome → UPPERCASE
 watch(
-  () => form.codiceFiscale,
-  (newCodiceFiscale) => {
-    if (newCodiceFiscale) {
-      form.codiceFiscale = newCodiceFiscale.toUpperCase()
-    }
-  }
+  () => form.nome,
+  (val) => { if (val) form.nome = val.toUpperCase() }
 )
 
-// Conversione email in minuscolo
+// Cognome → UPPERCASE
+watch(
+  () => form.cognome,
+  (val) => { if (val) form.cognome = val.toUpperCase() }
+)
+
+// Codice fiscale → UPPERCASE (già presente, mantenuto)
+watch(
+  () => form.codiceFiscale,
+  (val) => { if (val) form.codiceFiscale = val.toUpperCase() }
+)
+
+// Indirizzo residenza → UPPERCASE
+watch(
+  () => form.indirizzoResidenza,
+  (val) => { if (val) form.indirizzoResidenza = val.toUpperCase() }
+)
+
+// Email → lowercase (gli indirizzi email sono case-insensitive ma convenzionalmente minuscoli)
 watch(
   () => form.email,
   (newEmail) => {
-    if (newEmail) {
-      form.email = newEmail.toLowerCase()
-    }
+    if (newEmail) form.email = newEmail.toLowerCase()
   }
 )
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Watch nazionalità: resetta campi di nascita quando cambia italiano/straniero
 watch(
