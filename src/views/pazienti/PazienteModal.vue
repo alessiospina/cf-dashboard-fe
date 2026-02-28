@@ -655,6 +655,36 @@ const populateForm = async (paziente) => {
       }
     }
 
+    // ─── Auto-rilevamento "residenza uguale a nascita" ──────────────────────
+    // Confronta i tre livelli geografici (comune + provincia + regione).
+    // Lo switch viene attivato solo se:
+    //  1. Il paziente ha nazionalità italiana
+    //  2. Tutti e tre gli ID geografici combaciano (nessuno è null)
+    if (isNazionalitaItaliana.value) {
+      const comuneMatch = form.comuneNascitaId !== null &&
+        form.comuneNascitaId === form.comuneResidenzaId
+
+      const provinciaMatch = form.provinciaNascitaId !== null &&
+        form.provinciaNascitaId === form.provinciaResidenzaId
+
+      const regioneMatch = form.regioneNascitaId !== null &&
+        form.regioneNascitaId === form.regioneResidenzaId
+
+      const autoDetected = comuneMatch && provinciaMatch && regioneMatch
+      residenzaUgualeNascita.value = autoDetected
+
+      console.log(
+        autoDetected
+          ? '🏠✅ Auto-rilevato: residenza = luogo di nascita'
+          : '🏠❌ Auto-rilevato: residenza ≠ luogo di nascita',
+        { comuneMatch, provinciaMatch, regioneMatch }
+      )
+    } else {
+      // Paziente straniero: switch non applicabile, assicuriamoci sia disattivato
+      residenzaUgualeNascita.value = false
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     console.log('✅ Form popolato con successo')
     console.log('   → Regione nascita ID:', form.regioneNascitaId)
     console.log('   → Provincia nascita ID:', form.provinciaNascitaId)
@@ -662,6 +692,7 @@ const populateForm = async (paziente) => {
     console.log('   → Regione residenza ID:', form.regioneResidenzaId)
     console.log('   → Provincia residenza ID:', form.provinciaResidenzaId)
     console.log('   → Comune residenza ID:', form.comuneResidenzaId)
+    console.log('   → Switch residenza=nascita:', residenzaUgualeNascita.value)
 
   } catch (error) {
     console.error('❌ Errore nel popolamento form:', error)
