@@ -29,8 +29,8 @@ RUN npm run build
 # Installa un server HTTP semplice globalmente
 RUN npm install -g serve
 
-# Espone la porta 8002
-EXPOSE 8002
+# Espone la porta 8080
+EXPOSE 8080
 
-# Comando per servire l'app buildato sulla porta 8002
-CMD ["serve", "-s", "dist", "-l", "8002"]
+# Comando per servire l'app buildato sulla porta 8080
+CMD ["serve", "-s", "dist", "-l", "8080"]
