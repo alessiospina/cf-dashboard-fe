@@ -64,140 +64,81 @@
 
     <!-- Card contenitore principale -->
     <CCard>
-      <CCardHeader>
-        <CRow class="align-items-center">
-          <CCol md="3">
+      <CCardHeader class="py-3">
+        <CRow class="align-items-center g-2">
+          <!-- Titolo + badge contatore -->
+          <CCol md="4" class="d-flex align-items-center gap-2">
             <h5 class="mb-0">Lista Pazienti</h5>
-            <!-- Info di paginazione compatta nell'header -->
-            <small v-if="!loading && sortedAndFilteredPazienti.length > 0" class="text-muted">
-              {{ paginationInfo.showing }} di {{ paginationInfo.total }} pazienti
-            </small>
+            <CBadge
+              v-if="!loading"
+              color="primary"
+              shape="rounded-pill"
+              class="patients-count-badge"
+            >
+              {{ paginationInfo.total }}
+            </CBadge>
           </CCol>
 
-          <!-- Controlli paginazione header (mostrati solo se ci sono dati) -->
-          <CCol md="3" v-if="!loading && sortedAndFilteredPazienti.length > 0">
-            <CRow class="align-items-center justify-content-center">
-              <!-- Selettore righe per pagina compatto -->
-              <CCol md="auto">
-                <div class="d-flex align-items-center">
-                  <small class="text-muted me-2">Righe:</small>
-                  <CFormSelect
-                    v-model="itemsPerPage"
-                    @change="handleItemsPerPageChange"
-                    size="sm"
-                    style="width: 80px;"
-                  >
-                    <option value="5">5</option>
-                    <option value="10">10</option>
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                    <!-- <option :value="sortedAndFilteredPazienti.length">Tutti</option> -->
-                  </CFormSelect>
-                </div>
-              </CCol>
-
-              <!-- Navigazione pagine compatta -->
-              <CCol md="auto" v-if="showPagination" class="header-pagination-controls">
-                <CButtonGroup size="sm">
-                  <CButton
-                    variant="outline"
-                    color="secondary"
-                    @click="goToFirstPage"
-                    :disabled="currentPage === 1"
-                    title="Prima pagina"
-                  >
-                    <font-awesome-icon icon="angle-double-left"/>
-                  </CButton>
-                  <CButton
-                    variant="outline"
-                    color="secondary"
-                    @click="goToPreviousPage"
-                    :disabled="currentPage === 1"
-                    title="Pagina precedente"
-                  >
-                    <font-awesome-icon icon="angle-left"/>
-                  </CButton>
-
-                  <!-- Display pagina corrente -->
-                  <CButton
-                    variant="outline"
-                    color="primary"
-                    style="min-width: 70px; cursor: default;"
-                    disabled
-                  >
-                    {{ currentPage }}/{{ totalPages }}
-                  </CButton>
-
-                  <CButton
-                    variant="outline"
-                    color="secondary"
-                    @click="goToNextPage"
-                    :disabled="currentPage === totalPages"
-                    title="Pagina successiva"
-                  >
-                    <font-awesome-icon icon="angle-right"/>
-                  </CButton>
-                  <CButton
-                    variant="outline"
-                    color="secondary"
-                    @click="goToLastPage"
-                    :disabled="currentPage === totalPages"
-                    title="Ultima pagina"
-                  >
-                    <font-awesome-icon icon="angle-double-right"/>
-                  </CButton>
-                </CButtonGroup>
-              </CCol>
-            </CRow>
-          </CCol>
-
-          <CCol md="6">
-            <!-- Tutti i filtri sulla stessa riga orizzontale -->
-            <CRow class="g-2">
+          <!-- Filtri di ricerca unificati -->
+          <CCol md="8">
+            <CRow class="g-2 align-items-center">
               <!-- Campo di ricerca principale -->
-              <CCol md="6">
-                <CInputGroup>
-                  <CFormInput
-                    v-model="searchTerm"
-                    placeholder="Cerca per nome, email, telefono..."
-                    size="sm"
-                    :disabled="loading"
-                  />
-                  <CInputGroupText>
+              <CCol md="5">
+                <CInputGroup size="sm">
+                  <CInputGroupText class="filter-input-prefix">
                     <CIcon icon="cil-magnifying-glass" size="sm"/>
                   </CInputGroupText>
+                  <CFormInput
+                    v-model="searchTerm"
+                    placeholder="Cerca nome, email, telefono..."
+                    :disabled="loading"
+                  />
                 </CInputGroup>
               </CCol>
 
               <!-- Filtro comune -->
               <CCol md="3">
-                <CInputGroup>
+                <CInputGroup size="sm">
+                  <CInputGroupText class="filter-input-prefix">
+                    <CIcon icon="cil-location-pin" size="sm"/>
+                  </CInputGroupText>
                   <CFormInput
                     v-model="filtroComune"
                     placeholder="Comune..."
-                    size="sm"
                     :disabled="loading"
                   />
-                  <CInputGroupText>
-                    <CIcon icon="cil-location-pin" size="sm"/>
-                  </CInputGroupText>
                 </CInputGroup>
               </CCol>
 
               <!-- Filtro provincia -->
-              <CCol md="3">
-                <CInputGroup>
+              <CCol md="2">
+                <CInputGroup size="sm">
+                  <CInputGroupText class="filter-input-prefix">
+                    <CIcon icon="cil-map" size="sm"/>
+                  </CInputGroupText>
                   <CFormInput
                     v-model="filtroProvincia"
-                    placeholder="Provincia..."
-                    size="sm"
+                    placeholder="Prov..."
                     :disabled="loading"
                   />
-                  <CInputGroupText>
-                    <CIcon icon="cil-user" size="sm"/>
-                  </CInputGroupText>
                 </CInputGroup>
+              </CCol>
+
+              <!-- Bottone reset filtri (visibile solo quando ci sono filtri attivi) -->
+              <CCol md="auto">
+                <Transition name="fade-btn">
+                  <CButton
+                    v-if="searchTerm || filtroComune || filtroProvincia"
+                    color="secondary"
+                    variant="outline"
+                    size="sm"
+                    @click="resetFilters"
+                    title="Azzera tutti i filtri"
+                  >
+                    <CIcon icon="cilX" size="sm" class="me-1"/>
+                    Azzera
+                  </CButton>
+                </Transition>
               </CCol>
             </CRow>
           </CCol>
@@ -226,62 +167,66 @@
 
         <!-- Tabella pazienti Desktop (nascosta su mobile) -->
         <div class="d-none d-md-block" v-if="!loading && !error && sortedAndFilteredPazienti.length > 0">
-          <!-- Controlli tabella avanzati -->
+          <!-- Controlli tabella -->
           <CRow class="align-items-center mb-3">
-            <CCol md="6">
-              <!-- Info risultati con ordinamento -->
-              <p class="text-muted small mb-0">
-                Mostrando {{ paginationInfo.showing }} di {{ paginationInfo.total }} pazienti
+            <CCol md="5" class="d-flex align-items-center gap-2">
+              <!-- Info risultati -->
+              <small class="text-muted">
+                Mostrati
+                <strong>{{ paginationInfo.showing }}</strong> di
+                <strong>{{ paginationInfo.total }}</strong>
                 <span v-if="searchTerm || filtroComune || filtroProvincia">
-                  (filtrati
-                  <span v-if="searchTerm">
-                    per: "{{ searchTerm }}"
-                  </span>
-                  <span v-if="filtroComune">
-                    {{ searchTerm ? ' - ' : 'per: ' }}comune "{{ filtroComune }}"
-                  </span>
-                  <span v-if="filtroProvincia">
-                    {{ (searchTerm || filtroComune) ? ' - ' : 'per: ' }}provincia "{{ filtroProvincia }}"
-                  </span>
-                  )
+                  pazient{{ paginationInfo.total === 1 ? 'e' : 'i' }} filtrat{{ paginationInfo.total === 1 ? 'o' : 'i' }}
                 </span>
-                <span v-if="sortColumn">
-                  - Ordinati per {{ getSortColumnLabel(sortColumn) }}
-                  ({{ sortDirection === 'asc' ? 'crescente' : 'decrescente' }})
+                <span v-else>pazient{{ paginationInfo.total === 1 ? 'e' : 'i' }}</span>
+                <span v-if="sortColumn" class="ms-1 text-primary">
+                  · ord. per {{ getSortColumnLabel(sortColumn) }}
+                  <CIcon :icon="getSortIcon(sortColumn)" size="sm"/>
                 </span>
-                <span v-else>
-                  - Ordine naturale
-                </span>
-              </p>
+              </small>
             </CCol>
-            <CCol md="6">
-              <CRow class="align-items-center">
+            <CCol md="7">
+              <div class="d-flex justify-content-end align-items-center gap-2">
+                <!-- Selettore righe per pagina -->
+                <div class="d-flex align-items-center gap-1">
+                  <small class="text-muted text-nowrap">Righe:</small>
+                  <CFormSelect
+                    v-model="itemsPerPage"
+                    @change="handleItemsPerPageChange"
+                    size="sm"
+                    style="width: 75px;"
+                  >
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </CFormSelect>
+                </div>
                 <!-- Pulsanti selezione globale -->
-                <CCol md="auto" class="ms-auto">
-                  <CButtonGroup size="sm">
-                    <CButton
-                      variant="outline"
-                      color="primary"
-                      @click="selectAllGlobal"
-                      :disabled="selectedCount === sortedAndFilteredPazienti.length"
-                      title="Seleziona tutti i pazienti (anche nelle altre pagine)"
-                    >
-                      <CIcon icon="cilCheckCircle" class="me-1"/>
-                      Seleziona Tutti ({{ sortedAndFilteredPazienti.length }})
-                    </CButton>
-                    <CButton
-                      v-if="hasSelectedPazienti"
-                      variant="outline"
-                      color="secondary"
-                      @click="clearSelection"
-                      title="Deseleziona tutti i pazienti"
-                    >
-                      <CIcon icon="cilX" class="me-1"/>
-                      Deseleziona ({{ selectedCount }})
-                    </CButton>
-                  </CButtonGroup>
-                </CCol>
-              </CRow>
+                <CButtonGroup size="sm">
+                  <CButton
+                    variant="outline"
+                    color="primary"
+                    @click="selectAllGlobal"
+                    :disabled="selectedCount === sortedAndFilteredPazienti.length"
+                    title="Seleziona tutti i pazienti (anche nelle altre pagine)"
+                  >
+                    <CIcon icon="cilCheckCircle" class="me-1"/>
+                    Tutti ({{ sortedAndFilteredPazienti.length }})
+                  </CButton>
+                  <CButton
+                    v-if="hasSelectedPazienti"
+                    variant="outline"
+                    color="secondary"
+                    @click="clearSelection"
+                    title="Deseleziona tutti i pazienti"
+                  >
+                    <CIcon icon="cilX" class="me-1"/>
+                    Deseleziona ({{ selectedCount }})
+                  </CButton>
+                </CButtonGroup>
+              </div>
             </CCol>
           </CRow>
 
@@ -406,25 +351,37 @@
 
                 <!-- Paziente (Nome + Cognome + Data + CF) -->
                 <CTableDataCell>
-                  <div class="paziente-info">
-                    <div class="paziente-nome fw-semibold">
-                      <span v-if="paziente.nome || paziente.cognome">
-                        {{ paziente.nome || '' }} {{ paziente.cognome || '' }}
-                      </span>
-                      <span v-else class="text-muted">[Non Dichiarato]</span>
+                  <div class="d-flex align-items-start gap-3 paziente-info">
+                    <!-- Avatar con iniziali colorate -->
+                    <div
+                      class="patient-avatar"
+                      :style="{ backgroundColor: getPatientAvatarColor(paziente) }"
+                      aria-hidden="true"
+                    >
+                      {{ getPatientInitials(paziente) }}
                     </div>
-                    <div class="paziente-data text-muted">
-                      <CIcon icon="cil-calendar" size="sm" class="me-1"/>
-                      <span v-if="paziente.dataDiNascita">
-                        {{ formatDate(paziente.dataDiNascita) }}
-                        <span class="ms-1">({{ calculateAge(paziente.dataDiNascita) }})</span>
-                      </span>
-                      <span v-else>[Non Dichiarato]</span>
-                    </div>
-                    <div class="paziente-cf text-muted">
-                      <CIcon icon="cil-file" size="sm" class="me-1"/>
-                      <span v-if="paziente.codiceFiscale">{{ paziente.codiceFiscale }}</span>
-                      <span v-else>[Non Dichiarato]</span>
+                    <div>
+                      <div class="paziente-nome fw-semibold">
+                        <span v-if="paziente.nome || paziente.cognome">
+                          {{ paziente.nome || '' }} {{ paziente.cognome || '' }}
+                        </span>
+                        <span v-else class="text-muted fst-italic">—</span>
+                      </div>
+                      <div class="paziente-data text-muted">
+                        <CIcon icon="cil-calendar" size="sm" class="me-1"/>
+                        <span v-if="paziente.dataDiNascita">
+                          {{ formatDate(paziente.dataDiNascita) }}
+                          <CBadge color="light" text-color="secondary" shape="rounded-pill" class="ms-1 fw-normal age-badge">
+                            {{ calculateAge(paziente.dataDiNascita) }}
+                          </CBadge>
+                        </span>
+                        <span v-else class="fst-italic">—</span>
+                      </div>
+                      <div class="paziente-cf text-muted">
+                        <CIcon icon="cil-file" size="sm" class="me-1"/>
+                        <span v-if="paziente.codiceFiscale" class="cf-value">{{ paziente.codiceFiscale }}</span>
+                        <span v-else class="fst-italic">—</span>
+                      </div>
                     </div>
                   </div>
                 </CTableDataCell>
@@ -434,10 +391,10 @@
                   <div class="luoghi-info">
                     <!-- Nascita -->
                     <div class="luogo-nascita">
-                      <CIcon icon="cil-user" size="sm" class="me-1 text-primary"/>
+                      <CIcon icon="cilFlag" size="sm" class="me-1 text-primary"/>
                       <span class="luogo-label">Nato a:</span>
                       <span class="luogo-value">
-                        {{ formatLuogoNascita(paziente) }}
+                        {{ formatLuogoNascita(paziente) === '[Non Dichiarato]' ? '—' : formatLuogoNascita(paziente) }}
                       </span>
                     </div>
 
@@ -446,14 +403,13 @@
                       <CIcon icon="cil-location-pin" size="sm" class="me-1 text-success"/>
                       <span class="luogo-label">Residente a:</span>
                       <span class="luogo-value">
-                        {{ formatLuogoResidenza(paziente) }}
+                        {{ formatLuogoResidenza(paziente) === '[Non Dichiarato]' ? '—' : formatLuogoResidenza(paziente) }}
                       </span>
                     </div>
 
                     <!-- Indirizzo (se presente) -->
                     <div v-if="paziente.indirizzoResidenza" class="luogo-indirizzo text-muted">
-                      <CIcon icon="cil-location-pin" size="sm" class="me-1"/>
-                      <span class="luogo-label">Indirizzo:</span>
+                      <CIcon icon="cil-home" size="sm" class="me-1"/>
                       <span class="luogo-value">{{ paziente.indirizzoResidenza }}</span>
                     </div>
                   </div>
@@ -465,24 +421,20 @@
                     <div class="contatti-email">
                       <CIcon icon="cil-envelope-closed" size="sm" class="me-1 text-info"/>
                       <span v-if="paziente.email">
-                        <a :href="`mailto:${paziente.email}`" class="text-decoration-none">
+                        <a :href="`mailto:${paziente.email}`" class="text-decoration-none contact-link">
                           {{ paziente.email }}
                         </a>
                       </span>
-                      <span v-else class="text-muted">
-                        [Non Dichiarato]
-                      </span>
+                      <span v-else class="text-muted fst-italic">—</span>
                     </div>
                     <div class="contatti-telefono text-muted">
                       <CIcon icon="cil-phone" size="sm" class="me-1"/>
                       <span v-if="paziente.telefono">
-                        <a :href="`tel:${paziente.telefono}`" class="text-decoration-none">
+                        <a :href="`tel:${paziente.telefono}`" class="text-decoration-none contact-link">
                           {{ paziente.telefono }}
                         </a>
                       </span>
-                      <span v-else class="text-muted">
-                        [Non Dichiarato]
-                      </span>
+                      <span v-else class="fst-italic">—</span>
                     </div>
                   </div>
                 </CTableDataCell>
@@ -515,15 +467,15 @@
           </CTable>
 
           <!-- Paginazione avanzata -->
-          <CRow class="align-items-center mt-4" v-if="showPagination">
-            <CCol md="6">
-              <p class="text-muted small mb-0">
-                Pagina {{ currentPage }} di {{ totalPages }}
-                ({{ paginationInfo.start }}-{{ paginationInfo.end }} di {{ paginationInfo.total }})
-              </p>
+          <CRow class="align-items-center mt-3 pt-3 border-top" v-if="showPagination">
+            <CCol md="4">
+              <small class="text-muted">
+                Pagina <strong>{{ currentPage }}</strong> di <strong>{{ totalPages }}</strong>
+                &nbsp;({{ paginationInfo.start }}–{{ paginationInfo.end }} di {{ paginationInfo.total }})
+              </small>
             </CCol>
-            <CCol md="4" class="text-center">
-              <!-- Navigazione veloce -->
+            <CCol md="8" class="d-flex align-items-center justify-content-end gap-3">
+              <!-- Navigazione veloce con input diretto -->
               <CButtonGroup size="sm">
                 <CButton
                   variant="outline"
@@ -543,8 +495,7 @@
                 >
                   <font-awesome-icon icon="angle-left"/>
                 </CButton>
-                <!-- Input navigazione diretta -->
-                <CInputGroup style="width: 100px;">
+                <CInputGroup style="width: 90px;">
                   <CFormInput
                     v-model.number="directPageInput"
                     @keyup.enter="goToPage(directPageInput)"
@@ -576,23 +527,16 @@
                   <font-awesome-icon icon="angle-double-right"/>
                 </CButton>
               </CButtonGroup>
-            </CCol>
-            <CCol md="6">
-              <!-- Paginazione classica (per numeri di pagina) -->
+              <!-- Paginazione classica (numeri di pagina) -->
               <CPagination
                 v-if="totalPages <= 10"
-                class="justify-content-end"
+                class="mb-0"
                 :pages="totalPages"
                 :active-page="currentPage"
                 @item-click="changePage"
                 size="sm"
               />
-              <!-- Paginazione compatta per molte pagine -->
-              <div v-else class="d-flex justify-content-end">
-                <small class="text-muted">
-                  {{ totalPages }} pagine totali
-                </small>
-              </div>
+              <small v-else class="text-muted">{{ totalPages }} pagine totali</small>
             </CCol>
           </CRow>
         </div>
@@ -630,24 +574,35 @@
               }"
               @click="toggleMobileCard(paziente.id)"
             >
-              <!-- Header della card -->
+              <!-- Header della card con avatar -->
               <div class="patient-card-header">
-                <div class="patient-info">
-                  <div class="patient-name">
-                    <span v-if="paziente.nome || paziente.cognome">
-                      {{ paziente.nome || '' }} {{ paziente.cognome || '' }}
-                    </span>
-                    <span v-else class="text-muted">[Non Dichiarato]</span>
+                <div class="d-flex align-items-center gap-2 patient-info">
+                  <!-- Avatar mobile -->
+                  <div
+                    class="patient-avatar"
+                    style="width: 32px; height: 32px; min-width: 32px; font-size: 0.7rem;"
+                    :style="{ backgroundColor: getPatientAvatarColor(paziente) }"
+                    aria-hidden="true"
+                  >
+                    {{ getPatientInitials(paziente) }}
                   </div>
-                  <div class="patient-details">
-                    <span class="patient-age">
-                      <CIcon icon="cil-calendar" size="sm" class="me-1"/>
-                      <span v-if="paziente.dataDiNascita">
-                        {{ formatDate(paziente.dataDiNascita) }}
-                        <span class="ms-1">({{ calculateAge(paziente.dataDiNascita) }})</span>
+                  <div>
+                    <div class="patient-name">
+                      <span v-if="paziente.nome || paziente.cognome">
+                        {{ paziente.nome || '' }} {{ paziente.cognome || '' }}
                       </span>
-                      <span v-else>[Non Dichiarato]</span>
-                    </span>
+                      <span v-else class="text-muted fst-italic">—</span>
+                    </div>
+                    <div class="patient-details">
+                      <span class="patient-age">
+                        <CIcon icon="cil-calendar" size="sm" class="me-1"/>
+                        <span v-if="paziente.dataDiNascita">
+                          {{ formatDate(paziente.dataDiNascita) }}
+                          <span class="ms-1">({{ calculateAge(paziente.dataDiNascita) }})</span>
+                        </span>
+                        <span v-else class="fst-italic">—</span>
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -666,8 +621,8 @@
                 <div class="patient-detail-row">
                   <CIcon icon="cil-file" size="sm" class="detail-icon"/>
                   <span class="detail-label">CF:</span>
-                  <span v-if="paziente.codiceFiscale" class="detail-value">{{ paziente.codiceFiscale }}</span>
-                  <span v-else class="detail-value text-muted">[Non Dichiarato]</span>
+                  <span v-if="paziente.codiceFiscale" class="detail-value cf-value">{{ paziente.codiceFiscale }}</span>
+                  <span v-else class="detail-value text-muted fst-italic">—</span>
                 </div>
 
                 <!-- Email -->
@@ -675,11 +630,11 @@
                   <CIcon icon="cil-envelope-closed" size="sm" class="detail-icon text-info"/>
                   <span class="detail-label">Email:</span>
                   <span v-if="paziente.email">
-                    <a :href="`mailto:${paziente.email}`" class="detail-value detail-link" @click.stop>
+                    <a :href="`mailto:${paziente.email}`" class="detail-value detail-link contact-link" @click.stop>
                       {{ paziente.email }}
                     </a>
                   </span>
-                  <span v-else class="detail-value text-muted">[Non Dichiarato]</span>
+                  <span v-else class="detail-value text-muted fst-italic">—</span>
                 </div>
 
                 <!-- Telefono -->
@@ -687,26 +642,24 @@
                   <CIcon icon="cil-phone" size="sm" class="detail-icon"/>
                   <span class="detail-label">Tel:</span>
                   <span v-if="paziente.telefono" class="detail-value">
-                    <a :href="`tel:${paziente.telefono}`" class="detail-link" @click.stop>
+                    <a :href="`tel:${paziente.telefono}`" class="detail-link contact-link" @click.stop>
                       {{ paziente.telefono }}
                     </a>
                   </span>
-                  <span v-else class="detail-value text-muted">
-                    [Non Dichiarato]
-                  </span>
+                  <span v-else class="detail-value text-muted fst-italic">—</span>
                 </div>
 
                 <!-- Luoghi -->
                 <div class="patient-detail-row">
                   <CIcon icon="cil-location-pin" size="sm" class="detail-icon text-success"/>
                   <span class="detail-label">Residenza:</span>
-                  <span class="detail-value">{{ formatLuogoResidenza(paziente) }}</span>
+                  <span class="detail-value">{{ formatLuogoResidenza(paziente) === '[Non Dichiarato]' ? '—' : formatLuogoResidenza(paziente) }}</span>
                 </div>
 
                 <div class="patient-detail-row">
-                  <CIcon icon="cil-user" size="sm" class="detail-icon text-primary"/>
+                  <CIcon icon="cilFlag" size="sm" class="detail-icon text-primary"/>
                   <span class="detail-label">Nascita:</span>
-                  <span class="detail-value">{{ formatLuogoNascita(paziente) }}</span>
+                  <span class="detail-value">{{ formatLuogoNascita(paziente) === '[Non Dichiarato]' ? '—' : formatLuogoNascita(paziente) }}</span>
                 </div>
 
                 <!-- Indirizzo (se presente) -->
@@ -745,37 +698,23 @@
             </div>
           </div>
 
-          <!-- Paginazione mobile (stessa della desktop) -->
-          <CRow class="align-items-center mt-4" v-if="showPagination">
-            <CCol md="6">
-              <p class="text-muted small mb-0">
-                Pagina {{ currentPage }} di {{ totalPages }}
-                ({{ paginationInfo.start }}-{{ paginationInfo.end }} di {{ paginationInfo.total }})
-              </p>
+          <!-- Paginazione mobile -->
+          <CRow class="align-items-center mt-3 pt-3 border-top" v-if="showPagination">
+            <CCol cols="12" class="mb-2">
+              <small class="text-muted">
+                Pagina <strong>{{ currentPage }}</strong> di <strong>{{ totalPages }}</strong>
+                &nbsp;({{ paginationInfo.start }}–{{ paginationInfo.end }} di {{ paginationInfo.total }})
+              </small>
             </CCol>
-            <CCol md="4" class="text-center">
-              <!-- Navigazione veloce -->
+            <CCol cols="12" class="d-flex align-items-center justify-content-between">
               <CButtonGroup size="sm">
-                <CButton
-                  variant="outline"
-                  color="secondary"
-                  @click="goToFirstPage"
-                  :disabled="currentPage === 1"
-                  title="Prima pagina"
-                >
+                <CButton variant="outline" color="secondary" @click="goToFirstPage" :disabled="currentPage === 1" title="Prima pagina">
                   <font-awesome-icon icon="angle-double-left"/>
                 </CButton>
-                <CButton
-                  variant="outline"
-                  color="secondary"
-                  @click="goToPreviousPage"
-                  :disabled="currentPage === 1"
-                  title="Pagina precedente"
-                >
+                <CButton variant="outline" color="secondary" @click="goToPreviousPage" :disabled="currentPage === 1" title="Pagina precedente">
                   <font-awesome-icon icon="angle-left"/>
                 </CButton>
-                <!-- Input navigazione diretta -->
-                <CInputGroup style="width: 100px;">
+                <CInputGroup style="width: 80px;">
                   <CFormInput
                     v-model.number="directPageInput"
                     @keyup.enter="goToPage(directPageInput)"
@@ -788,42 +727,14 @@
                     title="Inserisci numero pagina"
                   />
                 </CInputGroup>
-                <CButton
-                  variant="outline"
-                  color="secondary"
-                  @click="goToNextPage"
-                  :disabled="currentPage === totalPages"
-                  title="Pagina successiva"
-                >
+                <CButton variant="outline" color="secondary" @click="goToNextPage" :disabled="currentPage === totalPages" title="Pagina successiva">
                   <font-awesome-icon icon="angle-right"/>
                 </CButton>
-                <CButton
-                  variant="outline"
-                  color="secondary"
-                  @click="goToLastPage"
-                  :disabled="currentPage === totalPages"
-                  title="Ultima pagina"
-                >
+                <CButton variant="outline" color="secondary" @click="goToLastPage" :disabled="currentPage === totalPages" title="Ultima pagina">
                   <font-awesome-icon icon="angle-double-right"/>
                 </CButton>
               </CButtonGroup>
-            </CCol>
-            <CCol md="6">
-              <!-- Paginazione classica (per numeri di pagina) -->
-              <CPagination
-                v-if="totalPages <= 10"
-                class="justify-content-end"
-                :pages="totalPages"
-                :active-page="currentPage"
-                @item-click="changePage"
-                size="sm"
-              />
-              <!-- Paginazione compatta per molte pagine -->
-              <div v-else class="d-flex justify-content-end">
-                <small class="text-muted">
-                  {{ totalPages }} pagine totali
-                </small>
-              </div>
+              <small v-if="totalPages > 10" class="text-muted">{{ totalPages }} pagine</small>
             </CCol>
           </CRow>
         </div>
@@ -1587,6 +1498,49 @@ const handleFileUpload = async (event) => {
     // Reset input per permettere di ricaricare lo stesso file
     event.target.value = ''
   }
+}
+
+// ─── Funzioni helper per avatar paziente ──────────────────────────────────────
+
+/**
+ * Restituisce le iniziali del paziente (es. "MR" da "Mario Rossi")
+ */
+const getPatientInitials = (paziente) => {
+  const nome = (paziente.nome || '').trim()
+  const cognome = (paziente.cognome || '').trim()
+  if (!nome && !cognome) return '?'
+  const firstInitial = nome ? nome[0].toUpperCase() : ''
+  const lastInitial = cognome ? cognome[0].toUpperCase() : ''
+  return (firstInitial + lastInitial) || nome[0].toUpperCase()
+}
+
+// Palette colori deterministica per gli avatar
+const AVATAR_COLORS = [
+  '#4A90D9', '#7B68EE', '#FF7F50', '#20B2AA',
+  '#DA70D6', '#3CB371', '#FF6347', '#6495ED',
+  '#D4A017', '#2E8B57'
+]
+
+/**
+ * Restituisce un colore consistente basato sul nome del paziente
+ */
+const getPatientAvatarColor = (paziente) => {
+  const key = ((paziente.nome || '') + (paziente.cognome || '')).trim()
+  if (!key) return '#9E9E9E'
+  let hash = 0
+  for (let i = 0; i < key.length; i++) {
+    hash = key.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
+}
+
+/**
+ * Azzera tutti i filtri di ricerca attivi
+ */
+const resetFilters = () => {
+  searchTerm.value = ''
+  filtroComune.value = ''
+  filtroProvincia.value = ''
 }
 
 // Caricamento dati all'avvio
@@ -2481,7 +2435,98 @@ const handleBulkDelete = async () => {
   color: #495057;
 }
 
-/* Stili per la vista mobile */
+/* ─── Avatar paziente ─────────────────────────────────────────────────── */
+.patient-avatar {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.table-row-hover:hover .patient-avatar {
+  transform: scale(1.08);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22);
+}
+
+/* ─── Badge contatore nell'header ────────────────────────────────────── */
+.patients-count-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25em 0.65em;
+}
+
+/* ─── Badge età nella colonna paziente ───────────────────────────────── */
+.age-badge {
+  font-size: 0.7rem;
+  border: 1px solid #dee2e6;
+}
+
+/* ─── Codice fiscale monospaziato ────────────────────────────────────── */
+.cf-value {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: #495057;
+}
+
+/* ─── Link contatti ──────────────────────────────────────────────────── */
+.contact-link {
+  color: inherit;
+  transition: color 0.15s ease;
+}
+
+.contact-link:hover {
+  color: #0d6efd !important;
+  text-decoration: underline !important;
+}
+
+/* ─── Prefisso icona nei filtri header ───────────────────────────────── */
+.filter-input-prefix {
+  background: transparent;
+  border-right: none;
+  color: #6c757d;
+  padding-inline: 0.5rem;
+}
+
+/* ─── Transizione bottone reset filtri ───────────────────────────────── */
+.fade-btn-enter-active,
+.fade-btn-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.fade-btn-enter-from,
+.fade-btn-leave-to {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+/* ─── Dark mode per avatar e badge ──────────────────────────────────── */
+[data-coreui-theme="dark"] .age-badge {
+  border-color: #4c566a;
+  background-color: #3b4252 !important;
+  color: #d8dee9 !important;
+}
+
+[data-coreui-theme="dark"] .cf-value {
+  color: #d8dee9;
+}
+
+[data-coreui-theme="dark"] .filter-input-prefix {
+  color: #81a1c1;
+  border-color: var(--cui-dark-form-border, #4c566a);
+}
+
+/* ─── Stili per la vista mobile */
 .mobile-patients-grid {
   display: flex;
   flex-direction: column;
