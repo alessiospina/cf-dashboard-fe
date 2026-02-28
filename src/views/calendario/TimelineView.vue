@@ -181,19 +181,14 @@
     <!-- Messaggio quando non ci sono professionisti (e quindi eventi) -->
     <div v-else class="text-center p-5">
       <CIcon icon="cil-calendar" size="3xl" class="text-muted mb-3" />
-      <h5 class="text-muted">Nessun professionista disponibile</h5>
-      <p class="text-muted mb-3">
-        I professionisti verranno automaticamente mostrati quando ci saranno eventi programmati.
-      </p>
-      <p class="text-muted">
-        <small>
-          Crea il primo appuntamento per iniziare a vedere la timeline dei professionisti.
-        </small>
+      <h5 class="text-muted">Nessun appuntamento in questa data</h5>
+      <p class="text-muted mb-0">
+        Crea un appuntamento per visualizzare la timeline dei professionisti.
       </p>
     </div>
 
-    <!-- Legenda dinamica basata sui professionisti -->
-    <div class="timeline-legenda mt-3">
+    <!-- Legenda dinamica — mostrata solo se ci sono prestazioni da mostrare -->
+    <div v-if="professionistiPerLegenda.length > 0 || hasEventiNonAssegnati" class="timeline-legenda mt-3">
       <CCard>
         <CCardBody class="py-2">
           <CRow class="align-items-center">
@@ -275,9 +270,9 @@ const emit = defineEmits(['eventoClick', 'creaEvento'])
 // ✅ AGGIORNATO - Importa utility per prestazioni dinamiche
 const { formatTime, getColorePrestazione } = useCalendario()
 
-// Costanti per la timeline
-const ORARIO_INIZIO = 0
-const ORARIO_FINE = 24
+// Costanti per la timeline — partiamo dalle 7:00 per nascondere la notte
+const ORARIO_INIZIO = 7
+const ORARIO_FINE = 23
 const INTERVALLO_MINUTI = 30
 const LARGHEZZA_SLOT = 80
 
@@ -403,7 +398,8 @@ const isOraCorrente = (oraSlot) => {
   if (!mostraIndicatoreOra.value) return false
   const ora = oraCorrente.value.getHours()
   const minuti = oraCorrente.value.getMinutes()
-  const oraCorrenteString = `${ora.toString().padStart(2, '0')}:${Math.floor(minuti / INTERVALLO_MINUTI) * INTERVALLO_MINUTI.toString().padStart(2, '0')}`
+  const minutoSlot = Math.floor(minuti / INTERVALLO_MINUTI) * INTERVALLO_MINUTI
+  const oraCorrenteString = `${ora.toString().padStart(2, '0')}:${minutoSlot.toString().padStart(2, '0')}`
   return oraSlot === oraCorrenteString
 }
 
@@ -433,48 +429,17 @@ const getEventiProfessionista = (professionista) => {
 
   // CASO SPECIALE: Slot "Eventi Non Assegnati"
   if (professionista.isSlotSpeciale && professionista.id === 'non-assegnati') {
-    console.log('🔍 [getEventiProfessionista] Filtrando eventi per slot "Eventi Non Assegnati"')
-
-    // Restituisce tutti gli eventi che NON hanno uno specialista
-    const eventiNonAssegnati = props.eventi.filter(evento => {
-      // Controlli di sicurezza per l'evento
-      if (!evento) {
-        return false
-      }
-
-      // Se l'evento non ha specialista, appartiene allo slot "Non Assegnati"
-      const haSpecialista = evento.specialista && evento.specialista.id
-      return !haSpecialista
-    })
-
-    console.log(`📋 [getEventiProfessionista] Trovati ${eventiNonAssegnati.length} eventi non assegnati`)
-    return eventiNonAssegnati
+    return props.eventi.filter(evento => evento && !(evento.specialista?.id))
   }
 
   // CASO NORMALE: Specialisti con eventi assegnati
-  if (!professionista.id) {
-    console.warn('⚠️ [getEventiProfessionista] Professionista senza ID:', professionista)
-    return []
-  }
+  if (!professionista.id) return []
 
-  // Filtra eventi per ID specialista (non più per nome completo)
-  const eventiSpecialista = props.eventi.filter(evento => {
-    // Controlli di sicurezza per l'evento
-    if (!evento || !evento.specialista) {
-      return false
-    }
-
-    // Confronta gli ID (convertiti in stringa per sicurezza)
-    const idEventoSpecialista = evento.specialista.id?.toString()
-    const idProfessionista = professionista.id?.toString()
-
-    console.log(`🔍 [getEventiProfessionista] Confronto ID: evento.specialista.id="${idEventoSpecialista}" vs professionista.id="${idProfessionista}"`)
-
-    return idEventoSpecialista === idProfessionista
+  const idProfessionista = professionista.id?.toString()
+  return props.eventi.filter(evento => {
+    if (!evento?.specialista) return false
+    return evento.specialista.id?.toString() === idProfessionista
   })
-
-  console.log(`👨‍⚕️ [getEventiProfessionista] Trovati ${eventiSpecialista.length} eventi per specialista ID ${professionista.id} (${professionista.nomeCompleto})`)
-  return eventiSpecialista
 }
 
 // Calcola lo stile di posizionamento per un evento
@@ -531,62 +496,40 @@ const getEventoStyle = (evento) => {
   }
 }
 
-// Crea un nuovo evento in uno slot (incluso slot speciale)
+// Crea un nuovo evento in uno slot
 const creaEventoInSlot = (professionista, oraSlot) => {
-  // Controlli di sicurezza
-  if (!professionista || !oraSlot) {
-    console.warn('Dati non validi per la creazione evento:', { professionista, oraSlot })
-    return
-  }
-
-  console.log('🖱️ Click su slot:', {
-    professionista: professionista.nomeCompleto,
-    oraSlot,
-    isSlotSpeciale: professionista.isSlotSpeciale
-  })
+  if (!professionista || !oraSlot) return
 
   try {
     const [ora, minuti] = oraSlot.split(':').map(Number)
-
-    // Verifica che ora e minuti siano numeri validi
-    if (isNaN(ora) || isNaN(minuti)) {
-      console.warn('Orario non valido:', oraSlot)
-      return
-    }
+    if (isNaN(ora) || isNaN(minuti)) return
 
     const dataInizio = new Date(props.dataSelezionata)
     dataInizio.setHours(ora, minuti, 0, 0)
     const dataFine = new Date(dataInizio)
-    dataFine.setHours(dataInizio.getHours() + 1) // Durata default 1 ora
+    dataFine.setHours(dataInizio.getHours() + 1)
 
-    // Differenzia tra slot normale e slot speciale
     if (professionista.isSlotSpeciale && professionista.id === 'non-assegnati') {
-      console.log('📝 Creazione evento per slot "Eventi Non Assegnati"')
-
-      // Per eventi nello slot speciale, non assegniamo uno specialista
       emit('creaEvento', {
-        professionista: null, // Nessuno specialista assegnato
+        professionista: null,
         professionistaNome: 'Eventi Non Assegnati',
-        specialistaId: null, // Evento non assegnato
+        specialistaId: null,
         dataInizio: dataInizio.toISOString(),
         dataFine: dataFine.toISOString(),
-        isEventoNonAssegnato: true // Flag per identificare l'evento
+        isEventoNonAssegnato: true
       })
     } else {
-      console.log('👨‍⚕️ Creazione evento per specialista normale')
-
-      // Per specialisti normali, comportamento standard
       emit('creaEvento', {
-        professionista: professionista, // Passa l'oggetto professionista completo
-        professionistaNome: professionista.nomeCompleto, // Nome completo per backend
-        specialistaId: professionista.id, // ID dello specialista
+        professionista,
+        professionistaNome: professionista.nomeCompleto,
+        specialistaId: professionista.id,
         dataInizio: dataInizio.toISOString(),
         dataFine: dataFine.toISOString(),
         isEventoNonAssegnato: false
       })
     }
   } catch (error) {
-    console.error('Errore nella creazione evento:', error)
+    console.error('[TimelineView] Errore creazione evento:', error)
   }
 }
 
@@ -690,35 +633,13 @@ const calcolaPosizioneScrollOraCorrente = () => {
 
 // Funzione per eseguire lo scroll automatico all'ora corrente
 const scrollToOraCorrente = () => {
-  // Solo se è presente il riferimento al contenuto
-  if (!contenutoRef.value) {
-    console.warn('📅 [TimelineView] Riferimento contenutoRef non disponibile per lo scroll')
-    return
-  }
-
-  // Solo se stiamo visualizzando la data odierna
-  if (!mostraIndicatoreOra.value) {
-    console.log('📅 [TimelineView] Non è la data odierna, skip scroll automatico')
-    return
-  }
+  if (!contenutoRef.value || !mostraIndicatoreOra.value) return
 
   const posizioneScroll = calcolaPosizioneScrollOraCorrente()
 
-  console.log(`📅 [TimelineView] Scroll automatico all'ora corrente: ${getOraCorrente()}`)
-  console.log(`📍 [TimelineView] Posizione scroll calcolata: ${posizioneScroll}px`)
-
-  // Esegue lo scroll orizzontale fluido
-  contenutoRef.value.scrollTo({
-    left: posizioneScroll,
-    behavior: 'smooth'
-  })
-
-  // Sincronizza anche l'header degli orari
+  contenutoRef.value.scrollTo({ left: posizioneScroll, behavior: 'smooth' })
   if (headerOrariRef.value) {
-    headerOrariRef.value.scrollTo({
-      left: posizioneScroll,
-      behavior: 'smooth'
-    })
+    headerOrariRef.value.scrollTo({ left: posizioneScroll, behavior: 'smooth' })
   }
 }
 
@@ -736,41 +657,21 @@ onMounted(() => {
 
 // Watcher per la data selezionata - riposiziona lo scroll se è la data odierna
 watch(() => props.dataSelezionata, async (nuovaData) => {
-  console.log(`📅 [TimelineView] Data cambiata a: ${nuovaData}`)
-
-  // Attende che il DOM si aggiorni dopo il cambio di data
   await nextTick()
 
-  // Se la nuova data è oggi, riposiziona lo scroll sull'ora corrente
   const oggi = new Date().toISOString().split('T')[0]
-  if (nuovaData === oggi) {
-    console.log('📅 [TimelineView] Data odierna selezionata, riposiziono scroll sull\'ora corrente')
-    setTimeout(() => {
+  setTimeout(() => {
+    if (nuovaData === oggi) {
       scrollToOraCorrente()
-    }, 150) // Leggero delay per permettere al rendering di completarsi
-  } else {
-    console.log('📅 [TimelineView] Data diversa da oggi, scroll rimane all\'inizio')
-    // Per date diverse da oggi, posiziona all'inizio della giornata lavorativa (es. 8:00)
-    setTimeout(() => {
-      const orarioInizioLavoro = 8 // 8:00 AM
+    } else {
+      // Per date diverse da oggi, posiziona all'inizio della giornata lavorativa (8:00)
+      const orarioInizioLavoro = 8
       const slotsInizioLavoro = ((orarioInizioLavoro - ORARIO_INIZIO) * 60) / INTERVALLO_MINUTI
       const posizioneInizioLavoro = slotsInizioLavoro * LARGHEZZA_SLOT
-
-      if (contenutoRef.value) {
-        contenutoRef.value.scrollTo({
-          left: posizioneInizioLavoro,
-          behavior: 'smooth'
-        })
-      }
-
-      if (headerOrariRef.value) {
-        headerOrariRef.value.scrollTo({
-          left: posizioneInizioLavoro,
-          behavior: 'smooth'
-        })
-      }
-    }, 150)
-  }
+      contenutoRef.value?.scrollTo({ left: posizioneInizioLavoro, behavior: 'smooth' })
+      headerOrariRef.value?.scrollTo({ left: posizioneInizioLavoro, behavior: 'smooth' })
+    }
+  }, 150)
 })
 
 onUnmounted(() => {

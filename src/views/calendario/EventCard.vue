@@ -74,8 +74,8 @@
       </div>
     </div>
 
-    <!-- ⭐ NUOVO - Modal per cancellazione eventi (ricorrenti e singoli) -->
-    <DeleteRecurringEventModal
+    <!-- Modal per conferma eliminazione (gestisce singoli e ricorrenti) -->
+    <ConfirmDeleteModal
       :visible="showDeleteModal"
       :evento="evento"
       @close="handleDeleteModalClosed"
@@ -86,9 +86,8 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { useCalendario } from '@/composables/useCalendario'
 import { useDeleteRecurringEvent } from '@/composables/useDeleteRecurringEvent'
-import DeleteRecurringEventModal from './DeleteRecurringEventModal.vue'
+import ConfirmDeleteModal from './ConfirmDeleteModal.vue'
 // CIcon è registrato globalmente in main.js, non serve importarlo
 
 const props = defineProps({
@@ -97,16 +96,17 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['click', 'deleted'])
-const { formatTime, formatDuration } = useCalendario()
 
-// ⭐ NUOVO - Composable per gestione cancellazione eventi ricorrenti
-const {
-  checkIsEventoRicorrente
-} = useDeleteRecurringEvent()
+// Composable per verifica ricorrenza
+const { checkIsEventoRicorrente } = useDeleteRecurringEvent()
 
 // ⭐ NUOVO - Stato per dropdown menu e modal
 const showDropdownMenu = ref(false)
 const showDeleteModal = ref(false)
+
+const toggleDropdownMenu = () => {
+  showDropdownMenu.value = !showDropdownMenu.value
+}
 
 // ⭐ NUOVO - Computed per verificare se è evento ricorrente
 const isEventoRicorrente = computed(() => {
@@ -236,33 +236,22 @@ const getStatoClass = (stato) => {
 
 // ⭐ NUOVO - Gestione azioni menu contestuale
 const handleModifica = () => {
-  showContextMenu.value = false
+  showDropdownMenu.value = false
   emit('click', props.evento)
 }
 
-const handleElimina = async () => {
-  showContextMenu.value = false
-
-  try {
-    const risultato = await handleDeleteEvent(props.evento, (deletedData) => {
-      // Emetti evento di cancellazione al componente padre
-      emit('deleted', deletedData)
-    })
-
-    // Se è un evento singolo (ha restituito un risultato), già gestito nel callback
-    if (risultato) {
-      console.log('✅ [EventCard] Evento singolo eliminato:', risultato)
-    }
-    // Se è ricorrente, la modal si occuperà di tutto
-  } catch (error) {
-    console.error('❌ [EventCard] Errore eliminazione evento:', error)
-  }
+const handleElimina = () => {
+  showDropdownMenu.value = false
+  showDeleteModal.value = true
 }
 
-// ⭐ NUOVO - Override degli handler per la modal ricorrente
-const handleRecurringDeletedLocal = (risultato) => {
-  handleRecurringDeleted(risultato)
-  // Emetti anche al componente padre
+// Handlers per la modal di eliminazione
+const handleDeleteModalClosed = () => {
+  showDeleteModal.value = false
+}
+
+const handleDeleted = (risultato) => {
+  showDeleteModal.value = false
   emit('deleted', risultato)
 }
 </script>

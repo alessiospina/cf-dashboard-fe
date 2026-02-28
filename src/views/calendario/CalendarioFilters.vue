@@ -1,12 +1,15 @@
 <template>
   <CCard class="filtri-calendario mb-4">
     <CCardBody>
-      <!-- Prima riga: Vista e informazioni -->
+      <!-- Prima riga: Titolo + Vista + informazioni -->
       <CRow class="mb-3 align-items-center">
-        <!-- Selezione Vista a sinistra -->
+        <!-- Titolo pagina + selezione Vista -->
         <CCol md="6">
           <div class="d-flex align-items-center gap-3">
-            <span class="fw-semibold text-muted">Vista:</span>
+            <h5 class="page-title-inline mb-0">
+              <CIcon icon="cil-calendar" class="me-2 text-primary" />
+              Calendario
+            </h5>
             <CButtonGroup>
               <CButton
                 :color="vistaAttiva === 'timeline' ? 'primary' : undefined"
@@ -34,22 +37,34 @@
           </div>
         </CCol>
 
-        <!-- Info contestuale a destra -->
+        <!-- Info contestuale + reset filtri a destra -->
         <CCol md="6" class="text-md-end">
-          <div class="d-flex align-items-center justify-content-md-end text-muted small">
-            <CIcon icon="cil-calendar" class="me-2" />
-            <span>
+          <div class="d-flex align-items-center justify-content-md-end gap-2 flex-wrap">
+            <div class="d-flex align-items-center text-muted small">
+              <CIcon icon="cil-calendar" class="me-2" />
               <strong>{{ formatDataEstesa(dataSelezionata) }}</strong>
-              <span v-if="specialistaSelezionato || tipoTerapiaSelezionato" class="ms-2">
-                <span class="text-muted">|</span>
-                <span v-if="specialistaSelezionato" class="ms-2">
-                  {{ getNomeSpecialista(specialistaSelezionato) }}
-                </span>
-                <span v-if="tipoTerapiaSelezionato" class="ms-2">
-                  {{ getLabelPrestazione(tipoTerapiaSelezionato) }}
-                </span>
-              </span>
-            </span>
+              <template v-if="specialistaSelezionato || tipoTerapiaSelezionato">
+                <span class="mx-2 text-muted">|</span>
+                <span v-if="specialistaSelezionato">{{ getNomeSpecialista(specialistaSelezionato) }}</span>
+                <span v-if="specialistaSelezionato && tipoTerapiaSelezionato" class="mx-1">·</span>
+                <span v-if="tipoTerapiaSelezionato">{{ getLabelPrestazione(tipoTerapiaSelezionato) }}</span>
+              </template>
+            </div>
+            <!-- Bottone azzera filtri (visibile solo con filtri attivi) -->
+            <Transition name="fade-filter">
+              <CButton
+                v-if="specialistaSelezionato || tipoTerapiaSelezionato"
+                variant="outline"
+                color="secondary"
+                size="sm"
+                class="px-2 py-1 azzera-btn"
+                @click="azzeraFiltri"
+                title="Azzera filtri"
+              >
+                <CIcon icon="cil-x" class="me-1" size="sm" />
+                Azzera
+              </CButton>
+            </Transition>
           </div>
         </CCol>
       </CRow>
@@ -224,6 +239,12 @@ const loadPrestazioni = async () => {
   }
 }
 
+// Azzera i filtri specialista e prestazione
+const azzeraFiltri = () => {
+  emit('update:specialistaSelezionato', '')
+  emit('update:tipoTerapiaSelezionato', '')
+}
+
 // Navigazione data
 const cambiaGiorno = (giorni) => {
   const dataCorrente = new Date(props.dataSelezionata)
@@ -307,29 +328,34 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Card principale con design migliorato */
+/* Card filtri con design pulito usando variabili CUI */
 .filtri-calendario {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
+  background: var(--cui-body-bg);
+  border: 1px solid var(--cui-border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s ease;
+  animation: fadeIn 0.3s ease-out;
 }
 
 .filtri-calendario:hover {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.09);
 }
 
-.filtri-calendario .card-body {
-  padding: 1.25rem;
+/* Titolo inline nella card filtri */
+.page-title-inline {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--cui-body-color);
+  white-space: nowrap;
 }
 
-/* Divider personalizzato */
+/* Divider */
 hr.border-light {
-  border-color: rgba(0, 0, 0, 0.08);
+  border-color: var(--cui-border-color);
   margin: 1rem 0;
 }
 
-/* Uniformazione altezza controlli */
+/* Altezza uniforme controlli */
 .form-control-height,
 .input-group .form-control,
 .input-group .btn,
@@ -339,197 +365,105 @@ hr.border-light {
   align-items: center;
 }
 
-/* Bottoni vista più piccoli nella prima riga */
 .btn-group .btn-sm {
   height: 32px;
   font-size: 0.875rem;
 }
 
-/* Stili per i bottoni */
+/* Bottoni */
 .input-group .btn,
 .btn-group .btn {
-  border-color: #dee2e6;
-  transition: all 0.2s ease-in-out;
-  background-color: #ffffff;
-}
-
-.input-group .btn:hover,
-.btn-group .btn:hover:not(.btn-primary) {
-  background-color: #f8f9fa;
-  border-color: #adb5bd;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-/* Bottone primario con stile più moderno */
-.btn-primary {
-  background: linear-gradient(135deg, #5856d6 0%, #4c49c7 100%);
-  border: none;
-  box-shadow: 0 2px 4px rgba(88, 86, 214, 0.25);
+  border-color: var(--cui-border-color);
+  background-color: var(--cui-body-bg);
+  color: var(--cui-body-color);
   transition: all 0.2s ease;
-  font-weight: 500;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #4c49c7 0%, #3c39b5 100%);
+.input-group .btn:hover:not(:disabled),
+.btn-group .btn:hover:not(.btn-primary):not(:disabled) {
+  background-color: var(--cui-tertiary-bg);
+  border-color: var(--cui-border-color);
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(88, 86, 214, 0.35);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
-.btn-primary:disabled {
-  background: #6c757d;
-  opacity: 0.65;
-}
-
-/* Migliore spaziatura per gap */
-.gap-2 {
-  gap: 0.5rem!important;
-}
-
-.gap-3 {
-  gap: 1rem!important;
-}
-
-/* Label con stile uniforme */
+/* Label */
 .form-label {
-  color: #495057;
+  color: var(--cui-body-color);
   font-size: 0.875rem;
-  margin-bottom: 0.5rem;
 }
 
-/* Input date con stile migliorato */
 input[type="date"] {
   cursor: pointer;
 }
 
-/* Keyboard shortcuts style */
+/* Keyboard shortcuts */
 kbd {
   padding: 0.2rem 0.4rem;
   font-size: 0.75rem;
-  color: #495057;
-  background-color: #f8f9fa;
+  color: var(--cui-body-color);
+  background-color: var(--cui-tertiary-bg);
   border-radius: 0.25rem;
-  border: 1px solid #dee2e6;
-  box-shadow: inset 0 -1px 0 rgba(0,0,0,0.15);
+  border: 1px solid var(--cui-border-color);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.1);
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
 }
 
-/* Stili responsive migliorati */
+/* Bottone "Azzera filtri" */
+.azzera-btn {
+  font-size: 0.8rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Transizione per il bottone azzera */
+.fade-filter-enter-active,
+.fade-filter-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.fade-filter-enter-from,
+.fade-filter-leave-to {
+  opacity: 0;
+  transform: scale(0.85);
+}
+
+/* Responsive */
 @media (max-width: 1199px) {
-  /* Su schermi large, il bottone crea occupa tutta la larghezza */
   .w-xl-auto {
-    width: 100%!important;
+    width: 100% !important;
   }
 }
 
 @media (max-width: 991px) {
-  .filtri-calendario .card-body {
+  .filtri-calendario :deep(.card-body) {
     padding: 1rem;
-  }
-
-  /* Centra le info su tablet */
-  .text-md-end {
-    text-align: center!important;
-  }
-
-  .justify-content-md-end {
-    justify-content: center!important;
   }
 }
 
 @media (max-width: 767px) {
-  /* Su mobile, rimuovi il divider e riduci spaziature */
   hr.border-light {
     display: none;
   }
 
-  .mb-3 {
-    margin-bottom: 0.5rem!important;
-  }
-
-  /* Stack completo su mobile */
-  .col-md-6 {
-    margin-bottom: 0.5rem;
-  }
-
-  /* Testo più piccolo su mobile */
-  .small {
-    font-size: 0.8rem;
+  .page-title-inline {
+    font-size: 1rem;
   }
 }
 
-/* Dark mode styles */
-[data-coreui-theme="dark"] .filtri-calendario {
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-coreui-theme="dark"] hr.border-light {
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-coreui-theme="dark"] .input-group .btn,
-[data-coreui-theme="dark"] .btn-group .btn {
-  border-color: #4a5568;
-  background-color: #2d3748;
-  color: #e2e8f0;
-}
-
-[data-coreui-theme="dark"] .input-group .btn:hover,
-[data-coreui-theme="dark"] .btn-group .btn:hover:not(.btn-primary) {
-  background-color: #4a5568;
-  border-color: #718096;
-}
-
-[data-coreui-theme="dark"] .form-label {
-  color: #cbd5e0;
-}
-
-[data-coreui-theme="dark"] .text-muted {
-  color: #a0aec0!important;
-}
-
-[data-coreui-theme="dark"] .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #5a67d8 100%);
-}
-
-[data-coreui-theme="dark"] .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #5a67d8 0%, #4c51bf 100%);
-}
-
-[data-coreui-theme="dark"] kbd {
-  color: #e2e8f0;
-  background-color: #2d3748;
-  border-color: #4a5568;
-  box-shadow: inset 0 -1px 0 rgba(255,255,255,0.15);
-}
-
-/* Animazioni sottili */
+/* Animazione entrata */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-.filtri-calendario {
-  animation: fadeIn 0.3s ease-out;
-}
-
-/* Focus states */
+/* Focus state coerente */
 .btn:focus,
 .form-control:focus,
 .form-select:focus {
-  box-shadow: 0 0 0 0.25rem rgba(88, 86, 214, 0.25);
+  box-shadow: 0 0 0 0.2rem rgba(var(--cui-primary-rgb), 0.25);
 }
 
-/* Loading state */
 .btn:disabled {
   cursor: not-allowed;
-}
-
-/* Transitions fluide per tutti gli elementi interattivi */
-.btn,
-.form-control,
-.form-select {
-  transition: all 0.2s ease;
 }
 </style>

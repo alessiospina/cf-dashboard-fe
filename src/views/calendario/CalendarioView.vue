@@ -9,19 +9,6 @@
     - Modal per gestione eventi
   -->
   <div class="calendario-page">
-    <!-- Header della pagina -->
-    <CRow class="mb-4">
-      <CCol>
-        <h2 class="page-title">
-          <CIcon icon="cil-calendar" class="me-2" />
-          Calendario Appuntamenti
-        </h2>
-        <p class="text-muted">
-          Gestisci gli appuntamenti e le terapie del centro medico
-        </p>
-      </CCol>
-    </CRow>
-
     <!-- Filtri e Controlli -->
     <CalendarioFilters
       v-model:data-selezionata="dataSelezionata"
@@ -86,29 +73,21 @@
           @evento-click="apriModalModificaEvento"
         />
 
-        <!-- UNICO messaggio quando non ci sono eventi -->
+        <!-- Nessun evento -->
         <div v-if="!loading && eventiFiltrati.length === 0" class="text-center p-5">
           <CIcon icon="cil-calendar" size="3xl" class="text-muted mb-3" />
-          <h5 class="text-muted">Nessun evento trovato</h5>
-          <p class="text-muted mb-3">
-            Non ci sono appuntamenti per i filtri selezionati.
-          </p>
+          <h5 class="text-muted">Nessun appuntamento</h5>
           <p class="text-muted mb-4">
-            <small>
-              <span v-if="specialistaSelezionato || tipoTerapiaSelezionato">
-                Prova a modificare i filtri per vedere più eventi.
-              </span>
-              <span v-else>
-                Quando ci saranno eventi, i professionisti verranno automaticamente mostrati nella timeline e nella lista.
-              </span>
-            </small>
+            <span v-if="specialistaSelezionato || tipoTerapiaSelezionato">
+              Nessun risultato per i filtri selezionati.
+            </span>
+            <span v-else>
+              Non ci sono appuntamenti per questa data.
+            </span>
           </p>
-          <CButton
-            color="primary"
-            @click="apriModalNuovoEvento"
-          >
+          <CButton color="primary" @click="apriModalNuovoEvento">
             <CIcon icon="cil-plus" class="me-2" />
-            Crea il primo appuntamento
+            Nuovo appuntamento
           </CButton>
         </div>
       </CCardBody>
@@ -182,141 +161,18 @@ const {
   clearError
 } = useCalendario()
 
-/**
- * Composable per gestione vista mobile-responsive
- */
-const useResponsiveView = () => {
-  // Chiavi localStorage per persistenza preferenze
-  const VISTA_PREFERENCE_KEY = 'calendario_vista_preference'
-  const MOBILE_OVERRIDE_KEY = 'calendario_mobile_override'
+// Rilevamento responsivo semplificato
+const VISTA_KEY = 'calendario_vista_preference'
 
-  // Stato reattivo per il rilevamento mobile
-  const isMobile = ref(false)
-  const isTablet = ref(false)
-  const userHasSetPreference = ref(false)
-
-  /**
-   * Rileva se il dispositivo è mobile basandosi su:
-   * - User agent
-   * - Dimensioni viewport
-   * - Touch capabilities
-   */
-  const detectMobileDevice = () => {
-    // User Agent detection per dispositivi mobili
-    const userAgent = navigator.userAgent.toLowerCase()
-    const mobileKeywords = [
-      'mobile', 'android', 'iphone', 'ipod', 'blackberry',
-      'windows phone', 'opera mini', 'iemobile'
-    ]
-    const isUserAgentMobile = mobileKeywords.some(keyword => userAgent.includes(keyword))
-
-    // Dimensioni viewport (consideriamo mobile sotto 768px)
-    const isViewportMobile = window.innerWidth < 768
-
-    // Tablet detection (768px - 1024px)
-    const isViewportTablet = window.innerWidth >= 768 && window.innerWidth <= 1024
-
-    // Touch capability
-    const hasTouchSupport = 'ontouchstart' in window || navigator.maxTouchPoints > 0
-
-    // Combinazione di fattori per determinare se è mobile
-    const mobileDetected = isUserAgentMobile || (isViewportMobile && hasTouchSupport)
-    const tabletDetected = isViewportTablet && hasTouchSupport && !isUserAgentMobile
-
-    console.log('📱 [Device Detection]', {
-      userAgent: isUserAgentMobile,
-      viewport: isViewportMobile,
-      viewportTablet: isViewportTablet,
-      touch: hasTouchSupport,
-      mobile: mobileDetected,
-      tablet: tabletDetected
-    })
-
-    return { mobile: mobileDetected, tablet: tabletDetected }
-  }
-
-  /**
-   * Determina la vista di default basandosi sul dispositivo
-   */
-  const getDefaultView = () => {
-    // Controlla se l'utente ha già impostato una preferenza manualmente
-    const savedPreference = localStorage.getItem(VISTA_PREFERENCE_KEY)
-    const hasMobileOverride = localStorage.getItem(MOBILE_OVERRIDE_KEY) === 'true'
-
-    console.log('🎯 [Vista Default]', {
-      savedPreference,
-      hasMobileOverride,
-      isMobile: isMobile.value,
-      isTablet: isTablet.value
-    })
-
-    // Se l'utente ha già una preferenza salvata, rispettala
-    if (savedPreference && hasMobileOverride) {
-      console.log('✅ [Vista Default] Usando preferenza utente:', savedPreference)
-      return savedPreference
-    }
-
-    // Altrimenti usa la logica mobile-first
-    if (isMobile.value) {
-      console.log('📱 [Vista Default] Mobile rilevato, usando vista lista')
-      return 'lista'
-    } else if (isTablet.value) {
-      console.log('📟 [Vista Default] Tablet rilevato, usando vista lista')
-      return 'lista'
-    } else {
-      console.log('💻 [Vista Default] Desktop rilevato, usando vista timeline')
-      return 'timeline'
-    }
-  }
-
-  /**
-   * Salva la preferenza dell'utente quando cambia vista manualmente
-   */
-  const saveUserPreference = (vista) => {
-    localStorage.setItem(VISTA_PREFERENCE_KEY, vista)
-    localStorage.setItem(MOBILE_OVERRIDE_KEY, 'true')
-    userHasSetPreference.value = true
-    console.log('💾 [Preferenza] Salvata preferenza utente:', vista)
-  }
-
-  /**
-   * Listener per resize window per aggiornare detection
-   */
-  const handleResize = () => {
-    const detection = detectMobileDevice()
-    isMobile.value = detection.mobile
-    isTablet.value = detection.tablet
-
-    // Se l'utente non ha impostato preferenze, aggiorna la vista automaticamente
-    if (!userHasSetPreference.value) {
-      const newDefaultView = getDefaultView()
-      console.log('🔄 [Resize] Aggiornamento vista automatico:', newDefaultView)
-      return newDefaultView
-    }
-    return null
-  }
-
-  return {
-    isMobile,
-    isTablet,
-    userHasSetPreference,
-    detectMobileDevice,
-    getDefaultView,
-    saveUserPreference,
-    handleResize
-  }
+const getDefaultView = () => {
+  const saved = localStorage.getItem(VISTA_KEY)
+  if (saved) return saved
+  return window.innerWidth < 768 ? 'lista' : 'timeline'
 }
 
-// Utilizzo del composable responsive
-const {
-  isMobile,
-  isTablet,
-  userHasSetPreference,
-  detectMobileDevice,
-  getDefaultView,
-  saveUserPreference,
-  handleResize
-} = useResponsiveView()
+const saveUserPreference = (vista) => {
+  localStorage.setItem(VISTA_KEY, vista)
+}
 
 // Stato locale della vista
 const vistaAttiva = ref('timeline') // Inizializziamo con default, verrà aggiornato in onMounted
@@ -331,31 +187,16 @@ const eventoSelezionato = ref(null)
 
 // Computed per eventi filtrati
 const eventiFiltrati = computed(() => {
-  const filtri = {
+  return filtraEventi(eventi.value, {
     data: dataSelezionata.value,
     specialista: specialistaSelezionato.value,
     tipoTerapia: tipoTerapiaSelezionato.value
-  }
-
-  console.log(`🎯 [CalendarioView] Applicazione filtri:`, filtri)
-  console.log(`📋 [CalendarioView] Eventi da filtrare: ${eventi.value?.length || 0}`)
-
-  const risultato = filtraEventi(eventi.value, filtri)
-
-  console.log(`✅ [CalendarioView] Eventi filtrati: ${risultato?.length || 0}`)
-
-  return risultato
+  })
 })
 
 // Computed per specialisti filtrati (basato sugli eventi filtrati)
 const specialistiFiltrati = computed(() => {
-  console.log(`👨‍⚕️ [CalendarioView] Generazione specialisti da ${eventiFiltrati.value?.length || 0} eventi filtrati`)
-
-  const risultato = estraiSpecialistiDaEventi(eventiFiltrati.value)
-
-  console.log(`✅ [CalendarioView] Specialisti filtrati: ${risultato?.length || 0}`)
-
-  return risultato
+  return estraiSpecialistiDaEventi(eventiFiltrati.value)
 })
 
 // Metodi modal
@@ -398,143 +239,65 @@ const handleModificaEvento = (evento) => {
   showEventModal.value = true
 }
 
-const handleCancellaEvento = async (eventoId) => {
-  console.log('🗑️ [CalendarioView] Evento cancellato:', eventoId)
-
-  // Chiude la modal di azione
+const handleCancellaEvento = async () => {
   showEventActionModal.value = false
   eventoSelezionato.value = null
-
-  // Ricarica gli eventi per aggiornare la vista
   await caricaEventi(dataSelezionata.value)
 }
 
-// Gestione eventi modal
-const handleEventoCreato = async (nuovoEvento) => {
-  console.log('Evento creato:', nuovoEvento)
-  // Ricarica eventi per la data corrente
+const handleEventoCreato = async () => {
   await caricaEventi(dataSelezionata.value)
   chiudiModalEvento()
 }
 
-const handleEventoAggiornato = async (eventoAggiornato) => {
-  console.log('Evento aggiornato:', eventoAggiornato)
-  // Ricarica eventi per la data corrente
+const handleEventoAggiornato = async () => {
   await caricaEventi(dataSelezionata.value)
   chiudiModalEvento()
 }
 
-const handleEventoEliminato = async (risultatoEliminazione) => {
-  console.log('🗑️ [CalendarioView] Evento eliminato:', risultatoEliminazione)
-
-  // Se è un risultato di cancellazione eventi ricorrenti, gestisci diversamente
-  if (risultatoEliminazione && typeof risultatoEliminazione === 'object' && risultatoEliminazione.deletedIds) {
-    console.log(`✅ [CalendarioView] Cancellazione eventi ricorrenti completata: ${risultatoEliminazione.deletedIds.length} eventi eliminati`)
-  } else {
-    console.log('✅ [CalendarioView] Evento singolo eliminato:', risultatoEliminazione)
-  }
-
-  // Ricarica eventi per la data corrente in entrambi i casi
+const handleEventoEliminato = async () => {
   await caricaEventi(dataSelezionata.value)
   chiudiModalEvento()
 }
 
-// Funzione per ricaricare eventi manualmente
 const aggiornaEventi = async () => {
-  console.log('Ricaricamento manuale eventi per:', dataSelezionata.value)
   await caricaEventi(dataSelezionata.value)
 }
 
-// Watcher per la data selezionata - ricarica eventi quando cambia la data
+// Ricarica eventi al cambio data
 watch(dataSelezionata, async (nuovaData, vecchiaData) => {
   if (nuovaData !== vecchiaData) {
-    console.log(`Data cambiata da ${vecchiaData} a ${nuovaData}, ricarico eventi...`)
-    try {
-      await caricaEventi(nuovaData)
-      console.log('Eventi ricaricati con successo per la nuova data')
-    } catch (err) {
-      console.error('Errore nel ricaricamento eventi per la nuova data:', err)
-    }
+    await caricaEventi(nuovaData)
   }
 })
 
-// Caricamento iniziale - Inizializza tutto il calendario una sola volta
-onMounted(async () => {
-  console.log('🚀 [Inizializzazione] Avvio calendario con rilevamento mobile...')
-
-  try {
-    // 1. Rileva il tipo di dispositivo
-    const detection = detectMobileDevice()
-    isMobile.value = detection.mobile
-    isTablet.value = detection.tablet
-
-    // 2. Imposta la vista di default basata sul dispositivo
-    const defaultView = getDefaultView()
-    vistaAttiva.value = defaultView
-
-    console.log('📱 [Inizializzazione] Configurazione:', {
-      mobile: isMobile.value,
-      tablet: isTablet.value,
-      vistaDefault: defaultView
-    })
-
-    // 3. Inizializza il calendario con la data selezionata inizialmente
-    await inizializzaCalendario(dataSelezionata.value)
-
-    // 4. Aggiungi listener per resize
-    window.addEventListener('resize', onWindowResize)
-
-    console.log('✅ [Inizializzazione] Calendario pronto con vista:', vistaAttiva.value)
-  } catch (err) {
-    console.error('❌ [Inizializzazione] Errore:', err)
+// Salva la preferenza di vista quando l'utente la cambia
+watch(vistaAttiva, (nuovaVista, vecchiaVista) => {
+  if (vecchiaVista && nuovaVista !== vecchiaVista) {
+    saveUserPreference(nuovaVista)
   }
 })
 
-// Cleanup e listener per resize
-onUnmounted(() => {
-  window.removeEventListener('resize', onWindowResize)
-})
-
-// Handler per resize window
+// Aggiorna vista su resize (solo se non ha una preferenza salvata)
 const onWindowResize = () => {
-  const newView = handleResize()
-  if (newView && newView !== vistaAttiva.value) {
-    vistaAttiva.value = newView
-    console.log('🔄 [Resize] Vista aggiornata automaticamente:', newView)
+  if (!localStorage.getItem(VISTA_KEY)) {
+    vistaAttiva.value = window.innerWidth < 768 ? 'lista' : 'timeline'
   }
 }
 
-// Watcher per cambiamenti di vista - salva preferenza se cambiata manualmente
-watch(vistaAttiva, (nuovaVista, vecchiaVista) => {
-  if (vecchiaVista && nuovaVista !== vecchiaVista) {
-    // Salva la preferenza solo se il cambiamento non è dovuto all'inizializzazione
-    if (vecchiaVista !== 'timeline' || nuovaVista !== getDefaultView()) {
-      saveUserPreference(nuovaVista)
-      console.log('👤 [Preferenza] Vista cambiata manualmente:', nuovaVista)
-    }
-  }
+onMounted(async () => {
+  vistaAttiva.value = getDefaultView()
+  await inizializzaCalendario(dataSelezionata.value)
+  window.addEventListener('resize', onWindowResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', onWindowResize)
 })
 </script>
 
 <style scoped>
-/**
- * Stili per la pagina Calendario
- */
-
 .calendario-page {
   padding: 0;
-}
-
-.page-title {
-  color: #2c3e50;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-
-/* Stili responsive */
-@media (max-width: 768px) {
-  .page-title {
-    font-size: 1.5rem;
-  }
 }
 </style>
