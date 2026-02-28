@@ -26,13 +26,13 @@ Dashboard di gestione per **Centro Felicemente**, costruita con Vue 3 + CoreUI 5
 
 ---
 
-## Installazione e avvio
+## Installazione e avvio locale
 
 ```bash
 # 1. Installa le dipendenze
 npm install
 
-# 2. Copia il file di configurazione e adattalo
+# 2. Configura il file di ambiente
 cp .env.example .env
 
 # 3. Avvia il server di sviluppo
@@ -53,6 +53,8 @@ VITE_API_PORT=8000
 
 L'URL delle API viene composto come `PROTOCOL://HOST:PORT/api`.
 
+> ⚠️ Le variabili `VITE_API_*` vengono **baked** nell'immagine Docker al momento della build. Se cambia l'indirizzo del backend, aggiorna i secret su GitHub e rilascia una nuova versione.
+
 ---
 
 ## Autenticazione
@@ -68,8 +70,6 @@ Il sistema usa **JWT in cookie httpOnly** (nessun token nel `localStorage`).
 | Rotte pubbliche | Marcate con `meta: { public: true }` (es. `/login`) |
 | Scadenza token | Interceptor Axios redirige a `/login` in caso di risposta `401` |
 
-Per accedere alla dashboard serve un account creato dal backend (vedi `ADMIN_USERNAME` e `ADMIN_PASSWORD` nel `.env` del BE).
-
 ---
 
 ## Struttura del progetto
@@ -77,20 +77,19 @@ Per accedere alla dashboard serve un account creato dal backend (vedi `ADMIN_USE
 ```
 src/
 ├── assets/
-│   ├── brand/          # Loghi Centro Felicemente (light/dark mode)
-│   ├── icons/          # Registro icone CoreUI
-│   └── images/
+│   ├── brand/          # Loghi Centro Felicemente
+│   └── icons/
 ├── components/         # Componenti condivisi (AppHeader, Sidebar, ecc.)
 ├── config/
 │   └── api.js          # URL base API da variabili d'ambiente
-├── composables/        # Hook Vue riutilizzabili (useAdminMessages, ecc.)
+├── composables/        # Hook Vue riutilizzabili
 ├── layouts/
-│   └── DefaultLayout.vue  # Layout con sidebar per le pagine autenticate
+│   └── DefaultLayout.vue
 ├── router/
-│   └── index.js        # Rotte + navigation guard autenticazione
+│   └── index.js        # Rotte + navigation guard
 ├── services/
-│   ├── httpClient.js       # Istanza Axios centralizzata (withCredentials)
-│   ├── authService.js      # Login / logout / me
+│   ├── httpClient.js
+│   ├── authService.js
 │   ├── pazienteService.js
 │   ├── specialistaService.js
 │   ├── prestazioneService.js
@@ -101,23 +100,22 @@ src/
 │   └── adminMessageService.js
 ├── stores/
 │   ├── modules/
-│   │   ├── authStore.js        # Stato utente autenticato
+│   │   ├── authStore.js
 │   │   ├── pazientiStore.js
 │   │   └── adminMessageStore.js
 │   ├── sidebar.js
 │   └── theme.js
 ├── types/
-│   └── backend.types.js    # DTO, mapper, validator
+│   └── backend.types.js
 └── views/
-    ├── pages/
-    │   └── Login.vue       # Pagina di login (pubblica)
-    ├── statistics/         # Dashboard principale
-    ├── pazienti/           # Gestione pazienti
-    ├── calendario/         # Calendario appuntamenti
-    ├── gestione-team/      # Specialisti e prestazioni
-    ├── attivita/           # Attività del centro
-    ├── email/              # Invio email reminder
-    └── admin-messages/     # Segnalazioni / feedback (RBAC: solo admin)
+    ├── pages/Login.vue
+    ├── statistics/
+    ├── pazienti/
+    ├── calendario/
+    ├── gestione-team/
+    ├── attivita/
+    ├── email/
+    └── admin-messages/
 ```
 
 ---
@@ -138,6 +136,17 @@ src/
 
 ---
 
+## Script disponibili
+
+```bash
+npm run dev      # Server di sviluppo (porta 3000)
+npm run build    # Build di produzione in /dist
+npm run preview  # Preview della build
+npm run lint     # Linting ESLint
+```
+
+---
+
 ## Aggiungere un nuovo servizio API
 
 1. Crea `src/services/nomeService.js`
@@ -154,34 +163,34 @@ export class NomeService {
 }
 ```
 
-Il `httpClient` invia automaticamente il cookie JWT e gestisce i redirect `401`.
+---
+
+## CI/CD e Deploy
+
+Il progetto usa **GitHub Actions** per la build e il push automatico dell'immagine Docker sul registry privato.
+
+Il workflow si attiva alla creazione di un tag `v*`:
+
+```bash
+git tag v1.x.x
+git push origin main v1.x.x
+```
+
+In produzione il frontend gira sulla porta **8080**.
+
+Per i dettagli completi sul deploy del container sul server, consulta:
+
+➡️ **[DEPLOY.md](./DEPLOY.md)**
 
 ---
 
-## Script disponibili
+## Changelog
 
-```bash
-npm run dev      # Server di sviluppo (porta 3000)
-npm run build    # Build di produzione in /dist
-npm run preview  # Preview della build di produzione
-npm run lint     # Linting ESLint
-```
+### v0.0.1 — Febbraio 2026
+- CI/CD: workflow GitHub Actions con tag versioning
+- Deploy: registry privato Docker su `centro.w3ddns.it:6000`
+- Porta produzione: 8080
 
 ---
 
-## Build di produzione
-
-```bash
-npm run build
-```
-
-I file vengono generati nella cartella `dist/`. Essendo un'SPA con Vue Router in history mode, il server web deve servire `index.html` per tutti i path.
-
-Esempio configurazione **Nginx**:
-
-```nginx
-location / {
-  root /var/www/cf-dashboard-fe/dist;
-  try_files $uri $uri/ /index.html;
-}
-```
+**Sviluppato da Team Manovalanza**
