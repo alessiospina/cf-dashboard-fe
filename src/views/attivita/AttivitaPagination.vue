@@ -172,8 +172,9 @@ export default {
   align-items: center;
   gap: 16px;
   padding: 20px;
-  background: white;
-  border-top: 1px solid #dee2e6;
+  background: var(--cui-card-bg);
+  border-top: 1px solid var(--cui-border-color);
+  color: var(--cui-body-color);
 }
 
 .pagination-info {
@@ -189,7 +190,7 @@ export default {
 .items-info {
   /* Informazioni sui record visualizzati */
   font-size: 0.9rem;
-  color: #6c757d;
+  color: var(--cui-secondary-color);
 }
 
 .items-per-page {
@@ -203,7 +204,7 @@ export default {
   /* Label per il controllo */
   margin: 0;
   font-size: 0.9rem;
-  color: #6c757d;
+  color: var(--cui-secondary-color);
   white-space: nowrap;
 }
 

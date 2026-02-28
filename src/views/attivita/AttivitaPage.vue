@@ -297,7 +297,7 @@ export default {
   /* Container principale della pagina */
   padding: 24px;
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background-color: var(--cui-body-bg);
 }
 
 .page-header {
@@ -310,14 +310,14 @@ export default {
   /* Titolo principale della pagina */
   font-size: 2.5rem;
   font-weight: 600;
-  color: #212529;
+  color: var(--cui-body-color);
   margin-bottom: 8px;
 }
 
 .page-description {
   /* Descrizione sotto il titolo */
   font-size: 1.1rem;
-  color: #6c757d;
+  color: var(--cui-secondary-color);
   margin: 0;
 }
 
@@ -355,12 +355,13 @@ export default {
   border: none;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   border-radius: 12px;
+  background-color: var(--cui-card-bg);
 }
 
 .filters-section .card-header {
   /* Header della card filtri */
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
+  background-color: var(--cui-secondary-bg);
+  border-bottom: 1px solid var(--cui-border-color);
   border-radius: 12px 12px 0 0;
   padding: 16px 24px;
 }
@@ -369,35 +370,38 @@ export default {
   /* Titolo della sezione filtri */
   font-size: 1.1rem;
   font-weight: 600;
-  color: #212529;
+  color: var(--cui-body-color);
 }
 
 .filters-section .card-body {
   /* Body della card filtri */
   padding: 24px;
+  background-color: var(--cui-card-bg);
 }
 
 .form-label {
   /* Label dei form */
   font-weight: 500;
-  color: #495057;
+  color: var(--cui-body-color);
   margin-bottom: 8px;
 }
 
 .form-control,
 .form-select {
   /* Campi input e select */
-  border: 1px solid #ced4da;
+  border: 1px solid var(--cui-border-color);
   border-radius: 8px;
   padding: 10px 12px;
+  background-color: var(--cui-input-bg, var(--cui-body-bg));
+  color: var(--cui-body-color);
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
 .form-control:focus,
 .form-select:focus {
   /* Focus sui campi */
-  border-color: #0d6efd;
-  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  border-color: var(--cui-primary);
+  box-shadow: 0 0 0 0.2rem rgba(var(--cui-primary-rgb), 0.25);
 }
 
 .btn {
@@ -421,7 +425,7 @@ export default {
 .bottom-pagination .pagination-container {
   /* Container paginazione inferiore */
   border-radius: 0 0 8px 8px;
-  border-top: 1px solid #dee2e6;
+  border-top: 1px solid var(--cui-border-color);
 }
 
 .error-section {

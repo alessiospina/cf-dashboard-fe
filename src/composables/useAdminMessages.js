@@ -199,9 +199,29 @@ export function useAdminMessages() {
   function priorityLabel(priority) { return PRIORITY_LABEL[priority] ?? priority }
   function statusLabel(status)     { return STATUS_LABEL[status]     ?? status }
 
+  /**
+   * Parsa una stringa data dal backend in modo timezone-safe.
+   * Il backend di produzione (UTC) serializza i timestamp senza indicatore di timezone
+   * (es. "2026-02-28T09:00:00" invece di "2026-02-28T09:00:00Z").
+   * Il browser italiano (UTC+1) li interpreterebbe come orario locale, spostandoli
+   * di 1 ora indietro e causando date sbagliate (il classico "giorno -1").
+   * Appendendo 'Z' ai datetime ambigui, forziamo l'interpretazione UTC corretta.
+   */
+  function parseDate(dateStr) {
+    if (!dateStr) return null
+    let str = dateStr
+    // Datetime senza timezone (es. "2026-02-28T09:00:00" o "2026-02-28T09:00:00.000")
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(str)) {
+      str += 'Z' // Tratta come UTC, coerente col backend di produzione
+    }
+    const d = new Date(str)
+    return isNaN(d.getTime()) ? null : d
+  }
+
   function formatDate(dateStr) {
-    if (!dateStr) return '—'
-    return new Date(dateStr).toLocaleDateString('it-IT', {
+    const date = parseDate(dateStr)
+    if (!date) return '—'
+    return date.toLocaleDateString('it-IT', {
       day: '2-digit', month: '2-digit', year: 'numeric',
     })
   }
@@ -209,13 +229,16 @@ export function useAdminMessages() {
   /**
    * Restituisce una data relativa se < 7 giorni fa, altrimenti la data formattata.
    * Es.: "Oggi", "Ieri", "3 giorni fa", "15/02/2026"
+   * Confronta i giorni calendario in timezone locale (non i millisecondi grezzi)
+   * per evitare falsi "ieri" causati da record creati a fine giornata.
    */
   function formatRelativeDate(dateStr) {
-    if (!dateStr) return '—'
-    const date = new Date(dateStr)
-    const now   = new Date()
-    const diffMs   = now - date
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    const date = parseDate(dateStr)
+    if (!date) return '—'
+    const now = new Date()
+    // Midnight locale di ciascuna data per confronto per giorno calendario
+    const toMidnightLocal = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
+    const diffDays = Math.round((toMidnightLocal(now) - toMidnightLocal(date)) / (1000 * 60 * 60 * 24))
     if (diffDays === 0) return 'Oggi'
     if (diffDays === 1) return 'Ieri'
     if (diffDays < 7)  return `${diffDays} giorni fa`

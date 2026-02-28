@@ -128,7 +128,8 @@
         <div class="d-flex align-items-center gap-2">
           <CButton
             v-if="filteredMessages.length > 0"
-            color="light"
+            color="secondary"
+            variant="ghost"
             size="sm"
             :title="allExpanded ? 'Comprimi tutto' : 'Espandi tutto'"
             @click="toggleExpandAll"
@@ -179,7 +180,7 @@
 
         <!-- Table -->
         <CTable v-else responsive class="mb-0 report-table">
-          <CTableHead color="light">
+          <CTableHead class="table-head-themed">
             <!-- Intestazioni colonne -->
             <CTableRow>
               <CTableHeaderCell class="expand-col" />
@@ -560,6 +561,13 @@ onMounted(() => {
 .priority-high   { box-shadow: inset 4px 0 0 var(--cui-danger); }
 .priority-medium { box-shadow: inset 4px 0 0 var(--cui-warning); }
 .priority-low    { box-shadow: inset 4px 0 0 var(--cui-success); }
+
+/* ---- Table head: usa variabili tema invece di color="light" statico ---- */
+.table-head-themed th {
+  background-color: var(--cui-secondary-bg);
+  color: var(--cui-body-color);
+  border-color: var(--cui-border-color);
+}
 
 /* ---- Filter row in header ---- */
 .filter-row th {

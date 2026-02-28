@@ -280,7 +280,7 @@ export default {
 
 .attivita-table-container {
   /* Container principale della tabella */
-  background: white;
+  background: var(--cui-card-bg);
   border-radius: 12px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   overflow: hidden;
@@ -289,8 +289,8 @@ export default {
 .table-header {
   /* Header della tabella con controlli integrati */
   padding: 20px 24px;
-  border-bottom: 1px solid #dee2e6;
-  background-color: #f8f9fa;
+  border-bottom: 1px solid var(--cui-border-color);
+  background-color: var(--cui-secondary-bg);
 }
 
 .header-content {
@@ -314,7 +314,7 @@ export default {
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
-  color: #212529;
+  color: var(--cui-body-color);
   display: flex;
   align-items: center;
 }
@@ -383,7 +383,7 @@ export default {
   /* Container responsive per la tabella */
   max-height: 500px;
   overflow-y: auto;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--cui-border-color);
   border-radius: 8px;
 }
 
@@ -410,12 +410,14 @@ export default {
   /* Celle della tabella */
   padding: 16px;
   vertical-align: middle;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--cui-border-color);
+  color: var(--cui-body-color);
+  background-color: var(--cui-card-bg);
 }
 
-.table-row:hover {
+.table-row:hover td {
   /* Effetto hover sulle righe */
-  background-color: #f8f9fa;
+  background-color: var(--cui-tertiary-bg) !important;
   cursor: default;
 }
 
@@ -429,7 +431,7 @@ export default {
 .date-display {
   /* Data principale */
   font-weight: 600;
-  color: #212529;
+  color: var(--cui-body-color);
   font-size: 0.9rem;
 }
 
@@ -441,7 +443,7 @@ export default {
 .patient-name {
   /* Nome paziente */
   font-weight: 600;
-  color: #212529;
+  color: var(--cui-body-color);
   margin-bottom: 4px;
 }
 
@@ -464,7 +466,7 @@ export default {
 .specialist-name {
   /* Nome specialista */
   font-weight: 600;
-  color: #212529;
+  color: var(--cui-body-color);
   margin-bottom: 2px;
 }
 
